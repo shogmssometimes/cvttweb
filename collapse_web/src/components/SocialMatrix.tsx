@@ -8,8 +8,9 @@ interface Props {
 
 const getMatrixPosition = (meters: Meters) => {
   // Center is (300, 300) in SVG, each tick is 40px, range -5 to +5 for each axis
-  const x = 300 + (meters.trust - meters.distrust) * 40;
-  const y = 300 - (meters.surveillance - meters.carteBlanche) * 40;
+  // Trust increases left, Distrust increases right, Surveillance up, Carte Blanche down
+  const x = 300 - meters.trust * 40 + meters.distrust * 40;
+  const y = 300 - meters.surveillance * 40 + meters.carteBlanche * 40;
   return { x, y };
 };
 
