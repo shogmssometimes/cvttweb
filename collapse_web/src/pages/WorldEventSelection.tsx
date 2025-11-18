@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { SocialMatrix } from "../components/SocialMatrix";
 import { WorldEventCard } from "../components/WorldEventCard";
 import { Meters } from "../domain/meters";
@@ -31,25 +31,27 @@ function applyEventEffects(selectedIds: string[], events: WorldEvent[]): Meters 
 
 interface WorldEventSelectionProps {
   mode: UserRole;
-  selectedEventIds?: string[];
+  selectedEventIds: string[];
+  onSelectionChange: (ids: string[]) => void;
+  readOnly?: boolean;
 }
 
-export const WorldEventSelection: React.FC<WorldEventSelectionProps> = ({ mode, selectedEventIds }) => {
-  const [gmSelections, setGmSelections] = useState<string[]>([]);
-  const effectiveSelections = useMemo(() => (mode === "gm" ? gmSelections : selectedEventIds ?? []), [gmSelections, mode, selectedEventIds]);
-  const meters = applyEventEffects(effectiveSelections, worldEvents);
+export const WorldEventSelection: React.FC<WorldEventSelectionProps> = ({ mode, selectedEventIds, onSelectionChange, readOnly }) => {
+  const meters = useMemo(() => applyEventEffects(selectedEventIds, worldEvents), [selectedEventIds]);
 
   const handleSelect = (id: string) => {
-    if (mode !== "gm") return;
-    setGmSelections(ids =>
-      ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id]
+    if (readOnly) return;
+    onSelectionChange(
+      selectedEventIds.includes(id)
+        ? selectedEventIds.filter((value) => value !== id)
+        : [...selectedEventIds, id]
     );
   };
 
   return (
     <div>
       <h2>World Events</h2>
-      {mode === "player" && (
+      {readOnly && (
         <p style={{ maxWidth: 600 }}>
           These are read-only in player mode. Your GM will let you know which events are active for this campaign.
         </p>
@@ -58,19 +60,19 @@ export const WorldEventSelection: React.FC<WorldEventSelectionProps> = ({ mode, 
         <WorldEventCard
           key={event.id}
           event={event}
-          selected={effectiveSelections.includes(event.id)}
+          selected={selectedEventIds.includes(event.id)}
           onSelect={handleSelect}
-          disabled={mode === "player"}
+          disabled={readOnly}
         />
       ))}
       <h2>Social Matrix & Meters</h2>
       <SocialMatrix meters={meters} />
       <div style={{ marginTop: 24 }}>
         <h3>{mode === "gm" ? "Selected Events Summary" : "GM-Selected World Events"}</h3>
-        {effectiveSelections.length === 0 ? (
+        {selectedEventIds.length === 0 ? (
           <p>{mode === "gm" ? "No events selected." : "Waiting for GM selections."}</p>
         ) : (
-          effectiveSelections.map(id => {
+          selectedEventIds.map(id => {
             const event = worldEvents.find(e => e.id === id);
             return (
               <div key={id} style={{ marginBottom: 12 }}>
