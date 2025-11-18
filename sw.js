@@ -1,8 +1,8 @@
 const CACHE_NAME = "collapse-companion-v1";
 const APP_SHELL = [
-  "/",
-  "/index.html",
-  "/manifest.webmanifest"
+  "/cvttapp/",
+  "/cvttapp/index.html",
+  "/cvttapp/manifest.webmanifest"
 ];
 
 self.addEventListener("install", (event) => {
