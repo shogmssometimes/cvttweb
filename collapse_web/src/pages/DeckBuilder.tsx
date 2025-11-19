@@ -251,7 +251,23 @@ export default function DeckBuilder(){
         modifierCapacity: prev.modifierCapacity,
         createdAt: new Date().toISOString(),
       }
-      return { ...prev, savedDecks: { ...(prev.savedDecks ?? {}), [n]: item }, deckName: n, isLocked: true }
+      // Normalize: move any 'played' states out of hand and into discard
+      const hand = prev.hand ?? []
+      const discard = prev.discard ?? []
+      type HandItem = { id: string; state: 'unspent' | 'played' }
+      type DiscardItem = { id: string; origin: 'played' | 'discarded' }
+      const [played, remainingHand] = hand.reduce<[DiscardItem[], HandItem[]]>(([p, h], card: HandItem) => {
+        if (card.state === 'played') {
+          p.push({ id: card.id, origin: 'played' })
+        } else {
+          h.push(card)
+        }
+        return [p, h]
+      }, [[], []] as [DiscardItem[], HandItem[]])
+
+      const newDiscard = [...discard, ...played]
+
+      return { ...prev, savedDecks: { ...(prev.savedDecks ?? {}), [n]: item }, deckName: n, isLocked: true, hand: remainingHand, discard: newDiscard }
     })
   }
 
@@ -530,11 +546,11 @@ export default function DeckBuilder(){
                   <div key={idx} style={{border:'1px solid #333',borderRadius:10,padding:8,background:'#050505',minWidth:120}}>
                     <div style={{fontWeight:700}}>{card?.name ?? handCard.id}</div>
                   <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>{card?.type ?? ''}</div>
-                    <div style={{marginTop:8,display:'flex',gap:8,flexDirection:'column'}}>
-                      <div style={{fontSize:'0.9rem',fontWeight:600}}>{handCard.state === 'unspent' ? 'Unspent' : 'Played'}</div>
+                  <div style={{marginTop:8,display:'flex',gap:8,flexDirection:'column'}}>
+                    <div style={{fontSize:'0.9rem',fontWeight:600}}>{handCard.state === 'unspent' ? 'Unspent' : 'State: '+handCard.state}</div>
                       <div style={{display:'flex',gap:8}}>
-                        <button onClick={()=>discardFromHand(idx, 'discarded')}>Discard</button>
-                        <button onClick={()=>discardFromHand(idx, 'played')}>Play</button>
+                      <button onClick={()=>discardFromHand(idx, 'discarded')}>Discard</button>
+                      {handCard.state === 'unspent' && <button onClick={()=>discardFromHand(idx, 'played')}>Play</button>}
                       </div>
                   </div>
                 </div>
