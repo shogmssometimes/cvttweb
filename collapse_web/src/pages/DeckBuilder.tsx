@@ -166,7 +166,11 @@ export default function DeckBuilder(){
   // Draw a single card to hand (only allowed when deck is locked)
   const draw = () => {
     setBuilderState((prev) => {
+      // disallow drawing when deck isn't locked
       if (!prev.isLocked) return prev
+      // disallow drawing when hand is at or above the limit; this prevents
+      // returning discard to the deck (which turns a draw into a discard)
+      if ((prev.hand ?? []).length >= (prev.handLimit ?? 5)) return prev
       const deck = [...(prev.deck ?? [])]
       const hand = [...(prev.hand ?? [])]
       const discard = [...(prev.discard ?? [])]
@@ -183,7 +187,7 @@ export default function DeckBuilder(){
       // FIFO: draw from top-of-deck with shift
       const cardId = deck.shift()
       if (!cardId) return { ...prev, deck, hand, discard }
-      if ((hand ?? []).length >= (prev.handLimit ?? 5)) return { ...prev, deck, hand, discard }
+      // we already checked hand limit above, so adding is safe
       hand.push({ id: cardId, state: 'unspent' })
       return { ...prev, deck, hand, discard }
     })
@@ -635,8 +639,8 @@ export default function DeckBuilder(){
 
         <div>
           <label style={{fontWeight:600}}>Hand Draw</label>
-          <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
-            <button onClick={()=>draw()} disabled={!builderState.isLocked}>Draw 1</button>
+            <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
+            <button onClick={()=>draw()} disabled={!builderState.isLocked || ((builderState.hand ?? []).length >= (builderState.handLimit ?? 5))}>Draw 1</button>
           </div>
         </div>
 
