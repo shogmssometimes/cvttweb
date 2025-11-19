@@ -13,6 +13,11 @@ type DeckBuilderState = {
   modCounts: CountMap
   nullCount: number
   modifierCapacity: number
+  // runtime deck state
+  deck?: string[]
+  hand?: string[]
+  discard?: string[]
+  drawSize?: number
 }
 
 const clamp = (value: number, min: number, max?: number) => {
@@ -34,6 +39,10 @@ const defaultState = (baseCards: Card[], modCards: Card[]): DeckBuilderState => 
   modCounts: buildInitialCounts(modCards),
   nullCount: MIN_NULLS,
   modifierCapacity: 10,
+  deck: [],
+  hand: [],
+  discard: [],
+  drawSize: 5,
 })
 
 const loadState = (baseCards: Card[], modCards: Card[]): DeckBuilderState => {
@@ -47,6 +56,10 @@ const loadState = (baseCards: Card[], modCards: Card[]): DeckBuilderState => {
       modCounts: { ...buildInitialCounts(modCards), ...parsed.modCounts },
       nullCount: Math.max(parsed.nullCount ?? MIN_NULLS, MIN_NULLS),
       modifierCapacity: parsed.modifierCapacity ?? 10,
+      deck: parsed.deck ?? [],
+      hand: parsed.hand ?? [],
+      discard: parsed.discard ?? [],
+      drawSize: parsed.drawSize ?? 5,
     }
   } catch {
     return defaultState(baseCards, modCards)
@@ -60,6 +73,7 @@ export default function DeckBuilder(){
 
   const [builderState, setBuilderState] = useState(() => loadState(baseCards, modCards))
   const [modSearch, setModSearch] = useState('')
+  const [deckSeed, setDeckSeed] = useState(0)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -91,6 +105,111 @@ export default function DeckBuilder(){
       )
     )
   }, [modCards, modSearch])
+
+  // utility: build a fresh deck array (ids repeated per counts)
+  const buildDeckArray = () => {
+    const out: string[] = []
+    Object.entries(builderState.baseCounts).forEach(([id, qty]) => {
+      for (let i = 0; i < qty; i++) out.push(id)
+    })
+    Object.entries(builderState.modCounts).forEach(([id, qty]) => {
+      for (let i = 0; i < qty; i++) out.push(id)
+    })
+    // add nulls
+    if (builderState.nullCount && nullCard) {
+      for (let i = 0; i < builderState.nullCount; i++) out.push(nullCard.id)
+    }
+    return out
+  }
+
+  const shuffleInPlace = (arr: any[]) => {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[arr[i], arr[j]] = [arr[j], arr[i]]
+    }
+    return arr
+  }
+
+  const generateDeck = (shuffle = true) => {
+    const newDeck = buildDeckArray()
+    if (shuffle) shuffleInPlace(newDeck)
+    setBuilderState((prev) => ({ ...prev, deck: newDeck }))
+    setDeckSeed((s) => s + 1)
+  }
+
+  const shuffleDeck = () => {
+    setBuilderState((prev) => ({ ...prev, deck: prev.deck ? shuffleInPlace([...prev.deck]) : [] }))
+    setDeckSeed((s) => s + 1)
+  }
+
+  const draw = (count = 1) => {
+    setBuilderState((prev) => {
+      const deck = [...(prev.deck ?? [])]
+      const hand = [...(prev.hand ?? [])]
+      const discard = [...(prev.discard ?? [])]
+      for (let i = 0; i < count; i++) {
+        if (deck.length === 0) {
+          // if deck empty, shuffle discard back in
+          if (discard.length === 0) break
+          shuffleInPlace(discard)
+          deck.push(...discard)
+          discard.length = 0
+        }
+        const cardId = deck.pop()
+        if (!cardId) break
+        hand.push(cardId)
+      }
+      return { ...prev, deck, hand, discard }
+    })
+    setDeckSeed((s) => s + 1)
+  }
+
+  const discardFromHand = (index: number) => {
+    setBuilderState((prev) => {
+      const hand = [...(prev.hand ?? [])]
+      const discard = [...(prev.discard ?? [])]
+      const removed = hand.splice(index, 1)
+      discard.push(...removed)
+      return { ...prev, hand, discard }
+    })
+    setDeckSeed((s) => s + 1)
+  }
+
+  const discardFromDeck = (count = 1) => {
+    setBuilderState((prev) => {
+      const deck = [...(prev.deck ?? [])]
+      const discard = [...(prev.discard ?? [])]
+      for (let i = 0; i < count; i++) {
+        const cardId = deck.pop()
+        if (!cardId) break
+        discard.push(cardId)
+      }
+      return { ...prev, deck, discard }
+    })
+    setDeckSeed((s) => s + 1)
+  }
+
+  const returnDiscardToDeck = (shuffle = true) => {
+    setBuilderState((prev) => {
+      const deck = [...(prev.deck ?? [])]
+      const discard = [...(prev.discard ?? [])]
+      deck.push(...discard)
+      if (shuffle) shuffleInPlace(deck)
+      return { ...prev, deck, discard: [] }
+    })
+    setDeckSeed((s) => s + 1)
+  }
+
+  const resetDeck = () => {
+    const newDeck = buildDeckArray()
+    setBuilderState((prev) => ({ ...prev, deck: shuffleInPlace(newDeck), hand: [], discard: [] }))
+    setDeckSeed((s) => s + 1)
+  }
+
+  const setDrawSize = (value: number) => {
+    if (Number.isNaN(value)) return
+    setBuilderState((prev) => ({ ...prev, drawSize: Math.max(0, value) }))
+  }
 
   const adjustBaseCount = (cardId: string, delta: number) => {
     setBuilderState((prev) => {
@@ -143,6 +262,7 @@ export default function DeckBuilder(){
     setBuilderState(defaultState(baseCards, modCards))
     setModSearch('')
   }
+
 
   const renderDetails = (card: Card) => {
     if (!card.details || card.details.length === 0) return null
@@ -273,6 +393,55 @@ export default function DeckBuilder(){
               </div>
             )
           })}
+        </div>
+      </section>
+
+      <section style={{border:'1px solid #222',borderRadius:12,padding:16,display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
+        <div>
+          <h2>Deck Operations</h2>
+          <p style={{marginTop:0,color:'#9aa0a6'}}>Shuffle, draw, and discard cards from your deck. Draw uses the top-of-deck (LIFO) model.</p>
+          <div style={{display:'flex',gap:8,marginTop:8}}>
+            <button onClick={()=>generateDeck(true)}>Generate Deck</button>
+            <button onClick={()=>shuffleDeck()}>Shuffle</button>
+            <button onClick={()=>resetDeck()}>Reset Deck</button>
+          </div>
+          <div style={{marginTop:12}}>
+            <div style={{fontSize:'0.85rem'}}>Deck Count: <strong>{(builderState.deck ?? []).length}</strong></div>
+            <div style={{fontSize:'0.85rem'}}>Discard Count: <strong>{(builderState.discard ?? []).length}</strong></div>
+          </div>
+        </div>
+
+        <div>
+          <label style={{fontWeight:600}}>Hand Draw Size</label>
+          <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
+            <input type="number" min={0} value={builderState.drawSize ?? 5} onChange={(e)=>setDrawSize(parseInt(e.target.value,10))} style={{width:100,textAlign:'center'}} />
+            <button onClick={()=>draw(builderState.drawSize ?? 1)}>Draw</button>
+            <button onClick={()=>draw(1)}>Draw 1</button>
+          </div>
+          <div style={{marginTop:12}}>
+            <button onClick={()=>discardFromDeck(1)}>Discard Top</button>
+            <button onClick={()=>discardFromDeck(3)} style={{marginLeft:8}}>Discard 3</button>
+            <button onClick={()=>returnDiscardToDeck(true)} style={{marginLeft:8}}>Shuffle Discard Into Deck</button>
+          </div>
+        </div>
+
+        <div>
+          <h3>Hand</h3>
+          <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+            {(builderState.hand ?? []).map((id, idx) => {
+              const card = Handbook.getAllCards().find(c => c.id === id)
+              return (
+                <div key={idx} style={{border:'1px solid #333',borderRadius:10,padding:8,background:'#050505',minWidth:120}}>
+                  <div style={{fontWeight:700}}>{card?.name ?? id}</div>
+                  <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>{card?.type ?? ''}</div>
+                  <div style={{marginTop:8,display:'flex',gap:8}}>
+                    <button onClick={()=>discardFromHand(idx)}>Discard</button>
+                  </div>
+                </div>
+              )
+            })}
+            {((builderState.hand ?? []).length === 0) && <div style={{color:'#9aa0a6'}}>No cards in hand</div>}
+          </div>
         </div>
       </section>
     </main>
