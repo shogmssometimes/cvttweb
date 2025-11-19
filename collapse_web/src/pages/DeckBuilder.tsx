@@ -1,4 +1,7 @@
-import React, {useEffect, useMemo, useState} from 'react'
+import React, {useEffect, useMemo, useState, useCallback} from 'react'
+import { getModCapacityUsed, canAddModCardFrom } from '../utils/modCapacity'
+import { validateImportedDeck, exportObjectAsJSON } from '../utils/deckExportImport'
+import { useRef } from 'react'
 import Handbook from '../data/handbook'
 import { Card } from '../domain/decks/DeckEngine'
 
@@ -28,6 +31,7 @@ type DeckBuilderState = {
     modifierCapacity: number
     createdAt: string
   }>
+  handLimit?: number
 }
 
 const clamp = (value: number, min: number, max?: number) => {
@@ -55,6 +59,7 @@ const defaultState = (baseCards: Card[], modCards: Card[]): DeckBuilderState => 
   isLocked: false,
   deckName: '',
   savedDecks: {},
+  handLimit: 5,
 })
 
 const loadState = (baseCards: Card[], modCards: Card[]): DeckBuilderState => {
@@ -73,6 +78,7 @@ const loadState = (baseCards: Card[], modCards: Card[]): DeckBuilderState => {
       discard: parsed.discard ?? [],
       isLocked: parsed.isLocked ?? false,
       deckName: parsed.deckName ?? '',
+      handLimit: parsed.handLimit ?? 5,
       savedDecks: parsed.savedDecks ?? {},
     }
   } catch {
@@ -88,6 +94,7 @@ export default function DeckBuilder(){
   const [builderState, setBuilderState] = useState(() => loadState(baseCards, modCards))
   const [modSearch, setModSearch] = useState('')
   const [deckSeed, setDeckSeed] = useState(0)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -95,15 +102,15 @@ export default function DeckBuilder(){
   }, [builderState])
 
   const baseTotal = sumCounts(builderState.baseCounts)
-  const modCapacityUsed = useMemo(
-    () =>
-      modCards.reduce((total, card) => {
-        const qty = builderState.modCounts[card.id] ?? 0
-        const cost = card.cost ?? 0
-        return total + qty * cost
-      }, 0),
-    [builderState.modCounts, modCards]
-  )
+  const modCapacityUsed = useMemo(() => getModCapacityUsed(modCards, builderState.modCounts), [builderState.modCounts, modCards])
+
+    // enforce mod capacity when adding a modifier
+    const canAddModCard = useCallback((cardId: string) => canAddModCardFrom(modCards, builderState, cardId), [builderState.modCounts, builderState.modifierCapacity, modCards])
+
+    // pure helper: test if a card can be added given a state snapshot
+    function canAddModCardSnapshot(state: DeckBuilderState, cardId: string) {
+      return canAddModCardFrom(modCards, state, cardId)
+    }
 
   const baseValid = baseTotal === BASE_TARGET
   const nullValid = builderState.nullCount >= MIN_NULLS
@@ -176,6 +183,7 @@ export default function DeckBuilder(){
       // FIFO: draw from top-of-deck with shift
       const cardId = deck.shift()
       if (!cardId) return { ...prev, deck, hand, discard }
+      if ((hand ?? []).length >= (prev.handLimit ?? 5)) return { ...prev, deck, hand, discard }
       hand.push({ id: cardId, state: 'unspent' })
       return { ...prev, deck, hand, discard }
     })
@@ -209,14 +217,15 @@ export default function DeckBuilder(){
     setDeckSeed((s) => s + 1)
   }
 
-  const returnDiscardToDeck = (shuffle = true) => {
+  const returnDiscardToDeck = (shuffle = true, toTop = true) => {
     setBuilderState((prev) => {
       const deck = [...(prev.deck ?? [])]
       const discard = [...(prev.discard ?? [])]
       // when returning discard to deck for FIFO, push them to the end (bottom) after shuffling
       const ids = discard.map((d) => d.id)
       if (shuffle) shuffleInPlace(ids)
-      deck.push(...ids)
+      if (toTop) deck.unshift(...ids) // add to front as top
+      else deck.push(...ids)
       if (shuffle) shuffleInPlace(deck)
       return { ...prev, deck, discard: [] }
     })
@@ -271,6 +280,52 @@ export default function DeckBuilder(){
     })
   }
 
+  const handleExport = () => {
+    const filename = `collapse-deck-${builderState.deckName ?? 'export'}-${Date.now()}.json`
+    // only export the core representation; exclude ephemeral runtime state like hand/discard
+    const exportData = {
+      name: builderState.deckName,
+      deck: builderState.deck,
+      baseCounts: builderState.baseCounts,
+      modCounts: builderState.modCounts,
+      nullCount: builderState.nullCount,
+      modifierCapacity: builderState.modifierCapacity,
+      savedDecks: builderState.savedDecks,
+      exportedAt: new Date().toISOString(),
+    }
+    exportObjectAsJSON(filename, exportData)
+  }
+
+  const handleImportedFile = (file: File | null) => {
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const raw = JSON.parse(String(reader.result))
+        const imported = validateImportedDeck(raw, baseCards, modCards)
+        // If the import contains counts, load into builder; otherwise try merging savedDecks
+        setBuilderState((prev) => ({
+          ...prev,
+          deck: imported.deck ?? prev.deck,
+          baseCounts: imported.baseCounts ? { ...prev.baseCounts, ...imported.baseCounts } : prev.baseCounts,
+          modCounts: imported.modCounts ? { ...prev.modCounts, ...imported.modCounts } : prev.modCounts,
+          nullCount: imported.nullCount ?? prev.nullCount,
+          modifierCapacity: imported.modifierCapacity ?? prev.modifierCapacity,
+          deckName: imported.name ?? prev.deckName,
+        }))
+        window.alert('Deck imported successfully.')
+      } catch (err: any) {
+        window.alert('Invalid deck file: ' + (err?.message ?? String(err)))
+      }
+    }
+    reader.onerror = () => window.alert('Failed to read file')
+    reader.readAsText(file)
+  }
+
+  const onClickImport = () => {
+    fileInputRef.current?.click()
+  }
+
   const loadSavedDeck = (name: string) => {
     setBuilderState((prev) => {
       const sd = prev.savedDecks?.[name]
@@ -312,13 +367,19 @@ export default function DeckBuilder(){
   }
 
   const adjustModCount = (cardId: string, delta: number) => {
-    setBuilderState((prev) => ({
-      ...prev,
-      modCounts: {
-        ...prev.modCounts,
-        [cardId]: clamp((prev.modCounts[cardId] ?? 0) + delta, 0),
-      },
-    }))
+    setBuilderState((prev) => {
+      if (prev.isLocked) return prev
+      // use snapshot helper to determine if we can add this mod
+      if (delta > 0 && !canAddModCardSnapshot(prev, cardId)) return prev
+
+      return {
+        ...prev,
+        modCounts: {
+          ...prev.modCounts,
+          [cardId]: clamp((prev.modCounts[cardId] ?? 0) + delta, 0),
+        },
+      }
+    })
   }
 
   const adjustNullCount = (delta: number) => {
@@ -347,6 +408,24 @@ export default function DeckBuilder(){
   const resetBuilder = () => {
     setBuilderState(defaultState(baseCards, modCards))
     setModSearch('')
+  }
+
+  // Moves a discard item back to the top of the deck
+  const returnDiscardItemToDeck = (idx: number) => {
+    setBuilderState((prev) => {
+      const d = [...(prev.discard ?? [])]
+      const it = d.splice(idx, 1)[0]
+      return { ...prev, discard: d, deck: [it.id, ...(prev.deck ?? [])] }
+    })
+  }
+
+  // Moves a discard item back to the hand (unspent)
+  const returnDiscardItemToHand = (idx: number) => {
+    setBuilderState((prev) => {
+      const d = [...(prev.discard ?? [])]
+      const it = d.splice(idx, 1)[0]
+      return { ...prev, discard: d, hand: [...(prev.hand ?? []), { id: it.id, state: 'unspent' }] }
+    })
   }
 
 
@@ -386,7 +465,20 @@ export default function DeckBuilder(){
               return (
                 <div key={idx} style={{border:'1px solid #333',borderRadius:10,padding:8,background:'#050505',minWidth:220}}>
                   <div style={{fontWeight:700}}>{card?.name ?? item.id}</div>
-                  <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>{item.origin === 'played' ? 'Played' : 'Discarded'}</div>
+                  <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>#{idx+1} • {item.origin === 'played' ? 'Played' : 'Discarded'}</div>
+                  <div style={{marginTop:8}}>{renderDetails(card ?? {id:item.id,name:item.id,type:'',cost:0,text:'' as any})}</div>
+                  <div style={{display:'flex',gap:8,marginTop:8}}>
+                    <button
+                      onClick={() => returnDiscardItemToDeck(idx)}
+                    >
+                      Return to Deck (Top)
+                    </button>
+                    <button
+                      onClick={() => returnDiscardItemToHand(idx)}
+                    >
+                      Return to Hand
+                    </button>
+                  </div>
                 </div>
               )
             })}
@@ -401,6 +493,7 @@ export default function DeckBuilder(){
         <div>
           <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Modifier Capacity</div>
           <div style={{fontSize:'1.8rem',fontWeight:700}}>{modCapacityUsed} / {builderState.modifierCapacity}</div>
+          <div style={{fontSize:'0.85rem',color:'#9aa0a6'}}>Mod Capacity Used</div>
           {!modValid && <div style={{color:'#ff6b6b',fontSize:'0.85rem'}}>Reduce modifier cards or raise capacity.</div>}
         </div>
         <div>
@@ -487,7 +580,7 @@ export default function DeckBuilder(){
                   <div style={{display:'flex',alignItems:'center',gap:6}}>
                     <button onClick={()=>adjustModCount(card.id,-1)} disabled={qty === 0 || builderState.isLocked}>-</button>
                     <div style={{minWidth:24,textAlign:'center'}}>{qty}</div>
-                    <button onClick={()=>adjustModCount(card.id,1)} disabled={builderState.isLocked}>+</button>
+                    <button onClick={()=>adjustModCount(card.id,1)} disabled={builderState.isLocked || !canAddModCard(card.id)}>+</button>
                   </div>
                 </div>
                 <p style={{margin:0,fontSize:'0.85rem'}}>{card.text}</p>
@@ -509,11 +602,21 @@ export default function DeckBuilder(){
             <div style={{display:'flex',gap:8,alignItems:'center',marginLeft:12}}>
               <input placeholder="Deck name" value={builderState.deckName ?? ''} onChange={(e)=>setDeckName(e.target.value)} style={{width:200}} />
               <button onClick={()=>saveDeck()}>Save Deck</button>
+              <button onClick={handleExport} title="Export current deck as JSON">Export</button>
+              <button onClick={onClickImport} title="Import deck from JSON file">Import</button>
+              <input ref={fileInputRef} type="file" accept="application/json" style={{display:'none'}} onChange={(e)=>handleImportedFile(e.target.files ? e.target.files[0] : null)} />
             </div>
           </div>
           <div style={{marginTop:12}}>
             <div style={{fontSize:'0.85rem'}}>Deck Count: <strong>{(builderState.deck ?? []).length}</strong></div>
             <div style={{fontSize:'0.85rem'}}>Discard Count: <strong>{(builderState.discard ?? []).length}</strong></div>
+            <div style={{marginTop:8}}>
+              <label style={{fontWeight:600}}>Hand Limit</label>
+              <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
+                <input type="number" min={0} value={builderState.handLimit ?? 5} onChange={(e)=>setBuilderState(prev=>({...prev, handLimit: parseInt(e.target.value,10)||5}))} style={{width:80,textAlign:'center'}} />
+                <div style={{color:'#9aa0a6',fontSize:'0.85rem'}}>Active cap for hand cards.</div>
+              </div>
+            </div>
             <div style={{marginTop:8}}>
               <div style={{fontWeight:600}}>Saved Decks</div>
               <div style={{display:'flex',flexDirection:'column',gap:6,marginTop:6}}>
@@ -546,8 +649,10 @@ export default function DeckBuilder(){
                   <div key={idx} style={{border:'1px solid #333',borderRadius:10,padding:8,background:'#050505',minWidth:120}}>
                     <div style={{fontWeight:700}}>{card?.name ?? handCard.id}</div>
                   <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>{card?.type ?? ''}</div>
+                  <div style={{marginTop:8}}>{renderDetails(card ?? {id:handCard.id,name:handCard.id,type:'',cost:0,text:'' as any})}</div>
                   <div style={{marginTop:8,display:'flex',gap:8,flexDirection:'column'}}>
-                    <div style={{fontSize:'0.9rem',fontWeight:600}}>{handCard.state === 'unspent' ? 'Unspent' : 'State: '+handCard.state}</div>
+                    {/* Hide explicit unspent label per request */}
+                    <div style={{fontSize:'0.9rem',fontWeight:600}}>{handCard.state === 'played' ? 'Played' : ''}</div>
                       <div style={{display:'flex',gap:8}}>
                       <button onClick={()=>discardFromHand(idx, 'discarded')}>Discard</button>
                       {handCard.state === 'unspent' && <button onClick={()=>discardFromHand(idx, 'played')}>Play</button>}

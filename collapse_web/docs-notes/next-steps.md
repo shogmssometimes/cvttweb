@@ -23,3 +23,9 @@
 6. **Testing & automation**
    - Expand Vitest coverage for storage, calculators, and components.
    - Add Playwright smoke tests for PWA install/offline paths once the UI stabilizes.
+
+   7. **Export / Import Decks**
+      - Implemented: deck export and import as JSON files in the Deck Builder UI.
+      - Usage: Click the `Export` button in the Deck Builder to download a JSON export of the current deck or click `Import` and select a previously exported JSON file to load counts and deck configuration.
+      - Data model: Exports `name`, `deck`, `baseCounts`, `modCounts`, `nullCount`, `modifierCapacity`, and `savedDecks` keys. Imports validate card IDs against the current handbook and rejects malformed objects.
+      - Tests: Vitest unit tests validate import parsing and unknown-id filtering.
