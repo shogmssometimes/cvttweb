@@ -251,7 +251,7 @@ export default function DeckBuilder(){
         modifierCapacity: prev.modifierCapacity,
         createdAt: new Date().toISOString(),
       }
-      return { ...prev, savedDecks: { ...(prev.savedDecks ?? {}), [n]: item }, deckName: n }
+      return { ...prev, savedDecks: { ...(prev.savedDecks ?? {}), [n]: item }, deckName: n, isLocked: true }
     })
   }
 
