@@ -1,0 +1,21 @@
+export const BASE_CARDS = [
+  { id: "base-athletics", name: "Athletics", type: "base", category: "base", skill: "athletics", rarity: "common", capacityCost: 0, quantity: 1 },
+  { id: "base-strength", name: "Strength", type: "base", category: "base", skill: "strength", rarity: "common", capacityCost: 0, quantity: 1 },
+  { id: "base-stealth", name: "Stealth", type: "base", category: "base", skill: "stealth", rarity: "common", capacityCost: 0, quantity: 1 },
+  { id: "base-thief", name: "Thief", type: "base", category: "base", skill: "thief", rarity: "common", capacityCost: 0, quantity: 1 },
+  { id: "base-vehicle", name: "Vehicle", type: "base", category: "base", skill: "vehicle", rarity: "common", capacityCost: 0, quantity: 1 },
+  { id: "base-medicine", name: "Medicine", type: "base", category: "base", skill: "medicine", rarity: "common", capacityCost: 0, quantity: 1 },
+  { id: "base-nature", name: "Nature", type: "base", category: "base", skill: "nature", rarity: "common", capacityCost: 0, quantity: 1 },
+  { id: "base-occult", name: "Occult", type: "base", category: "base", skill: "occult", rarity: "common", capacityCost: 0, quantity: 1 },
+  { id: "base-religion", name: "Religion", type: "base", category: "base", skill: "religion", rarity: "common", capacityCost: 0, quantity: 1 },
+  { id: "base-tech", name: "Tech", type: "base", category: "base", skill: "tech", rarity: "common", capacityCost: 0, quantity: 1 },
+  { id: "base-investigation", name: "Investigation", type: "base", category: "base", skill: "investigation", rarity: "common", capacityCost: 0, quantity: 1 },
+  { id: "base-performance", name: "Performance", type: "base", category: "base", skill: "performance", rarity: "common", capacityCost: 0, quantity: 1 },
+  { id: "base-persuasion", name: "Persuasion", type: "base", category: "base", skill: "persuasion", rarity: "common", capacityCost: 0, quantity: 1 },
+  { id: "base-resistance", name: "Resistance", type: "base", category: "base", skill: "resistance", rarity: "common", capacityCost: 0, quantity: 1 },
+  { id: "base-vibe", name: "Vibe", type: "base", category: "base", skill: "vibe", rarity: "common", capacityCost: 0, quantity: 1 }
+];
+
+export function listBaseCardSkills() {
+  return BASE_CARDS.map(card => card.skill);
+}
