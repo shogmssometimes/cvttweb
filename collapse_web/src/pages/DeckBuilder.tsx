@@ -18,6 +18,16 @@ type DeckBuilderState = {
   hand?: { id: string; state: 'unspent' | 'played' }[]
   discard?: { id: string; origin: 'played' | 'discarded' }[]
   isLocked?: boolean
+  deckName?: string
+  savedDecks?: Record<string, {
+    name: string
+    deck: string[]
+    baseCounts: CountMap
+    modCounts: CountMap
+    nullCount: number
+    modifierCapacity: number
+    createdAt: string
+  }>
 }
 
 const clamp = (value: number, min: number, max?: number) => {
@@ -43,6 +53,8 @@ const defaultState = (baseCards: Card[], modCards: Card[]): DeckBuilderState => 
   hand: [],
   discard: [],
   isLocked: false,
+  deckName: '',
+  savedDecks: {},
 })
 
 const loadState = (baseCards: Card[], modCards: Card[]): DeckBuilderState => {
@@ -60,6 +72,8 @@ const loadState = (baseCards: Card[], modCards: Card[]): DeckBuilderState => {
       hand: parsed.hand ?? [],
       discard: parsed.discard ?? [],
       isLocked: parsed.isLocked ?? false,
+      deckName: parsed.deckName ?? '',
+      savedDecks: parsed.savedDecks ?? {},
     }
   } catch {
     return defaultState(baseCards, modCards)
@@ -155,10 +169,12 @@ export default function DeckBuilder(){
         if (discard.length === 0) return { ...prev }
         const ids = discard.map((d) => d.id)
         shuffleInPlace(ids)
+        // when using FIFO we put shuffled cards into the front
         deck.push(...ids)
         discard.length = 0
       }
-      const cardId = deck.pop()
+      // FIFO: draw from top-of-deck with shift
+      const cardId = deck.shift()
       if (!cardId) return { ...prev, deck, hand, discard }
       hand.push({ id: cardId, state: 'unspent' })
       return { ...prev, deck, hand, discard }
@@ -197,7 +213,10 @@ export default function DeckBuilder(){
     setBuilderState((prev) => {
       const deck = [...(prev.deck ?? [])]
       const discard = [...(prev.discard ?? [])]
-      deck.push(...discard.map((d) => d.id))
+      // when returning discard to deck for FIFO, push them to the end (bottom) after shuffling
+      const ids = discard.map((d) => d.id)
+      if (shuffle) shuffleInPlace(ids)
+      deck.push(...ids)
       if (shuffle) shuffleInPlace(deck)
       return { ...prev, deck, discard: [] }
     })
@@ -213,6 +232,51 @@ export default function DeckBuilder(){
   // Lock / Unlock the deck (save)
   const toggleLockDeck = () => {
     setBuilderState((prev) => ({ ...prev, isLocked: !prev.isLocked }))
+  }
+
+  const setDeckName = (name: string) => {
+    setBuilderState((prev) => ({ ...prev, deckName: name }))
+  }
+
+  const saveDeck = (name?: string) => {
+    setBuilderState((prev) => {
+      const n = name ?? prev.deckName ?? `deck-${Date.now()}`
+      if (!n) return prev
+      const item = {
+        name: n,
+        deck: [...(prev.deck ?? [])],
+        baseCounts: { ...prev.baseCounts },
+        modCounts: { ...prev.modCounts },
+        nullCount: prev.nullCount,
+        modifierCapacity: prev.modifierCapacity,
+        createdAt: new Date().toISOString(),
+      }
+      return { ...prev, savedDecks: { ...(prev.savedDecks ?? {}), [n]: item }, deckName: n }
+    })
+  }
+
+  const loadSavedDeck = (name: string) => {
+    setBuilderState((prev) => {
+      const sd = prev.savedDecks?.[name]
+      if (!sd) return prev
+      return {
+        ...prev,
+        deck: [...sd.deck],
+        baseCounts: { ...sd.baseCounts },
+        modCounts: { ...sd.modCounts },
+        nullCount: sd.nullCount,
+        modifierCapacity: sd.modifierCapacity,
+      }
+    })
+  }
+
+  const deleteSavedDeck = (name: string) => {
+    setBuilderState((prev) => {
+      if (!prev.savedDecks) return prev
+      const copy = { ...prev.savedDecks }
+      delete copy[name]
+      return { ...prev, savedDecks: copy }
+    })
   }
 
   // drawSize removed - we only allow Draw 1
@@ -422,14 +486,31 @@ export default function DeckBuilder(){
         <div>
           <h2>Deck Operations</h2>
           <p style={{marginTop:0,color:'#9aa0a6'}}>Shuffle, draw, and discard cards from your deck. Draw uses the top-of-deck (LIFO) model.</p>
-          <div style={{display:'flex',gap:8,marginTop:8}}>
+          <div style={{display:'flex',gap:8,marginTop:8,alignItems:'center'}}>
             <button onClick={()=>generateDeck(true)}>Build Deck</button>
             <button onClick={()=>shuffleDeck()}>Shuffle</button>
             <button onClick={()=>toggleLockDeck()}>{builderState.isLocked ? 'Unlock Deck' : 'Lock Deck'}</button>
+            <div style={{display:'flex',gap:8,alignItems:'center',marginLeft:12}}>
+              <input placeholder="Deck name" value={builderState.deckName ?? ''} onChange={(e)=>setDeckName(e.target.value)} style={{width:200}} />
+              <button onClick={()=>saveDeck()}>Save Deck</button>
+            </div>
           </div>
           <div style={{marginTop:12}}>
             <div style={{fontSize:'0.85rem'}}>Deck Count: <strong>{(builderState.deck ?? []).length}</strong></div>
             <div style={{fontSize:'0.85rem'}}>Discard Count: <strong>{(builderState.discard ?? []).length}</strong></div>
+            <div style={{marginTop:8}}>
+              <div style={{fontWeight:600}}>Saved Decks</div>
+              <div style={{display:'flex',flexDirection:'column',gap:6,marginTop:6}}>
+                {Object.keys(builderState.savedDecks ?? {}).length === 0 && <div style={{color:'#9aa0a6'}}>No saved decks</div>}
+                {Object.entries(builderState.savedDecks ?? {}).map(([k,v])=> (
+                  <div key={k} style={{display:'flex',gap:8,alignItems:'center'}}>
+                    <div style={{minWidth:160}}>{v.name}</div>
+                    <button onClick={()=>loadSavedDeck(k)}>Load</button>
+                    <button onClick={()=>deleteSavedDeck(k)}>Delete</button>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
