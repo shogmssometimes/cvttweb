@@ -19,21 +19,6 @@ export default function DeckBuilder(){
   const [pool] = useState<Card[]>(handbookPool.length > 0 ? handbookPool : SAMPLE_CARDS)
   const [deckVersion, setDeckVersion] = useState(0)
 
-  // persistence key for saved deck
-  const STORAGE_KEY = 'cvtt_deck_v1'
-
-  // load saved deck into library if present
-  React.useEffect(()=>{
-    try{
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if(raw){
-        const parsed: Card[] = JSON.parse(raw)
-        engineRef.current.setLibrary(parsed)
-        setDeckVersion(v=>v+1)
-      }
-    }catch(e){/* ignore */}
-  }, [])
-
   const state = useMemo(()=> engineRef.current.getState(), [deckVersion])
 
   function addToDeck(card:Card){
@@ -61,15 +46,6 @@ export default function DeckBuilder(){
     setDeckVersion(v=>v+1)
   }
 
-  function saveDeck(){
-    const state = engineRef.current.getState()
-    try{
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.library))
-      setImportError(null)
-      alert('Deck saved locally')
-    }catch(e:any){ setImportError(String(e)) }
-  }
-
   // Import functionality removed: handbook updates are developer-driven only.
 
   return (
@@ -87,9 +63,6 @@ export default function DeckBuilder(){
             <div style={{color:'#9aa0a6',fontSize:'0.9rem'}}>
               Handbook data is developer-maintained. To update cards, edit the TypeScript modules
               under <code>src/data/handbook/</code> and commit the change.
-            </div>
-            <div style={{marginTop:8}}>
-              <button onClick={saveDeck}>Save Deck (local)</button>
             </div>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(120px,1fr))',gap:8}}>
@@ -109,7 +82,7 @@ export default function DeckBuilder(){
           <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:12}}>
             <button onClick={shuffle}>Shuffle</button>
             <button onClick={draw}>Draw</button>
-            <button onClick={()=>engineRef.current.returnDiscardToLibrary(true) || setDeckVersion(v=>v+1)}>Return Discard</button>
+            <button onClick={()=>{ engineRef.current.returnDiscardToLibrary(true); setDeckVersion(v=>v+1); }}>Return Discard</button>
             <button onClick={reset}>Reset</button>
           </div>
 
@@ -126,7 +99,7 @@ export default function DeckBuilder(){
                 <li key={c.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                   <span>{c.name}</span>
                   <div style={{display:'flex',gap:8}}>
-                    <button onClick={()=>engineRef.current.moveToTop(c) || setDeckVersion(v=>v+1)}>Top</button>
+                    <button onClick={()=>{ engineRef.current.moveToTop(c); setDeckVersion(v=>v+1); }}>Top</button>
                     <button onClick={()=>removeFromDeck(c.id)}>Remove</button>
                   </div>
                 </li>
