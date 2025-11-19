@@ -1,7 +1,6 @@
-import React, {useEffect, useMemo, useState, useCallback} from 'react'
+import React, {useEffect, useMemo, useState, useCallback, useRef} from 'react'
 import { getModCapacityUsed, canAddModCardFrom } from '../utils/modCapacity'
 import { validateImportedDeck, exportObjectAsJSON } from '../utils/deckExportImport'
-import { useRef } from 'react'
 import Handbook from '../data/handbook'
 import { Card } from '../domain/decks/DeckEngine'
 
@@ -94,6 +93,7 @@ export default function DeckBuilder(){
   const [builderState, setBuilderState] = useState(() => loadState(baseCards, modCards))
   const [modSearch, setModSearch] = useState('')
   const [deckSeed, setDeckSeed] = useState(0)
+  const [stackView, setStackView] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
@@ -423,12 +423,130 @@ export default function DeckBuilder(){
     })
   }
 
+  // Moves all or one discard card of a given id back to the deck (top)
+  const returnDiscardGroupToDeck = (cardId: string, all = true) => {
+    setBuilderState((prev) => {
+      const deck = [...(prev.deck ?? [])]
+      const discard = [...(prev.discard ?? [])]
+      if (all) {
+        const idsToMove = discard.filter((d) => d.id === cardId).map((d) => d.id)
+        const remaining = discard.filter((d) => d.id !== cardId)
+        return { ...prev, discard: remaining, deck: [...idsToMove, ...deck] }
+      }
+      const idx = discard.findIndex((d) => d.id === cardId)
+      if (idx === -1) return prev
+      const it = discard.splice(idx, 1)[0]
+      return { ...prev, discard, deck: [it.id, ...deck] }
+    })
+  }
+
   // Moves a discard item back to the hand (unspent)
   const returnDiscardItemToHand = (idx: number) => {
     setBuilderState((prev) => {
+      const handLimit = prev.handLimit ?? 5
+      if ((prev.hand ?? []).length >= handLimit) {
+        // prevent returns that would exceed hand limit
+        window.alert('Hand is full — play or discard a card to make room.')
+        return prev
+      }
       const d = [...(prev.discard ?? [])]
       const it = d.splice(idx, 1)[0]
       return { ...prev, discard: d, hand: [...(prev.hand ?? []), { id: it.id, state: 'unspent' }] }
+    })
+  }
+
+  const returnDiscardGroupToHand = (cardId: string, all = false) => {
+    setBuilderState((prev) => {
+      const handLimit = prev.handLimit ?? 5
+      const space = Math.max(0, handLimit - (prev.hand ?? []).length)
+      if (space <= 0) {
+        window.alert('Hand is full — play or discard a card to make room.')
+        return prev
+      }
+      const discard = [...(prev.discard ?? [])]
+      const moved: { id: string; origin: 'played' | 'discarded' }[] = []
+      for (let i = discard.length - 1; i >= 0 && (moved.length < space); i--) {
+        if (discard[i].id === cardId) {
+          moved.push(discard.splice(i, 1)[0])
+          if (!all) break
+        }
+      }
+      if (moved.length === 0) return prev
+      const newHand = [...(prev.hand ?? []), ...(moved.map((m) => ({ id: m.id, state: 'unspent' })) as { id: string; state: 'unspent' | 'played' }[])]
+      return { ...prev, discard, hand: newHand }
+    })
+  }
+
+  const groupedDiscardElements = useMemo(() => {
+    if (!stackView) return null
+    const groups = (builderState.discard ?? []).reduce((acc: Record<string, {count:number, idxs:number[]}>, d, i) => {
+      const g = acc[d.id] ?? {count:0, idxs:[]}
+      g.count++
+      g.idxs.push(i)
+      acc[d.id] = g
+      return acc
+    }, {} as Record<string, {count:number, idxs:number[]}>)
+    return Object.entries(groups).map(([id,g]) => {
+      const card = Handbook.getAllCards().find(c => c.id === id)
+      return (
+        <div key={id} style={{border:'1px solid #333',borderRadius:10,padding:8,background:'#050505',minWidth:220}}>
+          <div style={{fontWeight:700}}>{card?.name ?? id} <span style={{color:'#9aa0a6',fontSize:'0.9rem'}}>(x{g.count})</span></div>
+          <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Stacked</div>
+          <div style={{marginTop:8}}>{renderDetails(card ?? {id, name:id, type:'', cost:0, text:'' as any})}</div>
+          <div style={{display:'flex',gap:8,marginTop:8}}>
+            <button onClick={()=>returnDiscardGroupToDeck(id)}>Return to Deck (Top)</button>
+            <button onClick={()=>returnDiscardGroupToHand(id)} disabled={(builderState.hand ?? []).length >= (builderState.handLimit ?? 5)}>Return to Hand</button>
+            <button onClick={()=>returnDiscardGroupToHand(id,true)} disabled={(builderState.hand ?? []).length >= (builderState.handLimit ?? 5)}>Return All to Hand</button>
+          </div>
+        </div>
+      )
+    })
+  }, [stackView, builderState.discard, builderState.hand, builderState.handLimit])
+
+  const groupedHandElements = useMemo(() => {
+    if (!stackView) return null
+    const groups = (builderState.hand ?? []).reduce((acc: Record<string, {count:number, idxs:number[]}>, d, i) => {
+      const g = acc[d.id] ?? {count:0, idxs:[]}
+      g.count++
+      g.idxs.push(i)
+      acc[d.id] = g
+      return acc
+    }, {} as Record<string, {count:number, idxs:number[]}>)
+    return Object.entries(groups).map(([id,g]) => {
+      const card = Handbook.getAllCards().find(c => c.id === id)
+      return (
+        <div key={id} style={{border:'1px solid #333',borderRadius:10,padding:8,background:'#050505',minWidth:120}}>
+          <div style={{fontWeight:700}}>{card?.name ?? id} <span style={{color:'#9aa0a6',fontSize:'0.9rem'}}>(x{g.count})</span></div>
+          <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>{card?.type ?? ''}</div>
+          <div style={{marginTop:8}}>{renderDetails(card ?? {id, name:id, type:'', cost:0, text:'' as any})}</div>
+          <div style={{marginTop:8,display:'flex',gap:8,flexDirection:'column'}}>
+            <div style={{display:'flex',gap:8}}>
+              <button onClick={()=>discardGroupFromHand(id,false,'discarded')}>Discard 1</button>
+              <button onClick={()=>discardGroupFromHand(id,true,'discarded')}>Discard All</button>
+              <button onClick={()=>discardGroupFromHand(id,true,'played')}>Play All</button>
+            </div>
+          </div>
+        </div>
+      )
+    })
+  }, [stackView, builderState.hand])
+
+  // Move grouped items from hand to discard (single or all)
+  const discardGroupFromHand = (cardId: string, all = false, origin: 'played' | 'discarded' = 'discarded') => {
+    setBuilderState((prev) => {
+      const hand = [...(prev.hand ?? [])]
+      const removed: { id: string; state: 'unspent' | 'played' }[] = []
+      if (all) {
+        for (let i = hand.length - 1; i >= 0; i--) {
+          if (hand[i].id === cardId) removed.push(hand.splice(i, 1)[0])
+        }
+      } else {
+        const idx = hand.findIndex((h) => h.id === cardId)
+        if (idx >= 0) removed.push(hand.splice(idx, 1)[0])
+      }
+      if (removed.length === 0) return prev
+      const discard = [...(prev.discard ?? []), ...removed.map(r => ({ id: r.id, origin }))]
+      return { ...prev, hand, discard }
     })
   }
 
@@ -462,9 +580,16 @@ export default function DeckBuilder(){
         </div>
 
         <div>
-          <h3>Discard Pile</h3>
+            <h3>Discard Pile</h3>
+            <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
+              <label style={{display:'flex',gap:8,alignItems:'center'}}>
+                <input type="checkbox" checked={stackView} onChange={(e)=>setStackView(e.target.checked)} />
+                <span style={{fontSize:'0.85rem',color:'#9aa0a6'}}>Stack duplicates</span>
+              </label>
+            </div>
           <div style={{display:'flex',flexDirection:'column',gap:8}}>
-            {(builderState.discard ?? []).map((item, idx) => {
+            {/* optionally collapse duplicate entries into a stacked view */}
+            {stackView ? groupedDiscardElements : (builderState.discard ?? []).map((item, idx) => {
               const card = Handbook.getAllCards().find(c => c.id === item.id)
               return (
                 <div key={idx} style={{border:'1px solid #333',borderRadius:10,padding:8,background:'#050505',minWidth:220}}>
@@ -477,11 +602,12 @@ export default function DeckBuilder(){
                     >
                       Return to Deck (Top)
                     </button>
-                    <button
-                      onClick={() => returnDiscardItemToHand(idx)}
-                    >
-                      Return to Hand
-                    </button>
+                      <button
+                        onClick={() => returnDiscardItemToHand(idx)}
+                        disabled={(builderState.hand ?? []).length >= (builderState.handLimit ?? 5)}
+                      >
+                        Return to Hand
+                      </button>
                   </div>
                 </div>
               )
@@ -646,8 +772,14 @@ export default function DeckBuilder(){
 
         <div>
           <h3>Hand</h3>
+          <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
+            <label style={{display:'flex',gap:8,alignItems:'center'}}>
+              <input type="checkbox" checked={stackView} onChange={(e)=>setStackView(e.target.checked)} />
+              <span style={{fontSize:'0.85rem',color:'#9aa0a6'}}>Stack duplicates</span>
+            </label>
+          </div>
           <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
-            {(builderState.hand ?? []).map((handCard, idx) => {
+            {stackView ? groupedHandElements : (builderState.hand ?? []).map((handCard, idx) => {
                 const card = Handbook.getAllCards().find(c => c.id === handCard.id)
               return (
                   <div key={idx} style={{border:'1px solid #333',borderRadius:10,padding:8,background:'#050505',minWidth:120}}>
