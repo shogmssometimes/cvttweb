@@ -1,8 +1,9 @@
 const CACHE_NAME = "collapse-companion-v1";
+const APP_BASE = "/cvttweb/";
 const APP_SHELL = [
-  "/cvttapp/",
-  "/cvttapp/index.html",
-  "/cvttapp/manifest.webmanifest"
+  APP_BASE,
+  `${APP_BASE}index.html`,
+  `${APP_BASE}manifest.webmanifest`
 ];
 
 self.addEventListener("install", (event) => {
@@ -31,7 +32,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
           return response;
         })
-        .catch(() => caches.match("/index.html"));
+        .catch(() => caches.match(`${APP_BASE}index.html`));
     })
   );
 });
