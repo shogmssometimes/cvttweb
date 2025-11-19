@@ -446,7 +446,6 @@ export default function DeckBuilder(){
       const handLimit = prev.handLimit ?? 5
       if ((prev.hand ?? []).length >= handLimit) {
         // prevent returns that would exceed hand limit
-        window.alert('Hand is full — play or discard a card to make room.')
         return prev
       }
       const d = [...(prev.discard ?? [])]
@@ -459,10 +458,7 @@ export default function DeckBuilder(){
     setBuilderState((prev) => {
       const handLimit = prev.handLimit ?? 5
       const space = Math.max(0, handLimit - (prev.hand ?? []).length)
-      if (space <= 0) {
-        window.alert('Hand is full — play or discard a card to make room.')
-        return prev
-      }
+      if (space <= 0) return prev
       const discard = [...(prev.discard ?? [])]
       const moved: { id: string; origin: 'played' | 'discarded' }[] = []
       for (let i = discard.length - 1; i >= 0 && (moved.length < space); i--) {
@@ -494,9 +490,8 @@ export default function DeckBuilder(){
           <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Stacked</div>
           <div style={{marginTop:8}}>{renderDetails(card ?? {id, name:id, type:'', cost:0, text:'' as any})}</div>
           <div style={{display:'flex',gap:8,marginTop:8}}>
-            <button onClick={()=>returnDiscardGroupToDeck(id)}>Return to Deck (Top)</button>
-            <button onClick={()=>returnDiscardGroupToHand(id)} disabled={(builderState.hand ?? []).length >= (builderState.handLimit ?? 5)}>Return to Hand</button>
-            <button onClick={()=>returnDiscardGroupToHand(id,true)} disabled={(builderState.hand ?? []).length >= (builderState.handLimit ?? 5)}>Return All to Hand</button>
+            <button onClick={()=>{ if (typeof returnDiscardGroupToDeck === 'function') returnDiscardGroupToDeck(id) }}>Return to Deck (Top)</button>
+            <button onClick={()=>{ if (typeof returnDiscardGroupToHand === 'function') returnDiscardGroupToHand(id) }} disabled={(builderState.hand ?? []).length >= (builderState.handLimit ?? 5)}>Return to Hand</button>
           </div>
         </div>
       )
@@ -521,9 +516,9 @@ export default function DeckBuilder(){
           <div style={{marginTop:8}}>{renderDetails(card ?? {id, name:id, type:'', cost:0, text:'' as any})}</div>
           <div style={{marginTop:8,display:'flex',gap:8,flexDirection:'column'}}>
             <div style={{display:'flex',gap:8}}>
-              <button onClick={()=>discardGroupFromHand(id,false,'discarded')}>Discard 1</button>
-              <button onClick={()=>discardGroupFromHand(id,true,'discarded')}>Discard All</button>
-              <button onClick={()=>discardGroupFromHand(id,true,'played')}>Play All</button>
+              <button onClick={()=>{ if (typeof discardGroupFromHand === 'function') discardGroupFromHand(id,false,'discarded') }}>Discard 1</button>
+              <button onClick={()=>{ if (typeof discardGroupFromHand === 'function') discardGroupFromHand(id,true,'discarded') }}>Discard All</button>
+              <button onClick={()=>{ if (typeof discardGroupFromHand === 'function') discardGroupFromHand(id,true,'played') }}>Play All</button>
             </div>
           </div>
         </div>
