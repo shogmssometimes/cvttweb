@@ -1,9 +1,15 @@
+export type CardDetail = {
+  label: string;
+  value: string;
+};
+
 export type Card = {
   id: string;
   name: string;
   cost?: number;
   type?: string;
   text?: string;
+  details?: CardDetail[];
 };
 
 export type DeckState = {

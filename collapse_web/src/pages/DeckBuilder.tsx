@@ -1,129 +1,278 @@
-import React, {useMemo, useRef, useState} from 'react'
-import DeckEngine, {Card} from '../domain/decks/DeckEngine'
+import React, {useEffect, useMemo, useState} from 'react'
 import Handbook from '../data/handbook'
+import { Card } from '../domain/decks/DeckEngine'
 
-// A small sample card pool for initial builder — used as a fallback if the handbook
-// hasn't been imported yet.
-const SAMPLE_CARDS: Card[] = [
-  { id: 'c1', name: 'Burning Memory', type: 'Event', text: 'Deal 1 damage to a target.' },
-  { id: 'c2', name: 'Echo of Loss', type: 'Tactic', text: 'Discard a card to gain 2.' },
-  { id: 'c3', name: 'Quiet Resolve', type: 'Skill', text: 'Prevent 1 damage this turn.' },
-  { id: 'c4', name: 'Lucky13 Twist', type: 'Event', text: 'Draw two, discard one.' },
-  { id: 'c5', name: 'Network Trace', type: 'Support', text: 'Peek top 3 cards.' },
-]
+const BASE_TARGET = 26
+const MIN_NULLS = 5
+const STORAGE_KEY = 'collapse.deck-builder.v2'
+
+type CountMap = Record<string, number>
+
+type DeckBuilderState = {
+  baseCounts: CountMap
+  modCounts: CountMap
+  nullCount: number
+  modifierCapacity: number
+}
+
+const clamp = (value: number, min: number, max?: number) => {
+  if (value < min) return min
+  if (typeof max === 'number' && value > max) return max
+  return value
+}
+
+const sumCounts = (counts: CountMap) => Object.values(counts).reduce((sum, qty) => sum + qty, 0)
+
+const buildInitialCounts = (cards: Card[]) =>
+  cards.reduce<CountMap>((acc, card) => {
+    acc[card.id] = 0
+    return acc
+  }, {})
+
+const defaultState = (baseCards: Card[], modCards: Card[]): DeckBuilderState => ({
+  baseCounts: buildInitialCounts(baseCards),
+  modCounts: buildInitialCounts(modCards),
+  nullCount: MIN_NULLS,
+  modifierCapacity: 10,
+})
+
+const loadState = (baseCards: Card[], modCards: Card[]): DeckBuilderState => {
+  if (typeof window === 'undefined') return defaultState(baseCards, modCards)
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY)
+    if (!raw) return defaultState(baseCards, modCards)
+    const parsed = JSON.parse(raw) as DeckBuilderState
+    return {
+      baseCounts: { ...buildInitialCounts(baseCards), ...parsed.baseCounts },
+      modCounts: { ...buildInitialCounts(modCards), ...parsed.modCounts },
+      nullCount: Math.max(parsed.nullCount ?? MIN_NULLS, MIN_NULLS),
+      modifierCapacity: parsed.modifierCapacity ?? 10,
+    }
+  } catch {
+    return defaultState(baseCards, modCards)
+  }
+}
 
 export default function DeckBuilder(){
-  const engineRef = useRef<DeckEngine>(new DeckEngine(SAMPLE_CARDS.slice(0,0)))
-  // Prefer handbook card pool if available; otherwise fall back to SAMPLE_CARDS.
-  const handbookPool = Handbook.getAllCards ? Handbook.getAllCards() : []
-  const [pool] = useState<Card[]>(handbookPool.length > 0 ? handbookPool : SAMPLE_CARDS)
-  const [deckVersion, setDeckVersion] = useState(0)
+  const baseCards = Handbook.baseCards ?? []
+  const modCards = Handbook.modCards ?? []
+  const nullCard = Handbook.nullCards?.[0]
 
-  const state = useMemo(()=> engineRef.current.getState(), [deckVersion])
+  const [builderState, setBuilderState] = useState(() => loadState(baseCards, modCards))
+  const [modSearch, setModSearch] = useState('')
 
-  function addToDeck(card:Card){
-    engineRef.current.addCardToLibrary({...card, id: `${card.id}-${Date.now()}`})
-    setDeckVersion(v=>v+1)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(builderState))
+  }, [builderState])
+
+  const baseTotal = sumCounts(builderState.baseCounts)
+  const modCapacityUsed = useMemo(
+    () =>
+      modCards.reduce((total, card) => {
+        const qty = builderState.modCounts[card.id] ?? 0
+        const cost = card.cost ?? 0
+        return total + qty * cost
+      }, 0),
+    [builderState.modCounts, modCards]
+  )
+
+  const baseValid = baseTotal === BASE_TARGET
+  const nullValid = builderState.nullCount >= MIN_NULLS
+  const modValid = modCapacityUsed <= builderState.modifierCapacity
+  const deckIsValid = baseValid && nullValid && modValid
+
+  const filteredModCards = useMemo(() => {
+    if (!modSearch.trim()) return modCards
+    const needle = modSearch.trim().toLowerCase()
+    return modCards.filter((card) =>
+      [card.name, card.text, card.details?.map((d) => d.value).join(' ')].some((field) =>
+        field?.toLowerCase().includes(needle)
+      )
+    )
+  }, [modCards, modSearch])
+
+  const adjustBaseCount = (cardId: string, delta: number) => {
+    setBuilderState((prev) => {
+      const current = prev.baseCounts[cardId] ?? 0
+      const next = clamp(current + delta, 0)
+      const prevTotal = sumCounts(prev.baseCounts)
+      const newTotal = prevTotal - current + next
+      if (newTotal > BASE_TARGET) return prev
+      return {
+        ...prev,
+        baseCounts: { ...prev.baseCounts, [cardId]: next },
+      }
+    })
   }
 
-  function removeFromDeck(id:string){
-    engineRef.current.removeCardFromLibraryById(id)
-    setDeckVersion(v=>v+1)
+  const adjustModCount = (cardId: string, delta: number) => {
+    setBuilderState((prev) => ({
+      ...prev,
+      modCounts: {
+        ...prev.modCounts,
+        [cardId]: clamp((prev.modCounts[cardId] ?? 0) + delta, 0),
+      },
+    }))
   }
 
-  function shuffle(){
-    engineRef.current.shuffle()
-    setDeckVersion(v=>v+1)
+  const adjustNullCount = (delta: number) => {
+    setBuilderState((prev) => ({
+      ...prev,
+      nullCount: clamp(prev.nullCount + delta, MIN_NULLS),
+    }))
   }
 
-  function draw(){
-    engineRef.current.draw(1)
-    setDeckVersion(v=>v+1)
+  const setNullCount = (value: number) => {
+    if (Number.isNaN(value)) return
+    setBuilderState((prev) => ({
+      ...prev,
+      nullCount: clamp(value, MIN_NULLS),
+    }))
   }
 
-  function reset(){
-    engineRef.current.reset()
-    setDeckVersion(v=>v+1)
+  const setModifierCapacity = (value: number) => {
+    if (Number.isNaN(value)) return
+    setBuilderState((prev) => ({
+      ...prev,
+      modifierCapacity: Math.max(value, 0),
+    }))
   }
 
-  // Import functionality removed: handbook updates are developer-driven only.
+  const resetBuilder = () => {
+    setBuilderState(defaultState(baseCards, modCards))
+    setModSearch('')
+  }
+
+  const renderDetails = (card: Card) => {
+    if (!card.details || card.details.length === 0) return null
+    return (
+      <dl style={{marginTop:8,marginBottom:0,display:'grid',gridTemplateColumns:'max-content 1fr',columnGap:8,rowGap:4,fontSize:'0.8rem'}}>
+        {card.details.map((detail) => (
+          <React.Fragment key={`${card.id}-${detail.label}`}>
+            <dt style={{fontWeight:600}}>{detail.label}</dt>
+            <dd style={{margin:0}}>{detail.value}</dd>
+          </React.Fragment>
+        ))}
+      </dl>
+    )
+  }
 
   return (
-    <main style={{padding:'1rem',maxWidth:960,margin:'0 auto'}}>
+    <main style={{padding:'1rem',maxWidth:1100,margin:'0 auto',display:'flex',flexDirection:'column',gap:24}}>
       <header>
         <h1>Engram Deck Builder</h1>
-        <p className="muted">Build your deck (MTG-like). Tap a card in the pool to add it — deck updates live.</p>
+        <p className="muted">Assemble MTG-style decks from official handbook data. Decks require 26 base cards, at least 5 Nulls, and modifier capacity must not be exceeded.</p>
       </header>
 
-      <section style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginTop:16}}>
+      <section style={{border:'1px solid #222',borderRadius:12,padding:16,background:'#080808',display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
         <div>
-          <h3>Card Pool</h3>
-          <div style={{marginBottom:12}}>
-            <label style={{display:'block',marginBottom:6}}>Card pool (handbook)</label>
-            <div style={{color:'#9aa0a6',fontSize:'0.9rem'}}>
-              Handbook data is developer-maintained. To update cards, edit the TypeScript modules
-              under <code>src/data/handbook/</code> and commit the change.
-            </div>
-          </div>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(120px,1fr))',gap:8}}>
-            {pool.map(c=> (
-              <div key={c.id} style={{border:'1px solid #222',padding:10,borderRadius:8,background:'#070707'}}>
-                <div style={{fontWeight:700}}>{c.name}</div>
-                <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>{c.type}</div>
-                <p style={{fontSize:'0.8rem'}}>{c.text}</p>
-                <button onClick={()=>addToDeck(c)} style={{width:'100%'}}>Add</button>
+          <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Base Cards</div>
+          <div style={{fontSize:'1.8rem',fontWeight:700}}>{baseTotal} / {BASE_TARGET}</div>
+          {!baseValid && <div style={{color:'#f7b500',fontSize:'0.85rem'}}>Deck must contain exactly 26 base cards.</div>}
+        </div>
+        <div>
+          <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Null Cards</div>
+          <div style={{fontSize:'1.8rem',fontWeight:700}}>{builderState.nullCount}</div>
+          {!nullValid && <div style={{color:'#f7b500',fontSize:'0.85rem'}}>Minimum of {MIN_NULLS} Nulls required.</div>}
+        </div>
+        <div>
+          <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Modifier Capacity</div>
+          <div style={{fontSize:'1.8rem',fontWeight:700}}>{modCapacityUsed} / {builderState.modifierCapacity}</div>
+          {!modValid && <div style={{color:'#ff6b6b',fontSize:'0.85rem'}}>Reduce modifier cards or raise capacity.</div>}
+        </div>
+        <div>
+          <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Deck Status</div>
+          <div style={{fontSize:'1.8rem',fontWeight:700,color:deckIsValid ? '#4caf50' : '#ff6b6b'}}>{deckIsValid ? 'Ready' : 'Needs Attention'}</div>
+          <button onClick={resetBuilder} style={{marginTop:8}}>Reset Builder</button>
+        </div>
+      </section>
+
+      <section style={{border:'1px solid #222',borderRadius:12,padding:16}}>
+        <h2>Base Skill Cards</h2>
+        <p style={{marginTop:0,color:'#9aa0a6'}}>Pick any combination of the 15 skills until you reach 26 total cards.</p>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
+          {baseCards.map((card) => {
+            const qty = builderState.baseCounts[card.id] ?? 0
+            return (
+              <div key={card.id} style={{border:'1px solid #333',borderRadius:10,padding:12,background:'#050505',display:'flex',flexDirection:'column',gap:8}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                  <div>
+                    <div style={{fontWeight:700}}>{card.name}</div>
+                    <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>{card.text}</div>
+                  </div>
+                  <div style={{display:'flex',alignItems:'center',gap:6}}>
+                    <button onClick={()=>adjustBaseCount(card.id,-1)} disabled={qty === 0}>-</button>
+                    <div style={{minWidth:24,textAlign:'center'}}>{qty}</div>
+                    <button onClick={()=>adjustBaseCount(card.id,1)} disabled={baseTotal >= BASE_TARGET}>+</button>
+                  </div>
+                </div>
+                {renderDetails(card)}
               </div>
-            ))}
+            )
+          })}
+        </div>
+      </section>
+
+      <section style={{border:'1px solid #222',borderRadius:12,padding:16,display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:16,alignItems:'center'}}>
+        <div>
+          <h2 style={{marginBottom:8}}>Null Cards</h2>
+          <p style={{marginTop:0,color:'#9aa0a6'}}>GMs may raise or lower the number of Nulls. Decks must keep at least {MIN_NULLS}.</p>
+          {nullCard && (
+            <div style={{border:'1px solid #333',borderRadius:10,padding:12,background:'#050505',marginBottom:12}}>
+              <div style={{fontWeight:700}}>{nullCard.name}</div>
+              <div style={{fontSize:'0.85rem'}}>{nullCard.text}</div>
+            </div>
+          )}
+        </div>
+        <div style={{display:'flex',flexDirection:'column',gap:8}}>
+          <label style={{fontWeight:600}}>Null Count</label>
+          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            <button onClick={()=>adjustNullCount(-1)}>-</button>
+            <input type="number" min={MIN_NULLS} value={builderState.nullCount} onChange={(event)=>setNullCount(parseInt(event.target.value,10))} style={{width:80,textAlign:'center'}} />
+            <button onClick={()=>adjustNullCount(1)}>+</button>
+          </div>
+        </div>
+      </section>
+
+      <section style={{border:'1px solid #222',borderRadius:12,padding:16,display:'flex',flexDirection:'column',gap:16}}>
+        <div style={{display:'flex',flexWrap:'wrap',gap:12,justifyContent:'space-between',alignItems:'center'}}>
+          <div>
+            <h2 style={{marginBottom:4}}>Modifier Cards</h2>
+            <p style={{marginTop:0,color:'#9aa0a6'}}>Each modifier consumes capacity equal to its card cost. Stay within your Engram Modifier Capacity.</p>
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:8}}>
+            <label style={{fontWeight:600}}>Modifier Capacity</label>
+            <input type="number" min={0} value={builderState.modifierCapacity} onChange={(event)=>setModifierCapacity(parseInt(event.target.value,10))} style={{width:140}} />
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:8}}>
+            <label style={{fontWeight:600}}>Search Mods</label>
+            <input type="text" placeholder="Search name, target, effect" value={modSearch} onChange={(event)=>setModSearch(event.target.value)} style={{minWidth:220}} />
           </div>
         </div>
 
-        <div>
-          <h3>Your Deck</h3>
-          <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:12}}>
-            <button onClick={shuffle}>Shuffle</button>
-            <button onClick={draw}>Draw</button>
-            <button onClick={()=>{ engineRef.current.returnDiscardToLibrary(true); setDeckVersion(v=>v+1); }}>Return Discard</button>
-            <button onClick={reset}>Reset</button>
-          </div>
-
-          <div style={{border:'1px solid #222',borderRadius:10,padding:12,background:'#080808'}}>
-            <div style={{display:'flex',justifyContent:'space-between'}}>
-              <div>Library: {state.library.length}</div>
-              <div>Hand: {state.hand.length}</div>
-              <div>Discard: {state.discard.length}</div>
-            </div>
-
-            <h4 style={{marginTop:12}}>Top of Library (first 10)</h4>
-            <ul style={{margin:0,paddingLeft:16}}>
-              {state.library.slice(0,10).map(c=> (
-                <li key={c.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                  <span>{c.name}</span>
-                  <div style={{display:'flex',gap:8}}>
-                    <button onClick={()=>{ engineRef.current.moveToTop(c); setDeckVersion(v=>v+1); }}>Top</button>
-                    <button onClick={()=>removeFromDeck(c.id)}>Remove</button>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:12}}>
+          {filteredModCards.map((card) => {
+            const qty = builderState.modCounts[card.id] ?? 0
+            const cost = card.cost ?? 0
+            return (
+              <div key={card.id} style={{border:'1px solid #333',borderRadius:10,padding:12,background:'#050505',display:'flex',flexDirection:'column',gap:8}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
+                  <div>
+                    <div style={{fontWeight:700}}>{card.name}</div>
+                    <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Cost {cost}</div>
                   </div>
-                </li>
-              ))}
-            </ul>
-
-            <h4 style={{marginTop:12}}>Hand</h4>
-            <ul style={{margin:0,paddingLeft:16}}>
-              {state.hand.map((c,i)=> (
-                <li key={c.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                  <span>{c.name}</span>
-                  <div style={{display:'flex',gap:8}}>
-                    <button onClick={()=>{ engineRef.current.playFromHand(i); setDeckVersion(v=>v+1) }}>Play</button>
-                    <button onClick={()=>{ engineRef.current.discardFromHand(i); setDeckVersion(v=>v+1) }}>Discard</button>
+                  <div style={{display:'flex',alignItems:'center',gap:6}}>
+                    <button onClick={()=>adjustModCount(card.id,-1)} disabled={qty === 0}>-</button>
+                    <div style={{minWidth:24,textAlign:'center'}}>{qty}</div>
+                    <button onClick={()=>adjustModCount(card.id,1)}>+</button>
                   </div>
-                </li>
-              ))}
-            </ul>
-
-            <h4 style={{marginTop:12}}>Discard</h4>
-            <ul style={{margin:0,paddingLeft:16}}>
-              {state.discard.map(c=> (<li key={c.id}>{c.name}</li>))}
-            </ul>
-          </div>
+                </div>
+                <p style={{margin:0,fontSize:'0.85rem'}}>{card.text}</p>
+                {renderDetails(card)}
+              </div>
+            )
+          })}
         </div>
       </section>
     </main>
