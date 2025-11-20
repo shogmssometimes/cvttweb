@@ -903,8 +903,11 @@ export default function DeckBuilder(){
         </div>
 
         <div className="pager-nav" style={{display:'flex',justifyContent:'center',marginTop:12,gap:8}}>
-          {[0,1].map(i => (
-            <div key={i} className={`pager-dot ${pageIndex === i ? 'active' : ''}`} onClick={()=>setPageIndex(i)} style={{cursor:'pointer'}} />
+          {[{i:0,label:'Builder'},{i:1,label:'Deck Ops'}].map(({i,label}) => (
+            <div key={i} className={`pager-item`} aria-current={pageIndex === i} onClick={()=>setPageIndex(i)} style={{cursor:'pointer'}} role="button" aria-label={`Navigate to ${label}`}>
+              <div className={`pager-dot ${pageIndex === i ? 'active' : ''}`} />
+              <div className="pager-label">{label}</div>
+            </div>
           ))}
         </div>
       </div>
