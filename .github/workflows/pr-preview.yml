@@ -1,0 +1,88 @@
+name: PR Preview (gh-pages previews)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+jobs:
+  pr-preview:
+    runs-on: ubuntu-latest
+    # Always run on these PR actions - the step content uses conditional checks
+    if: github.event.pull_request.draft == false || github.event.action == 'opened' || github.event.action == 'synchronize' || github.event.action == 'reopened' || github.event.action == 'closed'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        working-directory: collapse_web
+        run: npm ci
+
+      - name: Build site
+        working-directory: collapse_web
+        run: npm run build
+
+      - name: Deploy preview to gh-pages under previews/pr-<number>
+        if: github.event.action != 'closed'
+        env:
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          # clone if gh-pages branch exists, otherwise init an orphan branch
+          git clone https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git gh-pages --depth=1 -b gh-pages || (
+            mkdir gh-pages && cd gh-pages && git init && git remote add origin https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git && git fetch origin gh-pages || true && git checkout -b gh-pages
+          )
+          rm -rf gh-pages/previews/pr-${PR_NUMBER}
+          mkdir -p gh-pages/previews/pr-${PR_NUMBER}
+          cp -r collapse_web/docs/* gh-pages/previews/pr-${PR_NUMBER}/
+          cd gh-pages
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add -A
+          git commit -m "chore(preview): update PR ${PR_NUMBER} preview" || echo "No changes to commit"
+          git push https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git gh-pages
+
+      - name: Comment PR with preview URL
+        if: github.event.action != 'closed'
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.number }}
+          body: "Preview URL: https://$GITHUB_REPOSITORY_OWNER.github.io/${{ github.event.repository.name }}/previews/pr-${{ github.event.number }}/"
+
+      - name: Cleanup preview on PR close
+        if: github.event.action == 'closed'
+        env:
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          git clone https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git gh-pages --depth=1 -b gh-pages || (
+            mkdir gh-pages && cd gh-pages && git init && git remote add origin https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git && git fetch origin gh-pages || true && git checkout -b gh-pages
+          )
+          cd gh-pages
+          rm -rf previews/pr-${PR_NUMBER}
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add -A
+          git commit -m "chore(preview): remove preview for PR ${PR_NUMBER}" || echo "No changes to commit"
+          git push https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git gh-pages
+
+      - name: Comment PR preview removal
+        if: github.event.action == 'closed'
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.number }}
+          body: "Preview removed: PR #${{ github.event.number }} preview has been removed from GitHub Pages."
+        run: |
+          echo "Preview URL: https://$GITHUB_REPOSITORY_OWNER.github.io/${{ github.event.repository.name }}/previews/pr-${{ github.event.number }}/"
