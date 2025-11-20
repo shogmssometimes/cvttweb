@@ -121,6 +121,28 @@ jobs:
           name: playwright-report-pr-${{ github.event.number }}
           path: collapse_web/playwright-report
 
+      - name: Attach Playwright HTML report into GH Pages preview
+        if: github.event.pull_request.head.repo.full_name == github.repository && github.event.action != 'closed'
+        env:
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          # clone gh-pages
+          git clone https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git gh-pages --depth=1 -b gh-pages || (
+            mkdir gh-pages && cd gh-pages && git init && git remote add origin https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git && git fetch origin gh-pages || true && git checkout -b gh-pages
+          )
+          rm -rf gh-pages/previews/pr-${PR_NUMBER}/playwright-report
+          mkdir -p gh-pages/previews/pr-${PR_NUMBER}/playwright-report
+          cp -r collapse_web/playwright-report/* gh-pages/previews/pr-${PR_NUMBER}/playwright-report/
+          cd gh-pages
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add -A
+          git commit -m "chore(preview): add Playwright report for PR ${PR_NUMBER}" || echo "No changes to commit"
+          git push https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git gh-pages
+
       - name: Run Playwright tests for fork PRs (local preview)
         if: github.event.pull_request.head.repo.full_name != github.repository && github.event.action != 'closed'
         working-directory: collapse_web

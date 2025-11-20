@@ -22,6 +22,7 @@ Vercel & Netlify (Recommended for HTTPS previews)
 
 CI Tests & Stability
 - Playwright smoke tests are run on the deployed preview by the GitHub Actions PR workflow for same-repository PRs; Playwright HTML reports are created and uploaded as Actions artifacts.
+ - Playwright smoke tests are run on the deployed preview by the GitHub Actions PR workflow for same-repository PRs; Playwright HTML reports are created and uploaded as Actions artifacts. The report HTML is also copied into the preview folder so you can view it directly at: `https://<owner>.github.io/<repo>/previews/pr-<n>/playwright-report/`.
 - For fork PRs where the workflow cannot deploy to GH Pages, CI falls back to a local `vite preview` server in the runner and runs Playwright with `SKIP_SW_CHECK=true` (because local HTTP does not support SW registration).
 - If Playwright tests are flaky, add more deterministic selectors and increase `waitFor` timeouts where necessary. The CI environment can be slower than local dev and needs slightly larger timeouts.
 
