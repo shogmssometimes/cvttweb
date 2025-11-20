@@ -75,6 +75,7 @@ jobs:
           publish_branch: gh-pages
           user_name: "deploy bot"
           user_email: "deploy@local"
+          clean: true
 
       - name: Verify remote gh-pages assets (retry)
         env:
