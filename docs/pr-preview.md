@@ -14,3 +14,8 @@ Notes
 Local testing
 - Run the dev server locally with: `npm run dev -- --host` to open access from other devices on the LAN.
 - For production-like builds: `npm run build` followed by `npm run preview`.
+
+CI Tests
+- The PR workflow also runs Playwright smoke tests against the deployed preview URL (mobile + desktop) to validate key interactions and PWA behaviors.
+- Test results and HTML reports are uploaded as artifacts to the workflow run and can be downloaded from the Actions page.
+ - For PRs from forks, the workflow cannot deploy a preview due to GitHub token restrictions. Instead, it runs Playwright tests against a local preview server and skips service worker checks.

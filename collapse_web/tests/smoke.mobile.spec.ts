@@ -81,16 +81,21 @@ test.describe('Mobile smoke: basic flows and PWA presence', () => {
     expect(manifestHref).toBeTruthy();
 
     // Wait for service worker registration (if the site is served over https; GH Pages is)
-    const swRegistered = await page.evaluate(async () => {
-      if (!('serviceWorker' in navigator)) return false;
-      try {
-        const reg = await navigator.serviceWorker.getRegistration();
-        return !!reg;
-      } catch (e) {
-        return false;
-      }
-    });
-    expect(swRegistered).toBeTruthy();
+    const SKIP_SW_CHECK = process.env.SKIP_SW_CHECK === 'true';
+    if (!SKIP_SW_CHECK) {
+      const swRegistered = await page.evaluate(async () => {
+        if (!('serviceWorker' in navigator)) return false;
+        try {
+          const reg = await navigator.serviceWorker.getRegistration();
+          return !!reg;
+        } catch (e) {
+          return false;
+        }
+      });
+      expect(swRegistered).toBeTruthy();
+    } else {
+      console.log('Skipping service worker registration check (SKIP_SW_CHECK=true)');
+    }
     await context.close();
   });
 });

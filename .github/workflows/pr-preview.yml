@@ -29,7 +29,7 @@ jobs:
         run: npm run build
 
       - name: Deploy preview to gh-pages under previews/pr-<number>
-        if: github.event.action != 'closed'
+        if: github.event.pull_request.head.repo.full_name == github.repository && github.event.action != 'closed'
         env:
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.number }}
@@ -58,6 +58,80 @@ jobs:
           issue-number: ${{ github.event.number }}
           body: "Preview URL: https://$GITHUB_REPOSITORY_OWNER.github.io/${{ github.event.repository.name }}/previews/pr-${{ github.event.number }}/"
 
+      - name: Wait for preview URL to be available
+        if: github.event.action != 'closed'
+        env:
+          PREVIEW_URL: "https://$GITHUB_REPOSITORY_OWNER.github.io/${{ github.event.repository.name }}/previews/pr-${{ github.event.number }}/"
+        run: |
+          set -e
+          echo "Waiting for preview URL: $PREVIEW_URL"
+          for i in $(seq 1 30); do
+            status=$(curl -s -o /dev/null -w "%{http_code}" "$PREVIEW_URL") || status=0
+            echo "Attempt $i: HTTP $status"
+            if [ "$status" -eq 200 ]; then
+              echo "Preview is ready"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "Preview did not respond with HTTP 200 after retries"
+          exit 1
+
+      - name: Run Playwright smoke tests against the preview
+        if: github.event.pull_request.head.repo.full_name == github.repository && github.event.action != 'closed'
+        working-directory: collapse_web
+        env:
+          SITE_URL: "https://$GITHUB_REPOSITORY_OWNER.github.io/${{ github.event.repository.name }}/previews/pr-${{ github.event.number }}/"
+        run: |
+          set -e
+          # Install Playwright browsers
+          npx playwright install --with-deps
+          # Run mobile smoke tests with html reporter
+          npx playwright test tests/smoke.mobile.spec.ts --project=chromium --workers=1 --retries=1 --reporter=html
+          # Run desktop smoke tests with html reporter
+          npx playwright test tests/smoke.spec.ts --project=chromium --workers=1 --retries=1 --reporter=html
+
+      - name: Upload Playwright report artifact
+        if: github.event.action != 'closed'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-pr-${{ github.event.number }}
+          path: collapse_web/playwright-report
+
+      - name: Run Playwright tests for fork PRs (local preview)
+        if: github.event.pull_request.head.repo.full_name != github.repository && github.event.action != 'closed'
+        working-directory: collapse_web
+        env:
+          SITE_URL: "http://127.0.0.1:5173/"
+          SKIP_SW_CHECK: "true"
+        run: |
+          set -e
+          # Start a local preview server in the background
+          npm run preview -- --port 5173 &
+          PREVIEW_PID=$!
+          echo "Started preview server PID: $PREVIEW_PID"
+          # Wait for local preview to be up
+          for i in $(seq 1 30); do
+            if curl -sSf "http://127.0.0.1:5173/" > /dev/null; then
+              echo "Local preview ready"
+              break
+            fi
+            sleep 2
+          done
+          # Install Playwright browsers
+          npx playwright install --with-deps
+          # Run tests against local preview (skip SW checks)
+          npx playwright test tests/smoke.mobile.spec.ts --project=chromium --workers=1 --retries=1 --reporter=html
+          npx playwright test tests/smoke.spec.ts --project=chromium --workers=1 --retries=1 --reporter=html
+          kill $PREVIEW_PID || true
+
+      - name: Upload Playwright report artifact (fork PR)
+        if: github.event.pull_request.head.repo.full_name != github.repository && github.event.action != 'closed'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-pr-${{ github.event.number }}-fork
+          path: collapse_web/playwright-report
+
       - name: Cleanup preview on PR close
         if: github.event.action == 'closed'
         env:
@@ -84,5 +158,4 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.number }}
           body: "Preview removed: PR #${{ github.event.number }} preview has been removed from GitHub Pages."
-        run: |
-          echo "Preview URL: https://$GITHUB_REPOSITORY_OWNER.github.io/${{ github.event.repository.name }}/previews/pr-${{ github.event.number }}/"
+          

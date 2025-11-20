@@ -14,3 +14,5 @@ Open it on a mobile device to verify PWA behavior and mobile UI.
 
 - The preview is deployed to the `gh-pages` branch under `previews/pr-<PR_NUMBER>` to avoid overwriting the main site.
 - The preview is removed when the PR is closed.
+- The PR preview workflow will also run Playwright smoke tests against the deployed preview; results and HTML reports are available in the workflow run as artifacts.
+- PRs from forks will run Playwright tests against a local preview; service worker checks are skipped in that scenario.
