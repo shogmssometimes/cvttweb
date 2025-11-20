@@ -8,6 +8,7 @@
     "test": "vitest",
     "smoke": "playwright test tests/smoke.spec.ts --project=chromium --workers=1 --retries=1 --reporter=list",
     "smoke:mobile": "playwright test tests/smoke.mobile.spec.ts --project=chromium --workers=1 --retries=1 --reporter=list",
+    "e2e": "playwright test tests/e2e --project=chromium --workers=1 --retries=1 --reporter=list",
     "test:coverage": "vitest --run --coverage",
     "build": "tsc -b && vite build",
     "preview": "vite preview"
