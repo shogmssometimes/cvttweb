@@ -46,6 +46,14 @@ jobs:
         run: |
           if [ ! -f collapse_web/docs/index.html ]; then echo "Missing collapse_web/docs/index.html"; exit 1; fi
           if ! ls collapse_web/docs/assets | grep -E '^index-[A-Za-z0-9].*\.js$' >/dev/null 2>&1; then echo "Missing JS asset in collapse_web/docs/assets"; exit 1; fi
+          # Assert that the index references assets that actually exist in the built folder
+          INDEX_ASSETS=$(grep -Eo 'href="/[^\"]+assets/index-[A-Za-z0-9_.-]+\.css"|src="/[^\"]+assets/index-[A-Za-z0-9_.-]+\.js"' collapse_web/docs/index.html || true)
+          if [ -z "$INDEX_ASSETS" ]; then echo "No assets referenced from index.html"; exit 1; fi
+          for A in $INDEX_ASSETS; do
+            FILE=$(echo $A | sed -E 's/^(src|href)="\/[^\"]*assets\/(index-[A-Za-z0-9_.-]+\.(css|js))"$/\2/');
+            if [ -z "$FILE" ]; then echo "Unable to parse asset from: $A"; exit 1; fi
+            if [ ! -f "collapse_web/docs/assets/$FILE" ]; then echo "Index references asset '$FILE' but file is missing in built assets"; exit 1; fi
+          done
 
       - name: Abort if build files are already committed to this push
         run: |
@@ -67,3 +75,45 @@ jobs:
           publish_branch: gh-pages
           user_name: "deploy bot"
           user_email: "deploy@local"
+
+      - name: Verify remote gh-pages assets (retry)
+        env:
+          SITE_OWNER: ${{ github.repository_owner }}
+          SITE_REPO: ${{ github.event.repository.name }}
+        run: |
+          SITE_URL="https://${SITE_OWNER}.github.io/${SITE_REPO}"
+          echo "Verifying deployments on $SITE_URL ..."
+          # Retrieve the site's index.html from the published pages and extract asset references
+          set +e
+          attempt=0
+          max_attempts=8
+          while [ $attempt -lt $max_attempts ]; do
+            attempt=$((attempt+1))
+            echo "Attempt $attempt/$max_attempts..."
+            # fetch the site HTML
+            body=$(curl -fsL "$SITE_URL/" || true)
+            if [ -z "$body" ]; then echo "Failed to fetch $SITE_URL (empty body). Retrying..."; sleep 5; continue; fi
+            # Extract script & css assets
+            assets=$(echo "$body" | grep -Eo 'href="/[^\"]+assets/index-[A-Za-z0-9_.-]+\.css"|src="/[^\"]+assets/index-[A-Za-z0-9_.-]+\.js"' | sed -E 's/(src|href)="//g' | sed -E 's/"$//')
+            if [ -z "$assets" ]; then echo "No assets found in site index. Retrying..."; sleep 5; continue; fi
+            ok=0
+            for a in $assets; do
+              url="https://${SITE_OWNER}.github.io${a}"
+              echo "Checking $url"
+              if curl -fsL --max-time 15 "$url" >/dev/null; then
+                ok=$((ok+1))
+              else
+                echo "Asset $url returned non-200, will retry"
+                ok=-1
+                break
+              fi
+            done
+            if [ $ok -gt 0 ]; then
+              echo "All referenced assets reachable from $SITE_URL"
+              set -e
+              exit 0
+            fi
+            sleep 6
+          done
+          set -e
+          echo "Failed to verify remote gh-pages assets after $max_attempts attempts"; exit 1
