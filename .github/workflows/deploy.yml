@@ -3,10 +3,16 @@ name: Build and Deploy PWA to GitHub Pages
 on:
   push:
     branches: [ main ]
+    # Ignore direct changes to the built docs; CI will produce and publish them
+    paths-ignore:
+      - 'collapse_web/docs/**'
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    concurrency:
+      group: 'build-and-deploy-${{ github.ref }}'
+      cancel-in-progress: true
     permissions:
       contents: write
       pages: write
@@ -16,17 +22,31 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: true
 
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
+          cache: 'npm'
 
       - name: Install & build collapse_web
         working-directory: collapse_web
         run: |
           npm ci
           npm run build
+
+      - name: Abort if build files are already committed to this push
+        run: |
+          # On initial push, GITHUB_EVENT_BEFORE may be null/empty; guard that case
+          if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+            echo "Initial push; skipping built docs check"
+            exit 0
+          fi
+          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q '^collapse_web/docs/'; then
+            echo "Detected changes to collapse_web/docs in push; please do NOT commit built docs to source. Remove built files and push again."
+            exit 1
+          fi
 
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
