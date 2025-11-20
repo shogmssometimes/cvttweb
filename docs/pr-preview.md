@@ -15,6 +15,17 @@ Local testing
 - Run the dev server locally with: `npm run dev -- --host` to open access from other devices on the LAN.
 - For production-like builds: `npm run build` followed by `npm run preview`.
 
+Vercel & Netlify (Recommended for HTTPS previews)
+- Vercel and Netlify can publish PR previews automatically and over HTTPS, which is critical to validate PWA features and Service Workers on mobile devices.
+- For Vercel: Connect the repo at https://vercel.com/new, set the build command to `cd collapse_web && npm ci && npm run build`, and the Output Directory to `collapse_web/docs/`. You can optionally create or use `vercel.json` included at the repo root to preconfigure the behavior.
+- For Netlify: Connect your repository and set the build command and publish directory via the UI or the provided `netlify.toml` in the repo root.
+
+CI Tests & Stability
+- Playwright smoke tests are run on the deployed preview by the GitHub Actions PR workflow for same-repository PRs; Playwright HTML reports are created and uploaded as Actions artifacts.
+- For fork PRs where the workflow cannot deploy to GH Pages, CI falls back to a local `vite preview` server in the runner and runs Playwright with `SKIP_SW_CHECK=true` (because local HTTP does not support SW registration).
+- If Playwright tests are flaky, add more deterministic selectors and increase `waitFor` timeouts where necessary. The CI environment can be slower than local dev and needs slightly larger timeouts.
+
+
 CI Tests
 - The PR workflow also runs Playwright smoke tests against the deployed preview URL (mobile + desktop) to validate key interactions and PWA behaviors.
 - Test results and HTML reports are uploaded as artifacts to the workflow run and can be downloaded from the Actions page.

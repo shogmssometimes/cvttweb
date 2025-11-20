@@ -130,7 +130,7 @@ jobs:
         run: |
           set -e
           # Start a local preview server in the background
-          npm run preview -- --port 5173 &
+          npm run preview -- --port 5173 --host 127.0.0.1 &
           PREVIEW_PID=$!
           echo "Started preview server PID: $PREVIEW_PID"
           # Wait for local preview to be up

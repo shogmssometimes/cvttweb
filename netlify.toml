@@ -1,0 +1,6 @@
+[build]
+  command = "cd collapse_web && npm ci && npm run build"
+  publish = "collapse_web/docs"
+
+[context.production.environment]
+  NODE_ENV = "production"
