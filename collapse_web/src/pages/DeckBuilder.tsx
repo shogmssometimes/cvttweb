@@ -543,7 +543,7 @@ export default function DeckBuilder(){
   }
 
 
-  const renderDetails = (card: Card) => {
+  function renderDetails(card: Card) {
     if (!card.details || card.details.length === 0) return null
     return (
       <dl style={{marginTop:8,marginBottom:0,display:'grid',gridTemplateColumns:'max-content 1fr',columnGap:8,rowGap:4,fontSize:'0.8rem'}}>
