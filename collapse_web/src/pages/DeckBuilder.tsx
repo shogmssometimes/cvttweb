@@ -555,31 +555,42 @@ export default function DeckBuilder(){
     })
   }
 
-  // Play flow handlers
+  // Play flow handlers (non-destructive selection: cards are moved only on finalize)
   function startPlayBase(cardId: string) {
-    // move one base from hand to played (discard with origin 'played') and begin activePlay
-    discardGroupFromHand(cardId, false, 'played')
+    // toggle selection: deselect if already selected
+    if (activePlay?.baseId === cardId) {
+      setActivePlay(null)
+      return
+    }
+    // select as active base (no movement yet)
     setActivePlay({ baseId: cardId, mods: [] })
   }
 
   function attachModifier(cardId: string) {
     if (!activePlay) return
-    // move one modifier from hand to played
-    discardGroupFromHand(cardId, false, 'played')
+    // allow toggle: if already attached, remove it
+    if (activePlay.mods.includes(cardId)) {
+      setActivePlay((prev) => prev ? { ...prev, mods: prev.mods.filter((m) => m !== cardId) } : prev)
+      return
+    }
+    // guard: ensure there is an available copy in hand not already selected
+    const availableInHand = (builderState.hand ?? []).filter((h) => h.id === cardId).length
+    const alreadySelected = activePlay.mods.filter((m) => m === cardId).length
+    if (alreadySelected >= availableInHand) return
     setActivePlay((prev) => prev ? { ...prev, mods: [...prev.mods, cardId] } : prev)
   }
 
   function finalizePlay() {
-    // play is already materialized into discard with origin 'played'
+    if (!activePlay) return
+    const { baseId, mods } = activePlay
+    // move base and attached mods from hand into discard as 'played'
+    discardGroupFromHand(baseId, false, 'played')
+    mods.forEach((m) => discardGroupFromHand(m, false, 'played'))
     setActivePlay(null)
   }
 
   function cancelPlay() {
-    if (!activePlay) return
-    const { baseId, mods } = activePlay
-    // return attached modifiers first, then base
-    mods.forEach((m) => returnDiscardGroupToHand(m, false))
-    returnDiscardGroupToHand(baseId, false)
+    // simply drop selection; no movement occurred until finalize
     setActivePlay(null)
   }
 
