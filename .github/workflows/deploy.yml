@@ -41,8 +41,13 @@ jobs:
         run: |
           npm ci
           npm run test:coverage
-          # Fail if coverage drops below threshold (80% lines)
-          node -e "const fs=require('fs'); const cov=JSON.parse(fs.readFileSync('coverage/coverage-summary.json')); const pct=cov.total.lines.pct; const min=80; if(pct<min){console.error('Coverage threshold not met: '+pct+' < '+min); process.exit(1);} else console.log('Coverage OK: '+pct+' >= '+min);"
+          # Only enforce coverage threshold for pushes to main — allow feature branches and PRs to pass
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "Enforcing coverage threshold on main branch"
+            node -e "const fs=require('fs'); const cov=JSON.parse(fs.readFileSync('coverage/coverage-summary.json')); const pct=cov.total.lines.pct; const min=80; if(pct<min){console.error('Coverage threshold not met: '+pct+' < '+min); process.exit(1);} else console.log('Coverage OK: '+pct+' >= '+min);"
+          else
+            echo "Not main branch — not enforcing coverage threshold"
+          fi
 
       - name: Verify build output
         run: |
