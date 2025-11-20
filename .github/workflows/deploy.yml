@@ -118,3 +118,11 @@ jobs:
           done
           set -e
           echo "Failed to verify remote gh-pages assets after $max_attempts attempts"; exit 1
+      - name: Run Playwright smoke tests (browser)
+        working-directory: collapse_web
+        env:
+          SITE_URL: "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+        run: |
+          npm ci
+          npx playwright install --with-deps
+          npm run smoke
