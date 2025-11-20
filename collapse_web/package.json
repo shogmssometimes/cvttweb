@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "test": "vitest",
+    "smoke": "playwright test tests/smoke.spec.ts --workers=1 --reporter=list",
     "build": "tsc -b && vite build",
     "preview": "vite preview"
   },
@@ -21,5 +22,6 @@
     "typescript": "^5.3.3",
     "vite": "^5.0.5",
     "vitest": "^1.6.1"
+    ,"@playwright/test": "^1.40.0"
   }
 }
