@@ -100,6 +100,7 @@ export default function DeckBuilder(){
   const [dragOffset, setDragOffset] = useState(0)
   const dragStartRef = useRef<number | null>(null)
   const pointerDownRef = useRef(false)
+  const rootRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -142,6 +143,16 @@ export default function DeckBuilder(){
       else setPageIndex((p) => Math.max(0, p - 1))
     }
   }
+
+  // keyboard left/right navigation for pager
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'ArrowRight') setPageIndex((p) => Math.min(1, p + 1))
+      if (e.key === 'ArrowLeft') setPageIndex((p) => Math.max(0, p - 1))
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   const filteredModCards = useMemo(() => {
     if (!modSearch.trim()) return modCards

@@ -59,7 +59,8 @@ main {
 .pager-dot {
   width:10px;height:10px;border-radius:50%;background:#2a2a2a;opacity:0.5;
 }
-.pager-dot.active{background:#7b78ff;opacity:1}
+.pager-dot.active{background:#7b78ff;opacity:1;transform:scale(1.35);transition:transform 220ms}
+.pager-dot{transition:transform 220ms, opacity 180ms}
 
 /* Card-like containers */
 .card {
