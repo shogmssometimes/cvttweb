@@ -513,9 +513,8 @@ export default function DeckBuilder(){
           <div style={{marginTop:8}}>{renderDetails(card ?? {id, name:id, type:'', cost:0, text:'' as any})}</div>
           <div style={{marginTop:8,display:'flex',gap:8,flexDirection:'column'}}>
             <div style={{display:'flex',gap:8}}>
-              <button onClick={()=>discardGroupFromHand(id,false,'discarded')}>Discard 1</button>
-              <button onClick={()=>discardGroupFromHand(id,true,'discarded')}>Discard All</button>
-              <button onClick={()=>discardGroupFromHand(id,true,'played')}>Play All</button>
+              <button onClick={()=>discardGroupFromHand(id,false,'discarded')}>Discard</button>
+              <button onClick={()=>discardGroupFromHand(id,false,'played')}>Play</button>
             </div>
           </div>
         </div>
