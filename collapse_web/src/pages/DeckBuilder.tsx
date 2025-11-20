@@ -1,4 +1,5 @@
 import React, {useEffect, useMemo, useState, useCallback, useRef} from 'react'
+import { startPlaySelection, toggleAttach, finalizeSelection, cancelSelection, ActivePlay } from '../utils/playFlow'
 import { getModCapacityUsed, canAddModCardFrom } from '../utils/modCapacity'
 import { validateImportedDeck, exportObjectAsJSON } from '../utils/deckExportImport'
 import Handbook from '../data/handbook'
@@ -93,7 +94,7 @@ export default function DeckBuilder(){
   const [builderState, setBuilderState] = useState(() => loadState(baseCards, modCards))
   const [modSearch, setModSearch] = useState('')
   const [deckSeed, setDeckSeed] = useState(0)
-  const [activePlay, setActivePlay] = useState<{ baseId: string; mods: string[] } | null>(null)
+  const [activePlay, setActivePlay] = useState<ActivePlay>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
@@ -522,9 +523,9 @@ export default function DeckBuilder(){
                   <button disabled>{activePlay?.baseId === id ? 'Base Selected' : 'Play (disabled)'}</button>
                 )
               ) : (
-                // modifier or other: allow attach when an active base is selected, otherwise allow discard
+                // modifier or other: allow play (attach) when an active base is selected, otherwise allow discard
                 activePlay ? (
-                  <button onClick={() => attachModifier(id)}>Attach</button>
+                  <button onClick={() => attachModifier(id)}>Play</button>
                 ) : (
                   <button onClick={() => discardGroupFromHand(id,false,'discarded')}>Discard</button>
                 )
@@ -534,7 +535,7 @@ export default function DeckBuilder(){
         </div>
       )
     })
-  }, [builderState.hand])
+  }, [builderState.hand, activePlay])
 
   // Move grouped items from hand to discard (single or all)
   function discardGroupFromHand(cardId: string, all = false, origin: 'played' | 'discarded' = 'discarded') {
@@ -555,43 +556,31 @@ export default function DeckBuilder(){
     })
   }
 
-  // Play flow handlers (non-destructive selection: cards are moved only on finalize)
+  // Play flow handlers (use pure helpers)
   function startPlayBase(cardId: string) {
-    // toggle selection: deselect if already selected
-    if (activePlay?.baseId === cardId) {
-      setActivePlay(null)
-      return
-    }
-    // select as active base (no movement yet)
-    setActivePlay({ baseId: cardId, mods: [] })
+    setActivePlay((prev) => startPlaySelection(prev, cardId))
   }
 
   function attachModifier(cardId: string) {
-    if (!activePlay) return
-    // allow toggle: if already attached, remove it
-    if (activePlay.mods.includes(cardId)) {
-      setActivePlay((prev) => prev ? { ...prev, mods: prev.mods.filter((m) => m !== cardId) } : prev)
-      return
-    }
-    // guard: ensure there is an available copy in hand not already selected
-    const availableInHand = (builderState.hand ?? []).filter((h) => h.id === cardId).length
-    const alreadySelected = activePlay.mods.filter((m) => m === cardId).length
-    if (alreadySelected >= availableInHand) return
-    setActivePlay((prev) => prev ? { ...prev, mods: [...prev.mods, cardId] } : prev)
+    const handCounts = (builderState.hand ?? []).reduce<Record<string, number>>((acc, it) => {
+      acc[it.id] = (acc[it.id] ?? 0) + 1
+      return acc
+    }, {})
+    const cardCosts = Handbook.getAllCards().reduce<Record<string, number>>((acc, c) => { acc[c.id] = c.cost ?? 0; return acc }, {})
+    setActivePlay((prev) => toggleAttach(prev, cardId, handCounts, cardCosts, builderState.modifierCapacity))
   }
 
   function finalizePlay() {
-    if (!activePlay) return
-    const { baseId, mods } = activePlay
+    const sel = finalizeSelection(activePlay)
+    if (!sel) return
     // move base and attached mods from hand into discard as 'played'
-    discardGroupFromHand(baseId, false, 'played')
-    mods.forEach((m) => discardGroupFromHand(m, false, 'played'))
+    discardGroupFromHand(sel.baseId, false, 'played')
+    sel.mods.forEach((m) => discardGroupFromHand(m, false, 'played'))
     setActivePlay(null)
   }
 
   function cancelPlay() {
-    // simply drop selection; no movement occurred until finalize
-    setActivePlay(null)
+    setActivePlay(cancelSelection(activePlay))
   }
 
 
@@ -848,7 +837,7 @@ export default function DeckBuilder(){
                           <button onClick={() => startPlayBase(handCard.id)}>Play</button>
                         ) : (
                           activePlay ? (
-                            <button onClick={() => attachModifier(handCard.id)}>Attach</button>
+                            <button onClick={() => attachModifier(handCard.id)}>Play</button>
                           ) : null
                         )
                       )}
