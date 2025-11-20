@@ -49,7 +49,8 @@ export class DeckEngine {
     const drawn: Card[] = [];
     for (let i = 0; i < count; i++) {
       if (this.library.length === 0) break;
-      const c = this.library.shift()!;
+      // LIFO: draw from the top (end of array)
+      const c = this.library.pop()!;
       this.hand.push(c);
       drawn.push(c);
     }
@@ -74,10 +75,12 @@ export class DeckEngine {
   }
 
   moveToTop(card: Card) {
-    this.library.unshift(card);
+    // For LIFO model, top is at the end -> push
+    this.library.push(card);
   }
 
   returnDiscardToLibrary(shuffleBack = true) {
+    // append discard to the end (top)
     this.library.push(...this.discard.splice(0));
     if (shuffleBack) this.shuffle();
   }

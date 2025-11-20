@@ -181,12 +181,12 @@ export default function DeckBuilder(){
         if (discard.length === 0) return { ...prev }
         const ids = discard.map((d) => d.id)
         shuffleInPlace(ids)
-        // when using FIFO we put shuffled cards into the front
+        // for LIFO model, append shuffled discard to the end (top)
         deck.push(...ids)
         discard.length = 0
       }
-      // FIFO: draw from top-of-deck with shift
-      const cardId = deck.shift()
+      // LIFO: draw from top-of-deck with pop
+      const cardId = deck.pop()
       if (!cardId) return { ...prev, deck, hand, discard }
       // we already checked hand limit above, so adding is safe
       hand.push({ id: cardId, state: 'unspent' })
@@ -229,8 +229,9 @@ export default function DeckBuilder(){
       // when returning discard to deck for FIFO, push them to the end (bottom) after shuffling
       const ids = discard.map((d) => d.id)
       if (shuffle) shuffleInPlace(ids)
-      if (toTop) deck.unshift(...ids) // add to front as top
-      else deck.push(...ids)
+      // For LIFO model: 'top' is the end of the array
+      if (toTop) deck.push(...ids)
+      else deck.unshift(...ids)
       if (shuffle) shuffleInPlace(deck)
       return { ...prev, deck, discard: [] }
     })
@@ -420,7 +421,9 @@ export default function DeckBuilder(){
     setBuilderState((prev) => {
       const d = [...(prev.discard ?? [])]
       const it = d.splice(idx, 1)[0]
-      return { ...prev, discard: d, deck: [it.id, ...(prev.deck ?? [])] }
+      const deck = [...(prev.deck ?? [])]
+      deck.push(it.id)
+      return { ...prev, discard: d, deck }
     })
   }
 
@@ -432,12 +435,15 @@ export default function DeckBuilder(){
       if (all) {
         const idsToMove = discard.filter((d) => d.id === cardId).map((d) => d.id)
         const remaining = discard.filter((d) => d.id !== cardId)
-        return { ...prev, discard: remaining, deck: [...idsToMove, ...deck] }
+        // push moved ids to the end (top)
+        deck.push(...idsToMove)
+        return { ...prev, discard: remaining, deck }
       }
       const idx = discard.findIndex((d) => d.id === cardId)
       if (idx === -1) return prev
       const it = discard.splice(idx, 1)[0]
-      return { ...prev, discard, deck: [it.id, ...deck] }
+      deck.push(it.id)
+      return { ...prev, discard, deck }
     })
   }
 
