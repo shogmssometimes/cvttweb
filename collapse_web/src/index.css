@@ -32,6 +32,50 @@ main {
   padding-bottom: 3rem;
 }
 
+/* Pager and mobile-forward layout */
+.pager {
+  width: 100%;
+  overflow: hidden;
+}
+.pager { touch-action: pan-y; }
+.pager-inner {
+  display: flex;
+  width: 200%; /* two pages */
+  transition: transform 320ms cubic-bezier(.2,.8,.2,1);
+}
+.pager-inner { cursor: grab; }
+.pager-inner:active { cursor: grabbing; }
+.page {
+  min-width: 100%;
+  padding: 1rem;
+}
+.pager-nav {
+  display:flex;
+  gap:8px;
+  align-items:center;
+  justify-content:center;
+  margin: 0.5rem 0 1rem 0;
+}
+.pager-dot {
+  width:10px;height:10px;border-radius:50%;background:#2a2a2a;opacity:0.5;
+}
+.pager-dot.active{background:#7b78ff;opacity:1}
+
+/* Card-like containers */
+.card {
+  border:1px solid #222;
+  border-radius:12px;
+  padding:12px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.1));
+}
+
+/* Mobile first adjustments */
+@media (max-width: 840px) {
+  .card { padding:10px; }
+  button { padding: 0.5rem 0.85rem; }
+  main { padding: 0.5rem; }
+}
+
 code {
   font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
 }

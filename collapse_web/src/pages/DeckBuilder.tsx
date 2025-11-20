@@ -95,7 +95,11 @@ export default function DeckBuilder(){
   const [modSearch, setModSearch] = useState('')
   const [deckSeed, setDeckSeed] = useState(0)
   const [activePlay, setActivePlay] = useState<ActivePlay>(null)
+  const [pageIndex, setPageIndex] = useState(0)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const [dragOffset, setDragOffset] = useState(0)
+  const dragStartRef = useRef<number | null>(null)
+  const pointerDownRef = useRef(false)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -117,6 +121,27 @@ export default function DeckBuilder(){
   const nullValid = builderState.nullCount >= MIN_NULLS
   const modValid = modCapacityUsed <= builderState.modifierCapacity
   const deckIsValid = baseValid && nullValid && modValid
+
+  // Mouse move/up handlers attached to window for desktop drag support
+  function onWindowMouseMove(e: MouseEvent) {
+    if (!pointerDownRef.current || dragStartRef.current === null) return
+    const delta = e.clientX - (dragStartRef.current ?? 0)
+    setDragOffset(delta)
+  }
+
+  function onWindowMouseUp(e: MouseEvent) {
+    if (!pointerDownRef.current) return
+    const delta = dragOffset
+    pointerDownRef.current = false
+    dragStartRef.current = null
+    setDragOffset(0)
+    window.removeEventListener('mousemove', onWindowMouseMove)
+    window.removeEventListener('mouseup', onWindowMouseUp)
+    if (Math.abs(delta) > 60) {
+      if (delta < 0) setPageIndex((p) => Math.min(1, p + 1))
+      else setPageIndex((p) => Math.max(0, p - 1))
+    }
+  }
 
   const filteredModCards = useMemo(() => {
     if (!modSearch.trim()) return modCards
@@ -611,251 +636,267 @@ export default function DeckBuilder(){
         <p className="muted">Assemble MTG-style decks from official handbook data. Decks require 26 base cards, at least 5 Nulls, and modifier capacity must not be exceeded.</p>
       </header>
 
-      <section style={{border:'1px solid #222',borderRadius:12,padding:16,background:'#080808',display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
-        <div>
-          <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Base Cards</div>
-          <div style={{fontSize:'1.8rem',fontWeight:700}}>{baseTotal} / {BASE_TARGET}</div>
-          {!baseValid && <div style={{color:'#f7b500',fontSize:'0.85rem'}}>Deck must contain exactly 26 base cards.</div>}
-        </div>
-
-        <div>
-            <h3>Discard Pile</h3>
-            <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
-              <div style={{fontSize:'0.85rem',color:'#9aa0a6'}}>Duplicates stacked</div>
-            </div>
-          <div style={{display:'flex',flexDirection:'column',gap:8}}>
-            {/* duplicate entries are stacked by id */}
-            {groupedDiscardElements}
-            {/* fallback for empty grouped render handled below */}
-            {(groupedDiscardElements?.length ?? 0) === 0 && (builderState.discard ?? []).map((item, idx) => {
-              const card = Handbook.getAllCards().find(c => c.id === item.id)
-              return (
-                <div key={idx} style={{border:'1px solid #333',borderRadius:10,padding:8,background:'#050505',minWidth:220}}>
-                  <div style={{fontWeight:700}}>{card?.name ?? item.id}</div>
-                  <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>#{idx+1} • {item.origin === 'played' ? 'Played' : 'Discarded'}</div>
-                  <div style={{marginTop:8}}>{renderDetails(card ?? {id:item.id,name:item.id,type:'',cost:0,text:'' as any})}</div>
-                  <div style={{display:'flex',gap:8,marginTop:8}}>
-                    <button
-                      onClick={() => returnDiscardItemToDeck(idx)}
-                    >
-                      Return to Deck (Top)
-                    </button>
-                      <button
-                        onClick={() => returnDiscardItemToHand(idx)}
-                        disabled={(builderState.hand ?? []).length >= (builderState.handLimit ?? 5)}
-                      >
-                        Return to Hand
-                      </button>
-                  </div>
-                </div>
-              )
-            })}
-            {((builderState.discard ?? []).length === 0) && <div style={{color:'#9aa0a6'}}>Discard pile is empty</div>}
-          </div>
-        </div>
-        <div>
-          <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Null Cards</div>
-          <div style={{fontSize:'1.8rem',fontWeight:700}}>{builderState.nullCount}</div>
-          {!nullValid && <div style={{color:'#f7b500',fontSize:'0.85rem'}}>Minimum of {MIN_NULLS} Nulls required.</div>}
-        </div>
-        <div>
-          <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Modifier Capacity</div>
-          <div style={{fontSize:'1.8rem',fontWeight:700}}>{modCapacityUsed} / {builderState.modifierCapacity}</div>
-          <div style={{fontSize:'0.85rem',color:'#9aa0a6'}}>Mod Capacity Used</div>
-          {!modValid && <div style={{color:'#ff6b6b',fontSize:'0.85rem'}}>Reduce modifier cards or raise capacity.</div>}
-        </div>
-        <div>
-          <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Deck Status</div>
-          <div style={{fontSize:'1.8rem',fontWeight:700,color:deckIsValid ? '#4caf50' : '#ff6b6b'}}>{deckIsValid ? 'Ready' : 'Needs Attention'}</div>
-          <button onClick={resetBuilder} style={{marginTop:8}}>Reset Builder</button>
-        </div>
-      </section>
-
-      <section style={{border:'1px solid #222',borderRadius:12,padding:16}}>
-        <h2>Base Skill Cards</h2>
-        <p style={{marginTop:0,color:'#9aa0a6'}}>Pick any combination of the 15 skills until you reach 26 total cards.</p>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
-          {baseCards.map((card) => {
-            const qty = builderState.baseCounts[card.id] ?? 0
-            return (
-              <div key={card.id} style={{border:'1px solid #333',borderRadius:10,padding:12,background:'#050505',display:'flex',flexDirection:'column',gap:8}}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                  <div>
-                    <div style={{fontWeight:700}}>{card.name}</div>
-                    <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>{card.text}</div>
-                  </div>
-                  <div style={{display:'flex',alignItems:'center',gap:6}}>
-                    <button onClick={()=>adjustBaseCount(card.id,-1)} disabled={qty === 0 || builderState.isLocked}>-</button>
-                    <div style={{minWidth:24,textAlign:'center'}}>{qty}</div>
-                    <button onClick={()=>adjustBaseCount(card.id,1)} disabled={baseTotal >= BASE_TARGET || builderState.isLocked}>+</button>
-                  </div>
-                </div>
-                {renderDetails(card)}
+      <div className="pager"
+        onTouchStart={(e) => {
+          dragStartRef.current = e.touches[0].clientX
+        }}
+        onTouchMove={(e) => {
+          if (dragStartRef.current === null) return
+          const delta = e.touches[0].clientX - (dragStartRef.current ?? 0)
+          setDragOffset(delta)
+        }}
+        onTouchEnd={() => {
+          const delta = dragOffset
+          dragStartRef.current = null
+          setDragOffset(0)
+          if (Math.abs(delta) > 60) {
+            if (delta < 0) setPageIndex((p) => Math.min(1, p + 1))
+            else setPageIndex((p) => Math.max(0, p - 1))
+          }
+        }}
+        onMouseDown={(e) => {
+          pointerDownRef.current = true
+          dragStartRef.current = e.clientX
+          window.addEventListener('mousemove', onWindowMouseMove)
+          window.addEventListener('mouseup', onWindowMouseUp)
+        }}
+      >
+        <div className="pager-inner" style={{transform: `translateX(-${pageIndex * 100}%) translateX(${dragOffset}px)`}}>
+          {/* Page 1: main builder UI (everything except Discard + Deck Operations) */}
+          <div className="page" style={{padding:0}}>
+            <section style={{border:'1px solid #222',borderRadius:12,padding:16,background:'#080808',display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
+              <div>
+                <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Base Cards</div>
+                <div style={{fontSize:'1.8rem',fontWeight:700}}>{baseTotal} / {BASE_TARGET}</div>
+                {!baseValid && <div style={{color:'#f7b500',fontSize:'0.85rem'}}>Deck must contain exactly 26 base cards.</div>}
               </div>
-            )
-          })}
-        </div>
-      </section>
 
-      <section style={{border:'1px solid #222',borderRadius:12,padding:16,display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:16,alignItems:'center'}}>
-        <div>
-          <h2 style={{marginBottom:8}}>Null Cards</h2>
-          <p style={{marginTop:0,color:'#9aa0a6'}}>GMs may raise or lower the number of Nulls. Decks must keep at least {MIN_NULLS}.</p>
-          {nullCard && (
-            <div style={{border:'1px solid #333',borderRadius:10,padding:12,background:'#050505',marginBottom:12}}>
-              <div style={{fontWeight:700}}>{nullCard.name}</div>
-              <div style={{fontSize:'0.85rem'}}>{nullCard.text}</div>
-            </div>
-          )}
-        </div>
-        <div style={{display:'flex',flexDirection:'column',gap:8}}>
-          <label style={{fontWeight:600}}>Null Count</label>
-          <div style={{display:'flex',gap:8,alignItems:'center'}}>
-            <button onClick={()=>adjustNullCount(-1)} disabled={builderState.isLocked}>-</button>
-            <input type="number" min={MIN_NULLS} value={builderState.nullCount} onChange={(event)=>setNullCount(parseInt(event.target.value,10))} style={{width:80,textAlign:'center'}} />
-            <button onClick={()=>adjustNullCount(1)} disabled={builderState.isLocked}>+</button>
-          </div>
-        </div>
-      </section>
+              <div>
+                <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Null Cards</div>
+                <div style={{fontSize:'1.8rem',fontWeight:700}}>{builderState.nullCount}</div>
+                {!nullValid && <div style={{color:'#f7b500',fontSize:'0.85rem'}}>Minimum of {MIN_NULLS} Nulls required.</div>}
+              </div>
+              <div>
+                <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Modifier Capacity</div>
+                <div style={{fontSize:'1.8rem',fontWeight:700}}>{modCapacityUsed} / {builderState.modifierCapacity}</div>
+                <div style={{fontSize:'0.85rem',color:'#9aa0a6'}}>Mod Capacity Used</div>
+                {!modValid && <div style={{color:'#ff6b6b',fontSize:'0.85rem'}}>Reduce modifier cards or raise capacity.</div>}
+              </div>
+              <div>
+                <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Deck Status</div>
+                <div style={{fontSize:'1.8rem',fontWeight:700,color:deckIsValid ? '#4caf50' : '#ff6b6b'}}>{deckIsValid ? 'Ready' : 'Needs Attention'}</div>
+                <button onClick={resetBuilder} style={{marginTop:8}}>Reset Builder</button>
+              </div>
+            </section>
 
-      <section style={{border:'1px solid #222',borderRadius:12,padding:16,display:'flex',flexDirection:'column',gap:16}}>
-        <div style={{display:'flex',flexWrap:'wrap',gap:12,justifyContent:'space-between',alignItems:'center'}}>
-          <div>
-            <h2 style={{marginBottom:4}}>Modifier Cards</h2>
-            <p style={{marginTop:0,color:'#9aa0a6'}}>Each modifier consumes capacity equal to its card cost. Stay within your Engram Modifier Capacity.</p>
-          </div>
-          <div style={{display:'flex',flexDirection:'column',gap:8}}>
-            <label style={{fontWeight:600}}>Modifier Capacity</label>
-            <input type="number" min={0} value={builderState.modifierCapacity} onChange={(event)=>setModifierCapacity(parseInt(event.target.value,10))} style={{width:140}} />
-          </div>
-          <div style={{display:'flex',flexDirection:'column',gap:8}}>
-            <label style={{fontWeight:600}}>Search Mods</label>
-            <input type="text" placeholder="Search name, target, effect" value={modSearch} onChange={(event)=>setModSearch(event.target.value)} style={{minWidth:220}} />
-          </div>
-        </div>
+            <section style={{border:'1px solid #222',borderRadius:12,padding:16}}>
+              <h2>Base Skill Cards</h2>
+              <p style={{marginTop:0,color:'#9aa0a6'}}>Pick any combination of the 15 skills until you reach 26 total cards.</p>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
+                {baseCards.map((card) => {
+                  const qty = builderState.baseCounts[card.id] ?? 0
+                      const isSelectedBase = activePlay?.baseId === card.id
+                      return (
+                        <div key={card.id} style={{border:`1px solid ${isSelectedBase ? '#7b78ff' : '#333'}`,borderRadius:10,padding:12,background:'#050505',display:'flex',flexDirection:'column',gap:8}}>
+                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                            <div>
+                              <div style={{fontWeight:700}}>{card.name}</div>
+                              {isSelectedBase && <div style={{fontSize:'0.75rem',color:'#7b78ff',marginTop:4}}>Selected Base</div>}
+                              <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>{card.text}</div>
+                            </div>
+                            <div style={{display:'flex',alignItems:'center',gap:6}}>
+                              <button onClick={()=>adjustBaseCount(card.id,-1)} disabled={qty === 0 || builderState.isLocked}>-</button>
+                              <div style={{minWidth:24,textAlign:'center'}}>{qty}</div>
+                              <button onClick={()=>adjustBaseCount(card.id,1)} disabled={baseTotal >= BASE_TARGET || builderState.isLocked}>+</button>
+                            </div>
+                          </div>
+                          {renderDetails(card)}
+                        </div>
+                      )
+                })}
+              </div>
+            </section>
 
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:12}}>
-          {filteredModCards.map((card) => {
-            const qty = builderState.modCounts[card.id] ?? 0
-            const cost = card.cost ?? 0
-            return (
-              <div key={card.id} style={{border:'1px solid #333',borderRadius:10,padding:12,background:'#050505',display:'flex',flexDirection:'column',gap:8}}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
-                  <div>
-                    <div style={{fontWeight:700}}>{card.name}</div>
-                    <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Cost {cost}</div>
+                <section style={{border:'1px solid #222',borderRadius:12,padding:16,display:'flex',flexDirection:'column',gap:16}}>
+                  <div style={{display:'flex',flexWrap:'wrap',gap:12,justifyContent:'space-between',alignItems:'center'}}>
+                    <div>
+                      <h2 style={{marginBottom:4}}>Modifier Cards</h2>
+                      <p style={{marginTop:0,color:'#9aa0a6'}}>Each modifier consumes capacity equal to its card cost. Stay within your Engram Modifier Capacity.</p>
+                    </div>
+                    <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                      <label style={{fontWeight:600}}>Modifier Capacity</label>
+                      <input type="number" min={0} value={builderState.modifierCapacity} onChange={(event)=>setModifierCapacity(parseInt(event.target.value,10))} style={{width:140}} />
+                    </div>
+                    <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                      <label style={{fontWeight:600}}>Search Mods</label>
+                      <input type="text" placeholder="Search name, target, effect" value={modSearch} onChange={(event)=>setModSearch(event.target.value)} style={{minWidth:220}} />
+                    </div>
                   </div>
-                  <div style={{display:'flex',alignItems:'center',gap:6}}>
-                    <button onClick={()=>adjustModCount(card.id,-1)} disabled={qty === 0 || builderState.isLocked}>-</button>
-                    <div style={{minWidth:24,textAlign:'center'}}>{qty}</div>
-                    <button onClick={()=>adjustModCount(card.id,1)} disabled={builderState.isLocked || !canAddModCard(card.id)}>+</button>
+
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:12}}>
+                    {filteredModCards.map((card) => {
+                      const qty = builderState.modCounts[card.id] ?? 0
+                      const cost = card.cost ?? 0
+                      const isAttached = activePlay?.mods?.includes(card.id)
+                      return (
+                        <div key={card.id} style={{border:`1px solid ${isAttached ? '#7b78ff' : '#333'}`,borderRadius:10,padding:12,background:'#050505',display:'flex',flexDirection:'column',gap:8}}>
+                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
+                            <div>
+                              <div style={{fontWeight:700}}>{card.name}</div>
+                              <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Cost {cost}</div>
+                              {isAttached && <div style={{fontSize:'0.75rem',color:'#7b78ff',marginTop:4}}>Attached</div>}
+                            </div>
+                            <div style={{display:'flex',alignItems:'center',gap:6}}>
+                              <button onClick={()=>adjustModCount(card.id,-1)} disabled={qty === 0 || builderState.isLocked}>-</button>
+                              <div style={{minWidth:24,textAlign:'center'}}>{qty}</div>
+                              <button onClick={()=>adjustModCount(card.id,1)} disabled={builderState.isLocked || !canAddModCard(card.id)}>+</button>
+                            </div>
+                          </div>
+                          <p style={{margin:0,fontSize:'0.85rem'}}>{card.text}</p>
+                          {renderDetails(card)}
+                        </div>
+                      )
+                    })}
                   </div>
+                </section>
+
+            <section style={{border:'1px solid #222',borderRadius:12,padding:16,display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
+              <div>
+                <label style={{fontWeight:600}}>Hand Draw</label>
+                <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
+                  <button onClick={()=>draw()} disabled={!builderState.isLocked || ((builderState.hand ?? []).length >= (builderState.handLimit ?? 5))}>Draw 1</button>
                 </div>
-                <p style={{margin:0,fontSize:'0.85rem'}}>{card.text}</p>
-                {renderDetails(card)}
               </div>
-            )
-          })}
-        </div>
-      </section>
 
-      <section style={{border:'1px solid #222',borderRadius:12,padding:16,display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
-        <div>
-          <h2>Deck Operations</h2>
-          <p style={{marginTop:0,color:'#9aa0a6'}}>Shuffle, draw, and discard cards from your deck. Draw uses the top-of-deck (LIFO) model.</p>
-          <div style={{display:'flex',gap:8,marginTop:8,alignItems:'center'}}>
-            <button onClick={()=>generateDeck(true)}>Build Deck</button>
-            <button onClick={()=>shuffleDeck()}>Shuffle</button>
-            <button onClick={()=>toggleLockDeck()}>{builderState.isLocked ? 'Unlock Deck' : 'Lock Deck'}</button>
-            <div style={{display:'flex',gap:8,alignItems:'center',marginLeft:12}}>
-              <input placeholder="Deck name" value={builderState.deckName ?? ''} onChange={(e)=>setDeckName(e.target.value)} style={{width:200}} />
-              <button onClick={()=>saveDeck()}>Save Deck</button>
-              <button onClick={handleExport} title="Export current deck as JSON">Export</button>
-              <button onClick={onClickImport} title="Import deck from JSON file">Import</button>
-              <input ref={fileInputRef} type="file" accept="application/json" style={{display:'none'}} onChange={(e)=>handleImportedFile(e.target.files ? e.target.files[0] : null)} />
-            </div>
-          </div>
-          <div style={{marginTop:12}}>
-            <div style={{fontSize:'0.85rem'}}>Deck Count: <strong>{(builderState.deck ?? []).length}</strong></div>
-            <div style={{fontSize:'0.85rem'}}>Discard Count: <strong>{(builderState.discard ?? []).length}</strong></div>
-              {activePlay && (
-                <div style={{marginTop:12,border:'1px solid #444',padding:8,borderRadius:8,background:'#0a0a0a'}}>
-                  <div style={{fontWeight:700}}>Active Play</div>
-                  <div style={{fontSize:'0.9rem',color:'#9aa0a6',marginTop:6}}>Base: {Handbook.getAllCards().find(c=>c.id===activePlay.baseId)?.name ?? activePlay.baseId}</div>
-                  <div style={{fontSize:'0.85rem',color:'#9aa0a6',marginTop:6}}>Modifiers: {activePlay.mods.length}</div>
-                  <div style={{display:'flex',gap:8,marginTop:8}}>
-                    <button onClick={()=>finalizePlay()}>Finalize Play</button>
-                    <button onClick={()=>cancelPlay()}>Cancel Play</button>
-                  </div>
+              <div>
+                <h3>Hand</h3>
+                <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
+                  <div style={{fontSize:'0.85rem',color:'#9aa0a6'}}>Duplicates stacked</div>
                 </div>
-              )}
-            <div style={{marginTop:8}}>
-              <label style={{fontWeight:600}}>Hand Limit</label>
-              <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
-                <input type="number" min={0} value={builderState.handLimit ?? 5} onChange={(e)=>setBuilderState(prev=>({...prev, handLimit: parseInt(e.target.value,10)||5}))} style={{width:80,textAlign:'center'}} />
-                <div style={{color:'#9aa0a6',fontSize:'0.85rem'}}>Active cap for hand cards.</div>
-              </div>
-            </div>
-            <div style={{marginTop:8}}>
-              <div style={{fontWeight:600}}>Saved Decks</div>
-              <div style={{display:'flex',flexDirection:'column',gap:6,marginTop:6}}>
-                {Object.keys(builderState.savedDecks ?? {}).length === 0 && <div style={{color:'#9aa0a6'}}>No saved decks</div>}
-                {Object.entries(builderState.savedDecks ?? {}).map(([k,v])=> (
-                  <div key={k} style={{display:'flex',gap:8,alignItems:'center'}}>
-                    <div style={{minWidth:160}}>{v.name}</div>
-                    <button onClick={()=>loadSavedDeck(k)}>Load</button>
-                    <button onClick={()=>deleteSavedDeck(k)}>Delete</button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <label style={{fontWeight:600}}>Hand Draw</label>
-            <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
-            <button onClick={()=>draw()} disabled={!builderState.isLocked || ((builderState.hand ?? []).length >= (builderState.handLimit ?? 5))}>Draw 1</button>
-          </div>
-        </div>
-
-        <div>
-          <h3>Hand</h3>
-          <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
-            <div style={{fontSize:'0.85rem',color:'#9aa0a6'}}>Duplicates stacked</div>
-          </div>
-          <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
-            {groupedHandElements}
-            {(groupedHandElements?.length ?? 0) === 0 && (builderState.hand ?? []).map((handCard, idx) => {
-                const card = Handbook.getAllCards().find(c => c.id === handCard.id)
-              return (
-                  <div key={idx} style={{border:'1px solid #333',borderRadius:10,padding:8,background:'#050505',minWidth:120}}>
-                    <div style={{fontWeight:700}}>{card?.name ?? handCard.id}</div>
-                  <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>{card?.type ?? ''}</div>
-                  <div style={{marginTop:8}}>{renderDetails(card ?? {id:handCard.id,name:handCard.id,type:'',cost:0,text:'' as any})}</div>
-                  <div style={{marginTop:8,display:'flex',gap:8,flexDirection:'column'}}>
-                    {/* Hide explicit unspent label per request */}
-                    <div style={{fontSize:'0.9rem',fontWeight:600}}>{handCard.state === 'played' ? 'Played' : ''}</div>
-                      <div style={{display:'flex',gap:8}}>
-                      <button onClick={()=>discardFromHand(idx, 'discarded')}>Discard</button>
-                      {handCard.state === 'unspent' && (
-                        card?.type === 'base' ? (
-                          <button onClick={() => startPlayBase(handCard.id)}>Play</button>
-                        ) : (
-                          activePlay ? (
-                            <button onClick={() => attachModifier(handCard.id)}>Play</button>
-                          ) : null
-                        )
-                      )}
+                <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+                  {groupedHandElements}
+                  {(groupedHandElements?.length ?? 0) === 0 && (builderState.hand ?? []).map((handCard, idx) => {
+                      const card = Handbook.getAllCards().find(c => c.id === handCard.id)
+                    return (
+                        <div key={idx} style={{border:'1px solid #333',borderRadius:10,padding:8,background:'#050505',minWidth:120}}>
+                          <div style={{fontWeight:700}}>{card?.name ?? handCard.id}</div>
+                        <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>{card?.type ?? ''}</div>
+                        <div style={{marginTop:8}}>{renderDetails(card ?? {id:handCard.id,name:handCard.id,type:'',cost:0,text:'' as any})}</div>
+                        <div style={{marginTop:8,display:'flex',gap:8,flexDirection:'column'}}>
+                          <div style={{fontSize:'0.9rem',fontWeight:600}}>{handCard.state === 'played' ? 'Played' : ''}</div>
+                            <div style={{display:'flex',gap:8}}>
+                            <button onClick={()=>discardFromHand(idx, 'discarded')}>Discard</button>
+                            {handCard.state === 'unspent' && (
+                              card?.type === 'base' ? (
+                                <button onClick={() => startPlayBase(handCard.id)}>Play</button>
+                              ) : (
+                                activePlay ? (
+                                  <button onClick={() => attachModifier(handCard.id)}>Play</button>
+                                ) : null
+                              )
+                            )}
+                            </div>
+                        </div>
                       </div>
+                    )
+                  })}
+                  {((builderState.hand ?? []).length === 0) && <div style={{color:'#9aa0a6'}}>No cards in hand</div>}
+                </div>
+              </div>
+            </section>
+          </div>
+
+          {/* Page 2: Deck Operations + Discard Pile */}
+          <div className="page" style={{padding:0}}>
+            <section style={{border:'1px solid #222',borderRadius:12,padding:16,display:'grid',gridTemplateColumns:'1fr',gap:12}}>
+              <div>
+                <h3>Discard Pile</h3>
+                <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
+                  <div style={{fontSize:'0.85rem',color:'#9aa0a6'}}>Duplicates stacked</div>
+                </div>
+                <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                  {groupedDiscardElements}
+                  {(groupedDiscardElements?.length ?? 0) === 0 && (builderState.discard ?? []).map((item, idx) => {
+                    const card = Handbook.getAllCards().find(c => c.id === item.id)
+                    return (
+                      <div key={idx} style={{border:'1px solid #333',borderRadius:10,padding:8,background:'#050505',minWidth:220}}>
+                        <div style={{fontWeight:700}}>{card?.name ?? item.id}</div>
+                        <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>#{idx+1} • {item.origin === 'played' ? 'Played' : 'Discarded'}</div>
+                        <div style={{marginTop:8}}>{renderDetails(card ?? {id:item.id,name:item.id,type:'',cost:0,text:'' as any})}</div>
+                        <div style={{display:'flex',gap:8,marginTop:8}}>
+                          <button onClick={() => returnDiscardItemToDeck(idx)}>Return to Deck (Top)</button>
+                          <button onClick={() => returnDiscardItemToHand(idx)} disabled={(builderState.hand ?? []).length >= (builderState.handLimit ?? 5)}>Return to Hand</button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                  {((builderState.discard ?? []).length === 0) && <div style={{color:'#9aa0a6'}}>Discard pile is empty</div>}
+                </div>
+              </div>
+            </section>
+
+            <section style={{border:'1px solid #222',borderRadius:12,padding:16,display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
+              <div>
+                <h2>Deck Operations</h2>
+                <p style={{marginTop:0,color:'#9aa0a6'}}>Shuffle, draw, and discard cards from your deck. Draw uses the top-of-deck (LIFO) model.</p>
+                <div style={{display:'flex',gap:8,marginTop:8,alignItems:'center'}}>
+                  <button onClick={()=>generateDeck(true)}>Build Deck</button>
+                  <button onClick={()=>shuffleDeck()}>Shuffle</button>
+                  <button onClick={()=>toggleLockDeck()}>{builderState.isLocked ? 'Unlock Deck' : 'Lock Deck'}</button>
+                  <div style={{display:'flex',gap:8,alignItems:'center',marginLeft:12}}>
+                    <input placeholder="Deck name" value={builderState.deckName ?? ''} onChange={(e)=>setDeckName(e.target.value)} style={{width:200}} />
+                    <button onClick={()=>saveDeck()}>Save Deck</button>
+                    <button onClick={handleExport} title="Export current deck as JSON">Export</button>
+                    <button onClick={onClickImport} title="Import deck from JSON file">Import</button>
+                    <input ref={fileInputRef} type="file" accept="application/json" style={{display:'none'}} onChange={(e)=>handleImportedFile(e.target.files ? e.target.files[0] : null)} />
                   </div>
                 </div>
-              )
-            })}
-            {((builderState.hand ?? []).length === 0) && <div style={{color:'#9aa0a6'}}>No cards in hand</div>}
+                <div style={{marginTop:12}}>
+                  <div style={{fontSize:'0.85rem'}}>Deck Count: <strong>{(builderState.deck ?? []).length}</strong></div>
+                  <div style={{fontSize:'0.85rem'}}>Discard Count: <strong>{(builderState.discard ?? []).length}</strong></div>
+                  {activePlay && (
+                    <div style={{marginTop:12,border:'1px solid #444',padding:8,borderRadius:8,background:'#0a0a0a'}}>
+                      <div style={{fontWeight:700}}>Active Play</div>
+                      <div style={{fontSize:'0.9rem',color:'#9aa0a6',marginTop:6}}>Base: {Handbook.getAllCards().find(c=>c.id===activePlay.baseId)?.name ?? activePlay.baseId}</div>
+                      <div style={{fontSize:'0.85rem',color:'#9aa0a6',marginTop:6}}>Modifiers: {activePlay.mods.length}</div>
+                      <div style={{display:'flex',gap:8,marginTop:8}}>
+                        <button onClick={()=>finalizePlay()}>Finalize Play</button>
+                        <button onClick={()=>cancelPlay()}>Cancel Play</button>
+                      </div>
+                    </div>
+                  )}
+                  <div style={{marginTop:8}}>
+                    <label style={{fontWeight:600}}>Hand Limit</label>
+                    <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
+                      <input type="number" min={0} value={builderState.handLimit ?? 5} onChange={(e)=>setBuilderState(prev=>({...prev, handLimit: parseInt(e.target.value,10)||5}))} style={{width:80,textAlign:'center'}} />
+                      <div style={{color:'#9aa0a6',fontSize:'0.85rem'}}>Active cap for hand cards.</div>
+                    </div>
+                  </div>
+                  <div style={{marginTop:8}}>
+                    <div style={{fontWeight:600}}>Saved Decks</div>
+                    <div style={{display:'flex',flexDirection:'column',gap:6,marginTop:6}}>
+                      {Object.keys(builderState.savedDecks ?? {}).length === 0 && <div style={{color:'#9aa0a6'}}>No saved decks</div>}
+                      {Object.entries(builderState.savedDecks ?? {}).map(([k,v])=> (
+                        <div key={k} style={{display:'flex',gap:8,alignItems:'center'}}>
+                          <div style={{minWidth:160}}>{v.name}</div>
+                          <button onClick={()=>loadSavedDeck(k)}>Load</button>
+                          <button onClick={()=>deleteSavedDeck(k)}>Delete</button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
           </div>
         </div>
-      </section>
+
+        <div className="pager-nav" style={{display:'flex',justifyContent:'center',marginTop:12,gap:8}}>
+          {[0,1].map(i => (
+            <div key={i} className={`pager-dot ${pageIndex === i ? 'active' : ''}`} onClick={()=>setPageIndex(i)} style={{cursor:'pointer'}} />
+          ))}
+        </div>
+      </div>
     </main>
   )
 }
