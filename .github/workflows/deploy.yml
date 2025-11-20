@@ -36,11 +36,13 @@ jobs:
           npm ci
           npm run build
 
-      - name: Run unit tests
+      - name: Run unit tests (with coverage)
         working-directory: collapse_web
         run: |
           npm ci
-          npm test -- --run
+          npm run test:coverage
+          # Fail if coverage drops below threshold (80% lines)
+          node -e "const fs=require('fs'); const cov=JSON.parse(fs.readFileSync('coverage/coverage-summary.json')); const pct=cov.total.lines.pct; const min=80; if(pct<min){console.error('Coverage threshold not met: '+pct+' < '+min); process.exit(1);} else console.log('Coverage OK: '+pct+' >= '+min);"
 
       - name: Verify build output
         run: |
@@ -76,6 +78,12 @@ jobs:
           user_name: "deploy bot"
           user_email: "deploy@local"
           clean: true
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: collapse_web/coverage
 
       - name: Verify remote gh-pages assets (retry)
         env:
