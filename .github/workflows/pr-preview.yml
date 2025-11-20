@@ -87,9 +87,32 @@ jobs:
           # Install Playwright browsers
           npx playwright install --with-deps
           # Run mobile smoke tests with html reporter
-          npx playwright test tests/smoke.mobile.spec.ts --project=chromium --workers=1 --retries=1 --reporter=html
+          mkdir -p collapse_web/playwright-report
+          npx playwright test tests/smoke.mobile.spec.ts --project=chromium --workers=1 --retries=1 --reporter=html --reporter=json > collapse_web/playwright-report/mobile.json || true
           # Run desktop smoke tests with html reporter
-          npx playwright test tests/smoke.spec.ts --project=chromium --workers=1 --retries=1 --reporter=html
+          npx playwright test tests/smoke.spec.ts --project=chromium --workers=1 --retries=1 --reporter=html --reporter=json > collapse_web/playwright-report/desktop.json || true
+
+      - name: Summarize Playwright results
+        if: github.event.action != 'closed'
+        id: summarize
+        working-directory: collapse_web
+        run: |
+          set -e
+          node scripts/playwright-summary.js playwright-report/mobile.json playwright-report/desktop.json > summary.txt || true
+          echo "summary<<EOF" >> $GITHUB_OUTPUT
+          cat summary.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Comment PR with Playwright summary
+        if: github.event.action != 'closed'
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.number }}
+          body: |
+            Playwright smoke tests summary for preview: ${{ steps.summarize.outputs.summary }}
+            
+            Preview: https://$GITHUB_REPOSITORY_OWNER.github.io/${{ github.event.repository.name }}/previews/pr-${{ github.event.number }}/
 
       - name: Upload Playwright report artifact
         if: github.event.action != 'closed'
