@@ -36,6 +36,17 @@ jobs:
           npm ci
           npm run build
 
+      - name: Run unit tests
+        working-directory: collapse_web
+        run: |
+          npm ci
+          npm test -- --run
+
+      - name: Verify build output
+        run: |
+          if [ ! -f collapse_web/docs/index.html ]; then echo "Missing collapse_web/docs/index.html"; exit 1; fi
+          if ! ls collapse_web/docs/assets | grep -E '^index-[A-Za-z0-9].*\.js$' >/dev/null 2>&1; then echo "Missing JS asset in collapse_web/docs/assets"; exit 1; fi
+
       - name: Abort if build files are already committed to this push
         run: |
           # On initial push, GITHUB_EVENT_BEFORE may be null/empty; guard that case
