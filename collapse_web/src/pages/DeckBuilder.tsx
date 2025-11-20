@@ -93,6 +93,7 @@ export default function DeckBuilder(){
   const [builderState, setBuilderState] = useState(() => loadState(baseCards, modCards))
   const [modSearch, setModSearch] = useState('')
   const [deckSeed, setDeckSeed] = useState(0)
+  const [activePlay, setActivePlay] = useState<{ baseId: string; mods: string[] } | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
@@ -513,8 +514,21 @@ export default function DeckBuilder(){
           <div style={{marginTop:8}}>{renderDetails(card ?? {id, name:id, type:'', cost:0, text:'' as any})}</div>
           <div style={{marginTop:8,display:'flex',gap:8,flexDirection:'column'}}>
             <div style={{display:'flex',gap:8}}>
-              <button onClick={()=>discardGroupFromHand(id,false,'discarded')}>Discard</button>
-              <button onClick={()=>discardGroupFromHand(id,false,'played')}>Play</button>
+              {/* If this is a base card, starting a play selects it as the required base */}
+              {card?.type === 'base' ? (
+                (!activePlay) ? (
+                  <button onClick={() => startPlayBase(id)}>Play (Select Base)</button>
+                ) : (
+                  <button disabled>{activePlay?.baseId === id ? 'Base Selected' : 'Play (disabled)'}</button>
+                )
+              ) : (
+                // modifier or other: allow attach when an active base is selected, otherwise allow discard
+                activePlay ? (
+                  <button onClick={() => attachModifier(id)}>Attach</button>
+                ) : (
+                  <button onClick={() => discardGroupFromHand(id,false,'discarded')}>Discard</button>
+                )
+              )}
             </div>
           </div>
         </div>
@@ -539,6 +553,34 @@ export default function DeckBuilder(){
       const discard = [...(prev.discard ?? []), ...removed.map(r => ({ id: r.id, origin }))]
       return { ...prev, hand, discard }
     })
+  }
+
+  // Play flow handlers
+  function startPlayBase(cardId: string) {
+    // move one base from hand to played (discard with origin 'played') and begin activePlay
+    discardGroupFromHand(cardId, false, 'played')
+    setActivePlay({ baseId: cardId, mods: [] })
+  }
+
+  function attachModifier(cardId: string) {
+    if (!activePlay) return
+    // move one modifier from hand to played
+    discardGroupFromHand(cardId, false, 'played')
+    setActivePlay((prev) => prev ? { ...prev, mods: [...prev.mods, cardId] } : prev)
+  }
+
+  function finalizePlay() {
+    // play is already materialized into discard with origin 'played'
+    setActivePlay(null)
+  }
+
+  function cancelPlay() {
+    if (!activePlay) return
+    const { baseId, mods } = activePlay
+    // return attached modifiers first, then base
+    mods.forEach((m) => returnDiscardGroupToHand(m, false))
+    returnDiscardGroupToHand(baseId, false)
+    setActivePlay(null)
   }
 
 
@@ -730,6 +772,17 @@ export default function DeckBuilder(){
           <div style={{marginTop:12}}>
             <div style={{fontSize:'0.85rem'}}>Deck Count: <strong>{(builderState.deck ?? []).length}</strong></div>
             <div style={{fontSize:'0.85rem'}}>Discard Count: <strong>{(builderState.discard ?? []).length}</strong></div>
+              {activePlay && (
+                <div style={{marginTop:12,border:'1px solid #444',padding:8,borderRadius:8,background:'#0a0a0a'}}>
+                  <div style={{fontWeight:700}}>Active Play</div>
+                  <div style={{fontSize:'0.9rem',color:'#9aa0a6',marginTop:6}}>Base: {Handbook.getAllCards().find(c=>c.id===activePlay.baseId)?.name ?? activePlay.baseId}</div>
+                  <div style={{fontSize:'0.85rem',color:'#9aa0a6',marginTop:6}}>Modifiers: {activePlay.mods.length}</div>
+                  <div style={{display:'flex',gap:8,marginTop:8}}>
+                    <button onClick={()=>finalizePlay()}>Finalize Play</button>
+                    <button onClick={()=>cancelPlay()}>Cancel Play</button>
+                  </div>
+                </div>
+              )}
             <div style={{marginTop:8}}>
               <label style={{fontWeight:600}}>Hand Limit</label>
               <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
@@ -779,7 +832,15 @@ export default function DeckBuilder(){
                     <div style={{fontSize:'0.9rem',fontWeight:600}}>{handCard.state === 'played' ? 'Played' : ''}</div>
                       <div style={{display:'flex',gap:8}}>
                       <button onClick={()=>discardFromHand(idx, 'discarded')}>Discard</button>
-                      {handCard.state === 'unspent' && <button onClick={()=>discardFromHand(idx, 'played')}>Play</button>}
+                      {handCard.state === 'unspent' && (
+                        card?.type === 'base' ? (
+                          <button onClick={() => startPlayBase(handCard.id)}>Play</button>
+                        ) : (
+                          activePlay ? (
+                            <button onClick={() => attachModifier(handCard.id)}>Attach</button>
+                          ) : null
+                        )
+                      )}
                       </div>
                   </div>
                 </div>
