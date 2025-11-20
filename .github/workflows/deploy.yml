@@ -140,3 +140,10 @@ jobs:
           npx playwright install --with-deps
           npm run smoke
           npm run smoke:mobile
+          # Run heavier E2E tests only on main to validate flows end-to-end
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "Running E2E tests on main"
+            npm run e2e
+          else
+            echo "Skipping full E2E on non-main branch"
+          fi
