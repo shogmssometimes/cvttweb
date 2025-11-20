@@ -96,6 +96,8 @@ export default function DeckBuilder(){
   const [deckSeed, setDeckSeed] = useState(0)
   const [activePlay, setActivePlay] = useState<ActivePlay>(null)
   const [pageIndex, setPageIndex] = useState(0)
+  const pagesLabels = [{ i: 0, label: 'Builder' }, { i: 1, label: 'Deck Ops' }]
+  const pagesCount = pagesLabels.length
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [dragOffset, setDragOffset] = useState(0)
   const dragStartRef = useRef<number | null>(null)
@@ -138,8 +140,9 @@ export default function DeckBuilder(){
     setDragOffset(0)
     window.removeEventListener('mousemove', onWindowMouseMove)
     window.removeEventListener('mouseup', onWindowMouseUp)
-    if (Math.abs(delta) > 60) {
-      if (delta < 0) setPageIndex((p) => Math.min(1, p + 1))
+    const threshold = getSwipeThreshold()
+    if (Math.abs(delta) > threshold) {
+      if (delta < 0) setPageIndex((p) => Math.min(pagesCount - 1, p + 1))
       else setPageIndex((p) => Math.max(0, p - 1))
     }
   }
@@ -147,12 +150,12 @@ export default function DeckBuilder(){
   // keyboard left/right navigation for pager
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'ArrowRight') setPageIndex((p) => Math.min(1, p + 1))
+      if (e.key === 'ArrowRight') setPageIndex((p) => Math.min(pagesCount - 1, p + 1))
       if (e.key === 'ArrowLeft') setPageIndex((p) => Math.max(0, p - 1))
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [pagesCount])
 
   const filteredModCards = useMemo(() => {
     if (!modSearch.trim()) return modCards
@@ -178,6 +181,19 @@ export default function DeckBuilder(){
       for (let i = 0; i < builderState.nullCount; i++) out.push(nullCard.id)
     }
     return out
+  }
+
+  // compute a swipe threshold relative to pager width to make the swipe feel consistent across devices.
+  function getSwipeThreshold() {
+    try {
+      const box = rootRef.current?.getBoundingClientRect()
+      const width = box?.width ?? (typeof window !== 'undefined' ? window.innerWidth : 375)
+      // threshold is about 22% of width, constrained to [48, 150] px
+      const computed = Math.round(Math.max(48, Math.min(150, width * 0.22)))
+      return computed
+    } catch {
+      return 60
+    }
   }
 
   const shuffleInPlace = (arr: any[]) => {
@@ -647,7 +663,7 @@ export default function DeckBuilder(){
         <p className="muted">Assemble MTG-style decks from official handbook data. Decks require 26 base cards, at least 5 Nulls, and modifier capacity must not be exceeded.</p>
       </header>
 
-      <div className="pager"
+      <div className="pager" ref={rootRef}
         onTouchStart={(e) => {
           dragStartRef.current = e.touches[0].clientX
         }}
@@ -660,8 +676,9 @@ export default function DeckBuilder(){
           const delta = dragOffset
           dragStartRef.current = null
           setDragOffset(0)
-          if (Math.abs(delta) > 60) {
-            if (delta < 0) setPageIndex((p) => Math.min(1, p + 1))
+          const threshold = getSwipeThreshold()
+          if (Math.abs(delta) > threshold) {
+            if (delta < 0) setPageIndex((p) => Math.min(pagesCount - 1, p + 1))
             else setPageIndex((p) => Math.max(0, p - 1))
           }
         }}
@@ -672,7 +689,7 @@ export default function DeckBuilder(){
           window.addEventListener('mouseup', onWindowMouseUp)
         }}
       >
-        <div className="pager-inner" style={{transform: `translateX(-${pageIndex * 100}%) translateX(${dragOffset}px)`}}>
+          <div className="pager-inner" style={{transform: `translateX(-${pageIndex * 100}%) translateX(${dragOffset}px)`, ['--pager-pages' as any]: `${pagesCount}`}}>
           {/* Page 1: main builder UI (everything except Discard + Deck Operations) */}
           <div className="page" style={{padding:0}}>
             <section style={{border:'1px solid #222',borderRadius:12,padding:16,background:'#080808',display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
@@ -903,7 +920,7 @@ export default function DeckBuilder(){
         </div>
 
         <div className="pager-nav" style={{display:'flex',justifyContent:'center',marginTop:12,gap:8}}>
-          {[{i:0,label:'Builder'},{i:1,label:'Deck Ops'}].map(({i,label}) => (
+          {pagesLabels.map(({i, label}) => (
             <div key={i} className={`pager-item`} aria-current={pageIndex === i} onClick={()=>setPageIndex(i)} style={{cursor:'pointer'}} role="button" aria-label={`Navigate to ${label}`}>
               <div className={`pager-dot ${pageIndex === i ? 'active' : ''}`} />
               <div className="pager-label">{label}</div>

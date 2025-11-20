@@ -35,6 +35,10 @@ test.describe('E2E deck builder flows', () => {
     }, makeBuilderState(deck));
     await page.goto(SITE);
     await page.waitForSelector('#root');
+    // If landing role selected, enter Player Mode
+    if (await page.locator('text=Enter Player Mode').count() > 0) {
+      await page.click('text=Enter Player Mode');
+    }
     // Draw three times
     for (let i = 0; i < 3; i++) {
       await page.click('text=Draw 1');
@@ -58,6 +62,9 @@ test.describe('E2E deck builder flows', () => {
     }, makeBuilderState(deck, 2));
     await page.goto(SITE);
     await page.waitForSelector('#root');
+    if (await page.locator('text=Enter Player Mode').count() > 0) {
+      await page.click('text=Enter Player Mode');
+    }
     // Draw twice - should be ok
     await page.click('text=Draw 1');
     await page.click('text=Draw 1');
@@ -76,13 +83,18 @@ test.describe('E2E deck builder flows', () => {
     }, makeBuilderState(deck));
     await page.goto(SITE);
     await page.waitForSelector('#root');
+    if (await page.locator('text=Enter Player Mode').count() > 0) {
+      await page.click('text=Enter Player Mode');
+    }
     // Draw the only card
     await page.click('text=Draw 1');
-    // Now play it
+    // Now play it (start + finalize)
     await page.click('text=Play (Select Base)');
+    await page.click('text=Finalize Play');
     // The card in hand should change to 'Played' text
-    const handState = await page.evaluate(() => JSON.parse(localStorage.getItem('collapse.deck-builder.v2') || '{}').hand || []);
-    expect(handState[0].state).toBe('played');
+    // After finalize, the card should be moved to the discard pile with origin 'played'
+    const discardState = await page.evaluate(() => JSON.parse(localStorage.getItem('collapse.deck-builder.v2') || '{}').discard || []);
+    expect(discardState[0].origin).toBe('played');
     await context.close();
   });
 
@@ -95,8 +107,11 @@ test.describe('E2E deck builder flows', () => {
     }, makeBuilderState(deck));
     await page.goto(SITE);
     await page.waitForSelector('#root');
+    if (await page.locator('text=Enter Player Mode').count() > 0) {
+      await page.click('text=Enter Player Mode');
+    }
     const [download] = await Promise.all([
-      page.waitForEvent('download'),
+      page.waitForEvent('download', { timeout: 15000 }),
       page.click('text=Export')
     ]);
     const path = await download.path();
