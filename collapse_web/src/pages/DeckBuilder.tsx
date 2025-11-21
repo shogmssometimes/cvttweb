@@ -527,7 +527,7 @@ export default function DeckBuilder(){
     return Object.entries(groups).map(([id,g]) => {
       const card = Handbook.getAllCards().find(c => c.id === id)
       return (
-        <div key={id} style={{border:'1px solid #333',borderRadius:10,padding:8,background:'#050505',minWidth:220}}>
+        <div key={id} style={{border:'1px solid #333',borderRadius:10,padding:8,background:'#050505',minWidth:0}}>
           <div style={{fontWeight:700}}>{card?.name ?? id} <span style={{color:'#9aa0a6',fontSize:'0.9rem'}}>(x{g.count})</span></div>
           <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Stacked</div>
           <div style={{marginTop:8}}>{renderDetails(card ?? {id, name:id, type:'', cost:0, text:'' as any})}</div>
@@ -551,7 +551,7 @@ export default function DeckBuilder(){
     return Object.entries(groups).map(([id,g]) => {
       const card = Handbook.getAllCards().find(c => c.id === id)
       return (
-        <div key={id} style={{border:'1px solid #333',borderRadius:10,padding:8,background:'#050505',minWidth:120}}>
+        <div key={id} style={{border:'1px solid #333',borderRadius:10,padding:8,background:'#050505',minWidth:0}}>
           <div style={{fontWeight:700}}>{card?.name ?? id} <span style={{color:'#9aa0a6',fontSize:'0.9rem'}}>(x{g.count})</span></div>
           <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>{card?.type ?? ''}</div>
           <div style={{marginTop:8}}>{renderDetails(card ?? {id, name:id, type:'', cost:0, text:'' as any})}</div>
@@ -629,7 +629,7 @@ export default function DeckBuilder(){
   function renderDetails(card: Card) {
     if (!card.details || card.details.length === 0) return null
     return (
-      <dl style={{marginTop:8,marginBottom:0,display:'grid',gridTemplateColumns:'max-content 1fr',columnGap:8,rowGap:4,fontSize:'0.8rem'}}>
+      <dl style={{marginTop:8,marginBottom:0,display:'grid',gridTemplateColumns:'auto 1fr',columnGap:8,rowGap:4,fontSize:'0.8rem',width:'100%'}}>
         {card.details.map((detail) => (
           <React.Fragment key={`${card.id}-${detail.label}`}>
             <dt style={{fontWeight:600}}>{detail.label}</dt>
@@ -709,13 +709,13 @@ export default function DeckBuilder(){
                       const isSelectedBase = activePlay?.baseId === card.id
                       return (
                         <div key={card.id} style={{border:`1px solid ${isSelectedBase ? '#7b78ff' : '#333'}`,borderRadius:10,padding:12,background:'#050505',display:'flex',flexDirection:'column',gap:8}}>
-                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',minWidth:0}}>
                             <div>
                               <div style={{fontWeight:700}}>{card.name}</div>
                               {isSelectedBase && <div style={{fontSize:'0.75rem',color:'#7b78ff',marginTop:4}}>Selected Base</div>}
                               <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>{card.text}</div>
                             </div>
-                            <div style={{display:'flex',alignItems:'center',gap:6}}>
+                            <div style={{display:'flex',alignItems:'center',gap:6,minWidth:0}}>
                               <button onClick={()=>adjustBaseCount(card.id,-1)} disabled={qty === 0 || builderState.isLocked}>-</button>
                               <div style={{minWidth:24,textAlign:'center'}}>{qty}</div>
                               <button onClick={()=>adjustBaseCount(card.id,1)} disabled={baseTotal >= BASE_TARGET || builderState.isLocked}>+</button>
@@ -740,7 +740,7 @@ export default function DeckBuilder(){
                     </div>
                     <div style={{display:'flex',flexDirection:'column',gap:8}}>
                       <label style={{fontWeight:600}}>Search Mods</label>
-                      <input type="text" placeholder="Search name, target, effect" value={modSearch} onChange={(event)=>setModSearch(event.target.value)} style={{minWidth:220}} />
+                        <input type="text" placeholder="Search name, target, effect" value={modSearch} onChange={(event)=>setModSearch(event.target.value)} style={{minWidth:0,width:'100%'}} />
                     </div>
                   </div>
 
@@ -757,7 +757,7 @@ export default function DeckBuilder(){
                               <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Cost {cost}</div>
                               {isAttached && <div style={{fontSize:'0.75rem',color:'#7b78ff',marginTop:4}}>Attached</div>}
                             </div>
-                            <div style={{display:'flex',alignItems:'center',gap:6}}>
+                            <div style={{display:'flex',alignItems:'center',gap:6,minWidth:0}}>
                               <button onClick={()=>adjustModCount(card.id,-1)} disabled={qty === 0 || builderState.isLocked}>-</button>
                               <div style={{minWidth:24,textAlign:'center'}}>{qty}</div>
                               <button onClick={()=>adjustModCount(card.id,1)} disabled={builderState.isLocked || !canAddModCard(card.id)}>+</button>
@@ -786,7 +786,7 @@ export default function DeckBuilder(){
                   {(groupedDiscardElements?.length ?? 0) === 0 && (builderState.discard ?? []).map((item, idx) => {
                     const card = Handbook.getAllCards().find(c => c.id === item.id)
                     return (
-                      <div key={idx} style={{border:'1px solid #333',borderRadius:10,padding:8,background:'#050505',minWidth:220}}>
+                      <div key={idx} style={{border:'1px solid #333',borderRadius:10,padding:8,background:'#050505',minWidth:0}}>
                         <div style={{fontWeight:700}}>{card?.name ?? item.id}</div>
                         <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>#{idx+1} • {item.origin === 'played' ? 'Played' : 'Discarded'}</div>
                         <div style={{marginTop:8}}>{renderDetails(card ?? {id:item.id,name:item.id,type:'',cost:0,text:'' as any})}</div>
@@ -874,7 +874,7 @@ export default function DeckBuilder(){
                   {(groupedHandElements?.length ?? 0) === 0 && (builderState.hand ?? []).map((handCard, idx) => {
                       const card = Handbook.getAllCards().find(c => c.id === handCard.id)
                     return (
-                        <div key={idx} style={{border:'1px solid #333',borderRadius:10,padding:8,background:'#050505',minWidth:120}}>
+                        <div key={idx} style={{border:'1px solid #333',borderRadius:10,padding:8,background:'#050505',minWidth:0}}>
                           <div style={{fontWeight:700}}>{card?.name ?? handCard.id}</div>
                         <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>{card?.type ?? ''}</div>
                         <div style={{marginTop:8}}>{renderDetails(card ?? {id:handCard.id,name:handCard.id,type:'',cost:0,text:'' as any})}</div>

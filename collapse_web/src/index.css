@@ -121,6 +121,19 @@ main {
   border-radius:12px;
   padding:12px;
   background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.1));
+  min-width: 0; /* allow grid children to shrink on mobile */
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.card * {
+  min-width: 0; /* prevent child content (dd, dt, divs) from causing overflow */
+}
+
+.card dl dt,
+.card dl dd {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* Mobile first adjustments */
