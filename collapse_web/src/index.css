@@ -66,6 +66,20 @@ main {
 .pager-label{font-size:0.8rem;color:#b6bac5}
 .pager-item[aria-current='true'] .pager-label{color:#7b78ff;font-weight:600}
 
+/* Shared card grids */
+.card-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.card-grid.base-card-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.card-grid.mod-card-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
 /* Card-like containers */
 .card {
   border:1px solid #222;
@@ -79,6 +93,7 @@ main {
   .card { padding:10px; }
   button { padding: 0.5rem 0.85rem; }
   main { padding: 0.5rem; }
+  .card-grid { grid-template-columns: minmax(0, 1fr) !important; }
   /* Sticky pager: mobile-first bottom nav that stays visible while interacting */
   .pager-nav {
     position: fixed;

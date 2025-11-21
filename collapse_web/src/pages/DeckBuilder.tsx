@@ -703,7 +703,7 @@ export default function DeckBuilder(){
             <section style={{border:'1px solid #222',borderRadius:12,padding:16}}>
               <h2>Base Skill Cards</h2>
               <p style={{marginTop:0,color:'#9aa0a6'}}>Pick any combination of the 15 skills until you reach 26 total cards.</p>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
+              <div className="card-grid base-card-grid">
                 {baseCards.map((card) => {
                   const qty = builderState.baseCounts[card.id] ?? 0
                       const isSelectedBase = activePlay?.baseId === card.id
@@ -744,7 +744,7 @@ export default function DeckBuilder(){
                     </div>
                   </div>
 
-                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:12}}>
+                  <div className="card-grid mod-card-grid">
                     {filteredModCards.map((card) => {
                       const qty = builderState.modCounts[card.id] ?? 0
                       const cost = card.cost ?? 0
@@ -771,50 +771,6 @@ export default function DeckBuilder(){
                   </div>
                 </section>
 
-            <section style={{border:'1px solid #222',borderRadius:12,padding:16,display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
-              <div>
-                <label style={{fontWeight:600}}>Hand Draw</label>
-                <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
-                  <button onClick={()=>draw()} disabled={!builderState.isLocked || ((builderState.hand ?? []).length >= (builderState.handLimit ?? 5))}>Draw 1</button>
-                </div>
-              </div>
-
-              <div>
-                <h3>Hand</h3>
-                <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
-                  <div style={{fontSize:'0.85rem',color:'#9aa0a6'}}>Duplicates stacked</div>
-                </div>
-                <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
-                  {groupedHandElements}
-                  {(groupedHandElements?.length ?? 0) === 0 && (builderState.hand ?? []).map((handCard, idx) => {
-                      const card = Handbook.getAllCards().find(c => c.id === handCard.id)
-                    return (
-                        <div key={idx} style={{border:'1px solid #333',borderRadius:10,padding:8,background:'#050505',minWidth:120}}>
-                          <div style={{fontWeight:700}}>{card?.name ?? handCard.id}</div>
-                        <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>{card?.type ?? ''}</div>
-                        <div style={{marginTop:8}}>{renderDetails(card ?? {id:handCard.id,name:handCard.id,type:'',cost:0,text:'' as any})}</div>
-                        <div style={{marginTop:8,display:'flex',gap:8,flexDirection:'column'}}>
-                          <div style={{fontSize:'0.9rem',fontWeight:600}}>{handCard.state === 'played' ? 'Played' : ''}</div>
-                            <div style={{display:'flex',gap:8}}>
-                            <button onClick={()=>discardFromHand(idx, 'discarded')}>Discard</button>
-                            {handCard.state === 'unspent' && (
-                              card?.type === 'base' ? (
-                                <button onClick={() => startPlayBase(handCard.id)}>Play</button>
-                              ) : (
-                                activePlay ? (
-                                  <button onClick={() => attachModifier(handCard.id)}>Play</button>
-                                ) : null
-                              )
-                            )}
-                            </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                  {((builderState.hand ?? []).length === 0) && <div style={{color:'#9aa0a6'}}>No cards in hand</div>}
-                </div>
-              </div>
-            </section>
           </div>
 
           {/* Page 2: Deck Operations + Discard Pile */}
@@ -896,6 +852,51 @@ export default function DeckBuilder(){
                       ))}
                     </div>
                   </div>
+                </div>
+              </div>
+            </section>
+
+            <section style={{border:'1px solid #222',borderRadius:12,padding:16,display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
+              <div>
+                <label style={{fontWeight:600}}>Hand Draw</label>
+                <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
+                  <button onClick={()=>draw()} disabled={!builderState.isLocked || ((builderState.hand ?? []).length >= (builderState.handLimit ?? 5))}>Draw 1</button>
+                </div>
+              </div>
+
+              <div>
+                <h3>Hand</h3>
+                <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
+                  <div style={{fontSize:'0.85rem',color:'#9aa0a6'}}>Duplicates stacked</div>
+                </div>
+                <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+                  {groupedHandElements}
+                  {(groupedHandElements?.length ?? 0) === 0 && (builderState.hand ?? []).map((handCard, idx) => {
+                      const card = Handbook.getAllCards().find(c => c.id === handCard.id)
+                    return (
+                        <div key={idx} style={{border:'1px solid #333',borderRadius:10,padding:8,background:'#050505',minWidth:120}}>
+                          <div style={{fontWeight:700}}>{card?.name ?? handCard.id}</div>
+                        <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>{card?.type ?? ''}</div>
+                        <div style={{marginTop:8}}>{renderDetails(card ?? {id:handCard.id,name:handCard.id,type:'',cost:0,text:'' as any})}</div>
+                        <div style={{marginTop:8,display:'flex',gap:8,flexDirection:'column'}}>
+                          <div style={{fontSize:'0.9rem',fontWeight:600}}>{handCard.state === 'played' ? 'Played' : ''}</div>
+                            <div style={{display:'flex',gap:8}}>
+                            <button onClick={()=>discardFromHand(idx, 'discarded')}>Discard</button>
+                            {handCard.state === 'unspent' && (
+                              card?.type === 'base' ? (
+                                <button onClick={() => startPlayBase(handCard.id)}>Play</button>
+                              ) : (
+                                activePlay ? (
+                                  <button onClick={() => attachModifier(handCard.id)}>Play</button>
+                                ) : null
+                              )
+                            )}
+                            </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                  {((builderState.hand ?? []).length === 0) && <div style={{color:'#9aa0a6'}}>No cards in hand</div>}
                 </div>
               </div>
             </section>
