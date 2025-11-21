@@ -211,6 +211,20 @@ main {
   .card button { min-width: 0; }
 }
 
+/* Target 1080x1920 and smaller devices (common Full HD mobile) */
+@media (max-width: 1080px) {
+  .app-shell { width: 100%; max-width: 1080px; padding: 0.75rem; }
+  .card-grid.base-card-grid, .card-grid.mod-card-grid { grid-template-columns: 1fr !important; }
+  .card { width: 100%; padding: 10px 12px; }
+  h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); }
+  h2 { font-size: clamp(1.2rem, 3.5vw, 1.6rem); }
+  .card dl dt { max-width: 28%; min-width: 70px; }
+  .card dl dd { max-width: 72%; }
+  .card p, .card dl, .card div { font-size: clamp(0.8rem, 2.4vw, 1rem); }
+  .page, .app-shell { overflow-x: hidden; }
+  .card { box-sizing: border-box; }
+}
+
 /* Fallback for very small devices where Safari visual viewport might cause overflow: ensure card content fits by shrinking font and spacing */
 @media (max-width: 400px) {
   .card { padding: 8px; }
