@@ -736,7 +736,7 @@ export default function DeckBuilder(){
                     </div>
                     <div style={{display:'flex',flexDirection:'column',gap:8}}>
                       <label style={{fontWeight:600}}>Modifier Capacity</label>
-                      <input type="number" min={0} value={builderState.modifierCapacity} onChange={(event)=>setModifierCapacity(parseInt(event.target.value,10))} style={{width:140}} />
+                      <input type="number" min={0} value={builderState.modifierCapacity} onChange={(event)=>setModifierCapacity(parseInt(event.target.value,10))} style={{width:140,maxWidth:'100%'}} />
                     </div>
                     <div style={{display:'flex',flexDirection:'column',gap:8}}>
                       <label style={{fontWeight:600}}>Search Mods</label>
@@ -835,7 +835,7 @@ export default function DeckBuilder(){
                   <div style={{marginTop:8}}>
                     <label style={{fontWeight:600}}>Hand Limit</label>
                     <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
-                      <input type="number" min={0} value={builderState.handLimit ?? 5} onChange={(e)=>setBuilderState(prev=>({...prev, handLimit: parseInt(e.target.value,10)||5}))} style={{width:80,textAlign:'center'}} />
+                      <input type="number" min={0} value={builderState.handLimit ?? 5} onChange={(e)=>setBuilderState(prev=>({...prev, handLimit: parseInt(e.target.value,10)||5}))} style={{width:80,maxWidth:'100%',textAlign:'center'}} />
                       <div style={{color:'#9aa0a6',fontSize:'0.85rem'}}>Active cap for hand cards.</div>
                     </div>
                   </div>
