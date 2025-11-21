@@ -32,6 +32,41 @@ main {
   padding-bottom: 3rem;
 }
 
+.app-shell {
+  width: min(100%, 1100px);
+  margin: 0 auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.ops-toolbar,
+.ops-save {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.ops-toolbar {
+  flex-wrap: wrap;
+  width: 100%;
+  justify-content: flex-start;
+  margin-top: 8px;
+}
+
+.ops-save {
+  flex-wrap: wrap;
+  flex: 1 1 320px;
+  margin-left: 0;
+  width: 100%;
+}
+
+.ops-save input {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
 /* Pager and mobile-forward layout */
 .pager {
   width: 100%;
@@ -90,10 +125,18 @@ main {
 
 /* Mobile first adjustments */
 @media (max-width: 840px) {
+  .app-shell {
+    width: min(100%, 520px);
+    padding: 0.75rem 0.85rem 6.5rem;
+  }
   .card { padding:10px; }
   button { padding: 0.5rem 0.85rem; }
   main { padding: 0.5rem; }
   .card-grid { grid-template-columns: minmax(0, 1fr) !important; }
+  .ops-save button,
+  .ops-toolbar button {
+    flex: 1 1 140px;
+  }
   /* Sticky pager: mobile-first bottom nav that stays visible while interacting */
   .pager-nav {
     position: fixed;

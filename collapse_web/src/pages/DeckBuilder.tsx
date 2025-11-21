@@ -641,7 +641,7 @@ export default function DeckBuilder(){
   }
 
   return (
-    <main style={{padding:'1rem',maxWidth:1100,width:'100%',margin:'0 auto',display:'flex',flexDirection:'column',gap:24}}>
+    <main className="app-shell">
       <header>
         <h1>Engram Deck Builder</h1>
         <p className="muted">Assemble MTG-style decks from official handbook data. Decks require 26 base cards, at least 5 Nulls, and modifier capacity must not be exceeded.</p>
@@ -806,12 +806,12 @@ export default function DeckBuilder(){
               <div>
                 <h2>Deck Operations</h2>
                 <p style={{marginTop:0,color:'#9aa0a6'}}>Shuffle, draw, and discard cards from your deck. Draw uses the top-of-deck (LIFO) model.</p>
-                <div style={{display:'flex',gap:8,marginTop:8,alignItems:'center'}}>
+                <div className="ops-toolbar">
                   <button onClick={()=>generateDeck(true)}>Build Deck</button>
                   <button onClick={()=>shuffleDeck()}>Shuffle</button>
                   <button onClick={()=>toggleLockDeck()}>{builderState.isLocked ? 'Unlock Deck' : 'Lock Deck'}</button>
-                  <div style={{display:'flex',gap:8,alignItems:'center',marginLeft:12}}>
-                    <input placeholder="Deck name" value={builderState.deckName ?? ''} onChange={(e)=>setDeckName(e.target.value)} style={{width:200}} />
+                  <div className="ops-save">
+                    <input placeholder="Deck name" value={builderState.deckName ?? ''} onChange={(e)=>setDeckName(e.target.value)} />
                     <button onClick={()=>saveDeck()}>Save Deck</button>
                     <button onClick={handleExport} title="Export current deck as JSON">Export</button>
                     <button onClick={onClickImport} title="Import deck from JSON file">Import</button>
