@@ -629,7 +629,7 @@ export default function DeckBuilder(){
   function renderDetails(card: Card) {
     if (!card.details || card.details.length === 0) return null
     return (
-      <dl style={{marginTop:8,marginBottom:0,display:'grid',gridTemplateColumns:'auto 1fr',columnGap:8,rowGap:4,fontSize:'0.8rem',width:'100%'}}>
+      <dl style={{marginTop:8,marginBottom:0,display:'grid',gridTemplateColumns:'minmax(80px,30%) 1fr',columnGap:8,rowGap:4,fontSize:'0.8rem',width:'100%'}}>
         {card.details.map((detail) => (
           <React.Fragment key={`${card.id}-${detail.label}`}>
             <dt style={{fontWeight:600}}>{detail.label}</dt>
