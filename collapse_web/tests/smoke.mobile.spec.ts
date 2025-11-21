@@ -10,11 +10,22 @@ test.describe('Mobile smoke: basic flows and PWA presence', () => {
     await page.goto(SITE, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#root', { timeout: 10000 });
 
+    // Ensure we're on the DeckBuilder page; if we land on the Role selection, click through
+    const builderHeading = page.getByRole('heading', { name: 'Engram Deck Builder' });
+    if (!(await builderHeading.isVisible())) {
+      const enterPlayerButton = page.getByRole('button', { name: 'Enter Player Mode' });
+      if (await enterPlayerButton.isVisible()) {
+        await enterPlayerButton.click();
+      }
+    }
     // Mobile layout: check the primary builder header and a key control
     await expect(page.getByRole('heading', { name: 'Engram Deck Builder' })).toBeVisible({ timeout: 5000 });
     // Pager navigation: ensure we can navigate to 'Deck Operations' (second page)
     await page.locator('.pager-nav .pager-item').nth(1).click();
     await expect(page.getByRole('heading', { name: 'Deck Operations' })).toBeVisible({ timeout: 5000 });
+    // Pager bar should be fixed at bottom in mobile layouts
+    const pagerPosition = await page.evaluate(() => getComputedStyle(document.querySelector('.pager-nav') as Element).position);
+    expect(pagerPosition === 'fixed' || pagerPosition === 'sticky').toBeTruthy();
 
     // Ensure the manifest is linked
     const manifestHref = await page.evaluate(() => document.querySelector('link[rel="manifest"]')?.getAttribute('href'));
