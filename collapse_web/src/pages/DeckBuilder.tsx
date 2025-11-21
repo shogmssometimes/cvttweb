@@ -641,7 +641,7 @@ export default function DeckBuilder(){
   }
 
   return (
-    <main style={{padding:'1rem',maxWidth:1100,margin:'0 auto',display:'flex',flexDirection:'column',gap:24}}>
+    <main style={{padding:'1rem',maxWidth:1100,width:'100%',margin:'0 auto',display:'flex',flexDirection:'column',gap:24}}>
       <header>
         <h1>Engram Deck Builder</h1>
         <p className="muted">Assemble MTG-style decks from official handbook data. Decks require 26 base cards, at least 5 Nulls, and modifier capacity must not be exceeded.</p>
@@ -675,7 +675,7 @@ export default function DeckBuilder(){
         <div className="pager-inner" style={{transform: `translateX(-${pageIndex * 100}%) translateX(${dragOffset}px)`}}>
           {/* Page 1: main builder UI (everything except Discard + Deck Operations) */}
           <div className="page" style={{padding:0}}>
-            <section style={{border:'1px solid #222',borderRadius:12,padding:16,background:'#080808',display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
+            <section className="card-grid base-card-grid" style={{border:'1px solid #222',borderRadius:12,padding:16,background:'#080808'}}>
               <div>
                 <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Base Cards</div>
                 <div style={{fontSize:'1.8rem',fontWeight:700}}>{baseTotal} / {BASE_TARGET}</div>
@@ -802,7 +802,7 @@ export default function DeckBuilder(){
               </div>
             </section>
 
-            <section style={{border:'1px solid #222',borderRadius:12,padding:16,display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
+            <section className="card-grid base-card-grid" style={{border:'1px solid #222',borderRadius:12,padding:16}}>
               <div>
                 <h2>Deck Operations</h2>
                 <p style={{marginTop:0,color:'#9aa0a6'}}>Shuffle, draw, and discard cards from your deck. Draw uses the top-of-deck (LIFO) model.</p>
@@ -856,7 +856,7 @@ export default function DeckBuilder(){
               </div>
             </section>
 
-            <section style={{border:'1px solid #222',borderRadius:12,padding:16,display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
+            <section className="card-grid base-card-grid" style={{border:'1px solid #222',borderRadius:12,padding:16}}>
               <div>
                 <label style={{fontWeight:600}}>Hand Draw</label>
                 <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
