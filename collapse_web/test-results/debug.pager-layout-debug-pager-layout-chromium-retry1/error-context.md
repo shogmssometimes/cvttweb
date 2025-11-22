@@ -1,0 +1,1197 @@
+# Page snapshot
+
+```yaml
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - heading "Engram Deck Builder" [level=1] [ref=e5]
+    - paragraph [ref=e6]: Assemble MTG-style decks from official handbook data. Decks require 26 base cards, at least 5 Nulls, and modifier capacity must not be exceeded.
+  - generic [ref=e7]:
+    - generic [ref=e8]:
+      - generic [ref=e10]:
+        - generic [ref=e11]:
+          - generic [ref=e12]: Base Cards
+          - generic [ref=e13]: 0 / 26
+          - generic [ref=e14]: Deck must contain exactly 26 base cards.
+        - generic [ref=e15]:
+          - generic [ref=e16]: Null Cards
+          - generic [ref=e17]: "5"
+        - generic [ref=e18]:
+          - generic [ref=e19]: Modifier Capacity
+          - generic [ref=e20]: 0 / 10
+          - generic [ref=e21]: Mod Capacity Used
+        - generic [ref=e22]:
+          - generic [ref=e23]: Deck Status
+          - generic [ref=e24]: Needs Attention
+          - button "Reset Builder" [ref=e25] [cursor=pointer]
+      - generic [ref=e26]:
+        - generic [ref=e27]:
+          - heading "Base Skill Cards" [level=2] [ref=e28]
+          - paragraph [ref=e29]: Pick any combination of the 15 skills until you reach 26 total cards.
+          - generic [ref=e30]:
+            - generic [ref=e31]:
+              - generic [ref=e32]:
+                - generic [ref=e33]:
+                  - generic [ref=e34]: Athletics
+                  - generic [ref=e35]: "Skill: Athletics • Rarity: Common • Capacity Cost: 0"
+                - generic [ref=e36]:
+                  - button "-" [disabled] [ref=e37] [cursor=pointer]
+                  - generic [ref=e38]: "0"
+                  - button "+" [ref=e39] [cursor=pointer]
+              - generic [ref=e40]:
+                - term [ref=e41]: Skill
+                - definition [ref=e42]: Athletics
+                - term [ref=e43]: Rarity
+                - definition [ref=e44]: Common
+                - term [ref=e45]: Capacity Cost
+                - definition [ref=e46]: "0"
+                - term [ref=e47]: Category
+                - definition [ref=e48]: Base
+            - generic [ref=e49]:
+              - generic [ref=e50]:
+                - generic [ref=e51]:
+                  - generic [ref=e52]: Strength
+                  - generic [ref=e53]: "Skill: Strength • Rarity: Common • Capacity Cost: 0"
+                - generic [ref=e54]:
+                  - button "-" [disabled] [ref=e55] [cursor=pointer]
+                  - generic [ref=e56]: "0"
+                  - button "+" [ref=e57] [cursor=pointer]
+              - generic [ref=e58]:
+                - term [ref=e59]: Skill
+                - definition [ref=e60]: Strength
+                - term [ref=e61]: Rarity
+                - definition [ref=e62]: Common
+                - term [ref=e63]: Capacity Cost
+                - definition [ref=e64]: "0"
+                - term [ref=e65]: Category
+                - definition [ref=e66]: Base
+            - generic [ref=e67]:
+              - generic [ref=e68]:
+                - generic [ref=e69]:
+                  - generic [ref=e70]: Stealth
+                  - generic [ref=e71]: "Skill: Stealth • Rarity: Common • Capacity Cost: 0"
+                - generic [ref=e72]:
+                  - button "-" [disabled] [ref=e73] [cursor=pointer]
+                  - generic [ref=e74]: "0"
+                  - button "+" [ref=e75] [cursor=pointer]
+              - generic [ref=e76]:
+                - term [ref=e77]: Skill
+                - definition [ref=e78]: Stealth
+                - term [ref=e79]: Rarity
+                - definition [ref=e80]: Common
+                - term [ref=e81]: Capacity Cost
+                - definition [ref=e82]: "0"
+                - term [ref=e83]: Category
+                - definition [ref=e84]: Base
+            - generic [ref=e85]:
+              - generic [ref=e86]:
+                - generic [ref=e87]:
+                  - generic [ref=e88]: Thief
+                  - generic [ref=e89]: "Skill: Thief • Rarity: Common • Capacity Cost: 0"
+                - generic [ref=e90]:
+                  - button "-" [disabled] [ref=e91] [cursor=pointer]
+                  - generic [ref=e92]: "0"
+                  - button "+" [ref=e93] [cursor=pointer]
+              - generic [ref=e94]:
+                - term [ref=e95]: Skill
+                - definition [ref=e96]: Thief
+                - term [ref=e97]: Rarity
+                - definition [ref=e98]: Common
+                - term [ref=e99]: Capacity Cost
+                - definition [ref=e100]: "0"
+                - term [ref=e101]: Category
+                - definition [ref=e102]: Base
+            - generic [ref=e103]:
+              - generic [ref=e104]:
+                - generic [ref=e105]:
+                  - generic [ref=e106]: Vehicle
+                  - generic [ref=e107]: "Skill: Vehicle • Rarity: Common • Capacity Cost: 0"
+                - generic [ref=e108]:
+                  - button "-" [disabled] [ref=e109] [cursor=pointer]
+                  - generic [ref=e110]: "0"
+                  - button "+" [ref=e111] [cursor=pointer]
+              - generic [ref=e112]:
+                - term [ref=e113]: Skill
+                - definition [ref=e114]: Vehicle
+                - term [ref=e115]: Rarity
+                - definition [ref=e116]: Common
+                - term [ref=e117]: Capacity Cost
+                - definition [ref=e118]: "0"
+                - term [ref=e119]: Category
+                - definition [ref=e120]: Base
+            - generic [ref=e121]:
+              - generic [ref=e122]:
+                - generic [ref=e123]:
+                  - generic [ref=e124]: Medicine
+                  - generic [ref=e125]: "Skill: Medicine • Rarity: Common • Capacity Cost: 0"
+                - generic [ref=e126]:
+                  - button "-" [disabled] [ref=e127] [cursor=pointer]
+                  - generic [ref=e128]: "0"
+                  - button "+" [ref=e129] [cursor=pointer]
+              - generic [ref=e130]:
+                - term [ref=e131]: Skill
+                - definition [ref=e132]: Medicine
+                - term [ref=e133]: Rarity
+                - definition [ref=e134]: Common
+                - term [ref=e135]: Capacity Cost
+                - definition [ref=e136]: "0"
+                - term [ref=e137]: Category
+                - definition [ref=e138]: Base
+            - generic [ref=e139]:
+              - generic [ref=e140]:
+                - generic [ref=e141]:
+                  - generic [ref=e142]: Nature
+                  - generic [ref=e143]: "Skill: Nature • Rarity: Common • Capacity Cost: 0"
+                - generic [ref=e144]:
+                  - button "-" [disabled] [ref=e145] [cursor=pointer]
+                  - generic [ref=e146]: "0"
+                  - button "+" [ref=e147] [cursor=pointer]
+              - generic [ref=e148]:
+                - term [ref=e149]: Skill
+                - definition [ref=e150]: Nature
+                - term [ref=e151]: Rarity
+                - definition [ref=e152]: Common
+                - term [ref=e153]: Capacity Cost
+                - definition [ref=e154]: "0"
+                - term [ref=e155]: Category
+                - definition [ref=e156]: Base
+            - generic [ref=e157]:
+              - generic [ref=e158]:
+                - generic [ref=e159]:
+                  - generic [ref=e160]: Occult
+                  - generic [ref=e161]: "Skill: Occult • Rarity: Common • Capacity Cost: 0"
+                - generic [ref=e162]:
+                  - button "-" [disabled] [ref=e163] [cursor=pointer]
+                  - generic [ref=e164]: "0"
+                  - button "+" [ref=e165] [cursor=pointer]
+              - generic [ref=e166]:
+                - term [ref=e167]: Skill
+                - definition [ref=e168]: Occult
+                - term [ref=e169]: Rarity
+                - definition [ref=e170]: Common
+                - term [ref=e171]: Capacity Cost
+                - definition [ref=e172]: "0"
+                - term [ref=e173]: Category
+                - definition [ref=e174]: Base
+            - generic [ref=e175]:
+              - generic [ref=e176]:
+                - generic [ref=e177]:
+                  - generic [ref=e178]: Religion
+                  - generic [ref=e179]: "Skill: Religion • Rarity: Common • Capacity Cost: 0"
+                - generic [ref=e180]:
+                  - button "-" [disabled] [ref=e181] [cursor=pointer]
+                  - generic [ref=e182]: "0"
+                  - button "+" [ref=e183] [cursor=pointer]
+              - generic [ref=e184]:
+                - term [ref=e185]: Skill
+                - definition [ref=e186]: Religion
+                - term [ref=e187]: Rarity
+                - definition [ref=e188]: Common
+                - term [ref=e189]: Capacity Cost
+                - definition [ref=e190]: "0"
+                - term [ref=e191]: Category
+                - definition [ref=e192]: Base
+            - generic [ref=e193]:
+              - generic [ref=e194]:
+                - generic [ref=e195]:
+                  - generic [ref=e196]: Tech
+                  - generic [ref=e197]: "Skill: Tech • Rarity: Common • Capacity Cost: 0"
+                - generic [ref=e198]:
+                  - button "-" [disabled] [ref=e199] [cursor=pointer]
+                  - generic [ref=e200]: "0"
+                  - button "+" [ref=e201] [cursor=pointer]
+              - generic [ref=e202]:
+                - term [ref=e203]: Skill
+                - definition [ref=e204]: Tech
+                - term [ref=e205]: Rarity
+                - definition [ref=e206]: Common
+                - term [ref=e207]: Capacity Cost
+                - definition [ref=e208]: "0"
+                - term [ref=e209]: Category
+                - definition [ref=e210]: Base
+            - generic [ref=e211]:
+              - generic [ref=e212]:
+                - generic [ref=e213]:
+                  - generic [ref=e214]: Investigation
+                  - generic [ref=e215]: "Skill: Investigation • Rarity: Common • Capacity Cost: 0"
+                - generic [ref=e216]:
+                  - button "-" [disabled] [ref=e217] [cursor=pointer]
+                  - generic [ref=e218]: "0"
+                  - button "+" [ref=e219] [cursor=pointer]
+              - generic [ref=e220]:
+                - term [ref=e221]: Skill
+                - definition [ref=e222]: Investigation
+                - term [ref=e223]: Rarity
+                - definition [ref=e224]: Common
+                - term [ref=e225]: Capacity Cost
+                - definition [ref=e226]: "0"
+                - term [ref=e227]: Category
+                - definition [ref=e228]: Base
+            - generic [ref=e229]:
+              - generic [ref=e230]:
+                - generic [ref=e231]:
+                  - generic [ref=e232]: Performance
+                  - generic [ref=e233]: "Skill: Performance • Rarity: Common • Capacity Cost: 0"
+                - generic [ref=e234]:
+                  - button "-" [disabled] [ref=e235] [cursor=pointer]
+                  - generic [ref=e236]: "0"
+                  - button "+" [ref=e237] [cursor=pointer]
+              - generic [ref=e238]:
+                - term [ref=e239]: Skill
+                - definition [ref=e240]: Performance
+                - term [ref=e241]: Rarity
+                - definition [ref=e242]: Common
+                - term [ref=e243]: Capacity Cost
+                - definition [ref=e244]: "0"
+                - term [ref=e245]: Category
+                - definition [ref=e246]: Base
+            - generic [ref=e247]:
+              - generic [ref=e248]:
+                - generic [ref=e249]:
+                  - generic [ref=e250]: Persuasion
+                  - generic [ref=e251]: "Skill: Persuasion • Rarity: Common • Capacity Cost: 0"
+                - generic [ref=e252]:
+                  - button "-" [disabled] [ref=e253] [cursor=pointer]
+                  - generic [ref=e254]: "0"
+                  - button "+" [ref=e255] [cursor=pointer]
+              - generic [ref=e256]:
+                - term [ref=e257]: Skill
+                - definition [ref=e258]: Persuasion
+                - term [ref=e259]: Rarity
+                - definition [ref=e260]: Common
+                - term [ref=e261]: Capacity Cost
+                - definition [ref=e262]: "0"
+                - term [ref=e263]: Category
+                - definition [ref=e264]: Base
+            - generic [ref=e265]:
+              - generic [ref=e266]:
+                - generic [ref=e267]:
+                  - generic [ref=e268]: Resistance
+                  - generic [ref=e269]: "Skill: Resistance • Rarity: Common • Capacity Cost: 0"
+                - generic [ref=e270]:
+                  - button "-" [disabled] [ref=e271] [cursor=pointer]
+                  - generic [ref=e272]: "0"
+                  - button "+" [ref=e273] [cursor=pointer]
+              - generic [ref=e274]:
+                - term [ref=e275]: Skill
+                - definition [ref=e276]: Resistance
+                - term [ref=e277]: Rarity
+                - definition [ref=e278]: Common
+                - term [ref=e279]: Capacity Cost
+                - definition [ref=e280]: "0"
+                - term [ref=e281]: Category
+                - definition [ref=e282]: Base
+            - generic [ref=e283]:
+              - generic [ref=e284]:
+                - generic [ref=e285]:
+                  - generic [ref=e286]: Vibe
+                  - generic [ref=e287]: "Skill: Vibe • Rarity: Common • Capacity Cost: 0"
+                - generic [ref=e288]:
+                  - button "-" [disabled] [ref=e289] [cursor=pointer]
+                  - generic [ref=e290]: "0"
+                  - button "+" [ref=e291] [cursor=pointer]
+              - generic [ref=e292]:
+                - term [ref=e293]: Skill
+                - definition [ref=e294]: Vibe
+                - term [ref=e295]: Rarity
+                - definition [ref=e296]: Common
+                - term [ref=e297]: Capacity Cost
+                - definition [ref=e298]: "0"
+                - term [ref=e299]: Category
+                - definition [ref=e300]: Base
+        - generic [ref=e301]:
+          - generic [ref=e302]:
+            - generic [ref=e303]:
+              - heading "Modifier Cards" [level=2] [ref=e304]
+              - paragraph [ref=e305]: Each modifier consumes capacity equal to its card cost. Stay within your Engram Modifier Capacity.
+            - generic [ref=e306]:
+              - generic [ref=e307]: Modifier Capacity
+              - spinbutton [ref=e308]: "10"
+            - generic [ref=e309]:
+              - generic [ref=e310]: Search Mods
+              - textbox "Search name, target, effect" [ref=e311]
+          - generic [ref=e312]:
+            - generic [ref=e313]:
+              - generic [ref=e314]:
+                - generic [ref=e315]:
+                  - generic [ref=e316]: Wing-It
+                  - generic [ref=e317]: Cost 1
+                - generic [ref=e318]:
+                  - button "-" [disabled] [ref=e319] [cursor=pointer]
+                  - generic [ref=e320]: "0"
+                  - button "+" [ref=e321] [cursor=pointer]
+              - paragraph [ref=e322]: "Add to Result • Target: Self"
+              - generic [ref=e323]:
+                - term [ref=e324]: Effect
+                - definition [ref=e325]: Add to Result
+                - term [ref=e326]: Target
+                - definition [ref=e327]: Self
+                - term [ref=e328]: Extra Actions
+                - definition [ref=e329]: Roll 1d4
+                - term [ref=e330]: Rarity
+                - definition [ref=e331]: Common
+            - generic [ref=e332]:
+              - generic [ref=e333]:
+                - generic [ref=e334]:
+                  - generic [ref=e335]: Bunker
+                  - generic [ref=e336]: Cost 1
+                - generic [ref=e337]:
+                  - button "-" [disabled] [ref=e338] [cursor=pointer]
+                  - generic [ref=e339]: "0"
+                  - button "+" [ref=e340] [cursor=pointer]
+              - paragraph [ref=e341]: "Receive the Bunkered Status Effect at End of Turn • Target: Self"
+              - generic [ref=e342]:
+                - term [ref=e343]: Effect
+                - definition [ref=e344]: Receive the Bunkered Status Effect at End of Turn
+                - term [ref=e345]: Target
+                - definition [ref=e346]: Self
+                - term [ref=e347]: Rarity
+                - definition [ref=e348]: Common
+            - generic [ref=e349]:
+              - generic [ref=e350]:
+                - generic [ref=e351]:
+                  - generic [ref=e352]: Push/Pull
+                  - generic [ref=e353]: Cost 1
+                - generic [ref=e354]:
+                  - button "-" [disabled] [ref=e355] [cursor=pointer]
+                  - generic [ref=e356]: "0"
+                  - button "+" [ref=e357] [cursor=pointer]
+              - paragraph [ref=e358]: "Move Friendly Target (10m) • Target: Target Ally"
+              - generic [ref=e359]:
+                - term [ref=e360]: Effect
+                - definition [ref=e361]: Move Friendly Target (10m)
+                - term [ref=e362]: Target
+                - definition [ref=e363]: Target Ally
+                - term [ref=e364]: Rarity
+                - definition [ref=e365]: Common
+            - generic [ref=e366]:
+              - generic [ref=e367]:
+                - generic [ref=e368]:
+                  - generic [ref=e369]: Taunt
+                  - generic [ref=e370]: Cost 1
+                - generic [ref=e371]:
+                  - button "-" [disabled] [ref=e372] [cursor=pointer]
+                  - generic [ref=e373]: "0"
+                  - button "+" [ref=e374] [cursor=pointer]
+              - paragraph [ref=e375]: "Target creature receives the Taunted Status Effect • Target: Target CE"
+              - generic [ref=e376]:
+                - term [ref=e377]: Effect
+                - definition [ref=e378]: Target creature receives the Taunted Status Effect
+                - term [ref=e379]: Target
+                - definition [ref=e380]: Target CE
+                - term [ref=e381]: Rarity
+                - definition [ref=e382]: Common
+            - generic [ref=e383]:
+              - generic [ref=e384]:
+                - generic [ref=e385]:
+                  - generic [ref=e386]: Study
+                  - generic [ref=e387]: Cost 1
+                - generic [ref=e388]:
+                  - button "-" [disabled] [ref=e389] [cursor=pointer]
+                  - generic [ref=e390]: "0"
+                  - button "+" [ref=e391] [cursor=pointer]
+              - paragraph [ref=e392]: "Learn Stats of Target • Target: Any"
+              - generic [ref=e393]:
+                - term [ref=e394]: Effect
+                - definition [ref=e395]: Learn Stats of Target
+                - term [ref=e396]: Target
+                - definition [ref=e397]: Any
+                - term [ref=e398]: Rarity
+                - definition [ref=e399]: Common
+            - generic [ref=e400]:
+              - generic [ref=e401]:
+                - generic [ref=e402]:
+                  - generic [ref=e403]: Guardien Angel
+                  - generic [ref=e404]: Cost 1
+                - generic [ref=e405]:
+                  - button "-" [disabled] [ref=e406] [cursor=pointer]
+                  - generic [ref=e407]: "0"
+                  - button "+" [ref=e408] [cursor=pointer]
+              - paragraph [ref=e409]: "Add +2 HP to Target HP • Target: Target Ally"
+              - generic [ref=e410]:
+                - term [ref=e411]: Effect
+                - definition [ref=e412]: Add +2 HP to Target HP
+                - term [ref=e413]: Target
+                - definition [ref=e414]: Target Ally
+                - term [ref=e415]: Rarity
+                - definition [ref=e416]: Common
+            - generic [ref=e417]:
+              - generic [ref=e418]:
+                - generic [ref=e419]:
+                  - generic [ref=e420]: Haste
+                  - generic [ref=e421]: Cost 1
+                - generic [ref=e422]:
+                  - button "-" [disabled] [ref=e423] [cursor=pointer]
+                  - generic [ref=e424]: "0"
+                  - button "+" [ref=e425] [cursor=pointer]
+              - paragraph [ref=e426]: "Target Gains 2 Initiative • Target: Target Ally"
+              - generic [ref=e427]:
+                - term [ref=e428]: Effect
+                - definition [ref=e429]: Target Gains 2 Initiative
+                - term [ref=e430]: Target
+                - definition [ref=e431]: Target Ally
+                - term [ref=e432]: Rarity
+                - definition [ref=e433]: Common
+            - generic [ref=e434]:
+              - generic [ref=e435]:
+                - generic [ref=e436]:
+                  - generic [ref=e437]: Fade Away
+                  - generic [ref=e438]: Cost 1
+                - generic [ref=e439]:
+                  - button "-" [disabled] [ref=e440] [cursor=pointer]
+                  - generic [ref=e441]: "0"
+                  - button "+" [ref=e442] [cursor=pointer]
+              - paragraph [ref=e443]: "Prevent Attacks of Opportunity During Your Turn • Target: Self"
+              - generic [ref=e444]:
+                - term [ref=e445]: Effect
+                - definition [ref=e446]: Prevent Attacks of Opportunity During Your Turn
+                - term [ref=e447]: Target
+                - definition [ref=e448]: Self
+                - term [ref=e449]: Rarity
+                - definition [ref=e450]: Common
+            - generic [ref=e451]:
+              - generic [ref=e452]:
+                - generic [ref=e453]:
+                  - generic [ref=e454]: Silence
+                  - generic [ref=e455]: Cost 2
+                - generic [ref=e456]:
+                  - button "-" [disabled] [ref=e457] [cursor=pointer]
+                  - generic [ref=e458]: "0"
+                  - button "+" [ref=e459] [cursor=pointer]
+              - paragraph [ref=e460]: "Prevent Attacks of Opportunity During Target Turn • Target: Target Ally"
+              - generic [ref=e461]:
+                - term [ref=e462]: Effect
+                - definition [ref=e463]: Prevent Attacks of Opportunity During Target Turn
+                - term [ref=e464]: Target
+                - definition [ref=e465]: Target Ally
+                - term [ref=e466]: Rarity
+                - definition [ref=e467]: Common
+            - generic [ref=e468]:
+              - generic [ref=e469]:
+                - generic [ref=e470]:
+                  - generic [ref=e471]: Slow
+                  - generic [ref=e472]: Cost 1
+                - generic [ref=e473]:
+                  - button "-" [disabled] [ref=e474] [cursor=pointer]
+                  - generic [ref=e475]: "0"
+                  - button "+" [ref=e476] [cursor=pointer]
+              - paragraph [ref=e477]: "Target Loses 2 Initiative • Target: Target CE"
+              - generic [ref=e478]:
+                - term [ref=e479]: Effect
+                - definition [ref=e480]: Target Loses 2 Initiative
+                - term [ref=e481]: Target
+                - definition [ref=e482]: Target CE
+                - term [ref=e483]: Rarity
+                - definition [ref=e484]: Common
+            - generic [ref=e485]:
+              - generic [ref=e486]:
+                - generic [ref=e487]:
+                  - generic [ref=e488]: Double Up
+                  - generic [ref=e489]: Cost 2
+                - generic [ref=e490]:
+                  - button "-" [disabled] [ref=e491] [cursor=pointer]
+                  - generic [ref=e492]: "0"
+                  - button "+" [ref=e493] [cursor=pointer]
+              - paragraph [ref=e494]: "2X Effect • Target: Self"
+              - generic [ref=e495]:
+                - term [ref=e496]: Effect
+                - definition [ref=e497]: 2X Effect
+                - term [ref=e498]: Target
+                - definition [ref=e499]: Self
+                - term [ref=e500]: Rarity
+                - definition [ref=e501]: Uncommon
+            - generic [ref=e502]:
+              - generic [ref=e503]:
+                - generic [ref=e504]:
+                  - generic [ref=e505]: Breaker
+                  - generic [ref=e506]: Cost 3
+                - generic [ref=e507]:
+                  - button "-" [disabled] [ref=e508] [cursor=pointer]
+                  - generic [ref=e509]: "0"
+                  - button "+" [ref=e510] [cursor=pointer]
+              - paragraph [ref=e511]: "3X Effect • Target: Self"
+              - generic [ref=e512]:
+                - term [ref=e513]: Effect
+                - definition [ref=e514]: 3X Effect
+                - term [ref=e515]: Target
+                - definition [ref=e516]: Self
+                - term [ref=e517]: Rarity
+                - definition [ref=e518]: Rare
+            - generic [ref=e519]:
+              - generic [ref=e520]:
+                - generic [ref=e521]:
+                  - generic [ref=e522]: Overclocked
+                  - generic [ref=e523]: Cost 1
+                - generic [ref=e524]:
+                  - button "-" [disabled] [ref=e525] [cursor=pointer]
+                  - generic [ref=e526]: "0"
+                  - button "+" [ref=e527] [cursor=pointer]
+              - paragraph [ref=e528]: "2X Effect - Lose 2 Life • Target: Self"
+              - generic [ref=e529]:
+                - term [ref=e530]: Effect
+                - definition [ref=e531]: 2X Effect - Lose 2 Life
+                - term [ref=e532]: Target
+                - definition [ref=e533]: Self
+                - term [ref=e534]: Rarity
+                - definition [ref=e535]: Uncommon
+            - generic [ref=e536]:
+              - generic [ref=e537]:
+                - generic [ref=e538]:
+                  - generic [ref=e539]: Spread
+                  - generic [ref=e540]: Cost 1
+                - generic [ref=e541]:
+                  - button "-" [disabled] [ref=e542] [cursor=pointer]
+                  - generic [ref=e543]: "0"
+                  - button "+" [ref=e544] [cursor=pointer]
+              - paragraph [ref=e545]: "Split The Effect • Target: Self"
+              - generic [ref=e546]:
+                - term [ref=e547]: Effect
+                - definition [ref=e548]: Split The Effect
+                - term [ref=e549]: Target
+                - definition [ref=e550]: Self
+                - term [ref=e551]: Rarity
+                - definition [ref=e552]: Common
+            - generic [ref=e553]:
+              - generic [ref=e554]:
+                - generic [ref=e555]:
+                  - generic [ref=e556]: Modded Up
+                  - generic [ref=e557]: Cost 1
+                - generic [ref=e558]:
+                  - button "-" [disabled] [ref=e559] [cursor=pointer]
+                  - generic [ref=e560]: "0"
+                  - button "+" [ref=e561] [cursor=pointer]
+              - paragraph [ref=e562]: "Add +1 Modifier Roll • Target: Self"
+              - generic [ref=e563]:
+                - term [ref=e564]: Effect
+                - definition [ref=e565]: Add +1 Modifier Roll
+                - term [ref=e566]: Target
+                - definition [ref=e567]: Self
+                - term [ref=e568]: Rarity
+                - definition [ref=e569]: Uncommon
+            - generic [ref=e570]:
+              - generic [ref=e571]:
+                - generic [ref=e572]:
+                  - generic [ref=e573]: Curse
+                  - generic [ref=e574]: Cost 1
+                - generic [ref=e575]:
+                  - button "-" [disabled] [ref=e576] [cursor=pointer]
+                  - generic [ref=e577]: "0"
+                  - button "+" [ref=e578] [cursor=pointer]
+              - paragraph [ref=e579]: "Remove -1 Modifier from Target Roll • Target: Target CE"
+              - generic [ref=e580]:
+                - term [ref=e581]: Effect
+                - definition [ref=e582]: Remove -1 Modifier from Target Roll
+                - term [ref=e583]: Target
+                - definition [ref=e584]: Target CE
+                - term [ref=e585]: Rarity
+                - definition [ref=e586]: Common
+            - generic [ref=e587]:
+              - generic [ref=e588]:
+                - generic [ref=e589]:
+                  - generic [ref=e590]: Reviver
+                  - generic [ref=e591]: Cost 1
+                - generic [ref=e592]:
+                  - button "-" [disabled] [ref=e593] [cursor=pointer]
+                  - generic [ref=e594]: "0"
+                  - button "+" [ref=e595] [cursor=pointer]
+              - paragraph [ref=e596]: "Revive downed Target • Target: Target Ally"
+              - generic [ref=e597]:
+                - term [ref=e598]: Effect
+                - definition [ref=e599]: Revive downed Target
+                - term [ref=e600]: Target
+                - definition [ref=e601]: Target Ally
+                - term [ref=e602]: Rarity
+                - definition [ref=e603]: Commoin
+            - generic [ref=e604]:
+              - generic [ref=e605]:
+                - generic [ref=e606]:
+                  - generic [ref=e607]: Bless
+                  - generic [ref=e608]: Cost 1
+                - generic [ref=e609]:
+                  - button "-" [disabled] [ref=e610] [cursor=pointer]
+                  - generic [ref=e611]: "0"
+                  - button "+" [ref=e612] [cursor=pointer]
+              - paragraph [ref=e613]: "Target receives +1 on Modifier roll • Target: Target Ally"
+              - generic [ref=e614]:
+                - term [ref=e615]: Effect
+                - definition [ref=e616]: Target receives +1 on Modifier roll
+                - term [ref=e617]: Target
+                - definition [ref=e618]: Target Ally
+                - term [ref=e619]: Rarity
+                - definition [ref=e620]: Common
+            - generic [ref=e621]:
+              - generic [ref=e622]:
+                - generic [ref=e623]:
+                  - generic [ref=e624]: Primal
+                  - generic [ref=e625]: Cost 1
+                - generic [ref=e626]:
+                  - button "-" [disabled] [ref=e627] [cursor=pointer]
+                  - generic [ref=e628]: "0"
+                  - button "+" [ref=e629] [cursor=pointer]
+              - paragraph [ref=e630]: "Modify Effect by X Result • Target: Self"
+              - generic [ref=e631]:
+                - term [ref=e632]: Effect
+                - definition [ref=e633]: Modify Effect by X Result
+                - term [ref=e634]: Target
+                - definition [ref=e635]: Self
+                - term [ref=e636]: Extra Actions
+                - definition [ref=e637]: Add Null to top of Deck; Roll 1d4
+                - term [ref=e638]: Rarity
+                - definition [ref=e639]: Uncommon
+            - generic [ref=e640]:
+              - generic [ref=e641]:
+                - generic [ref=e642]:
+                  - generic [ref=e643]: Swap
+                  - generic [ref=e644]: Cost 1
+                - generic [ref=e645]:
+                  - button "-" [disabled] [ref=e646] [cursor=pointer]
+                  - generic [ref=e647]: "0"
+                  - button "+" [ref=e648] [cursor=pointer]
+              - paragraph [ref=e649]: "Swap Gear from Target PC and Yourself • Target: Target Ally"
+              - generic [ref=e650]:
+                - term [ref=e651]: Effect
+                - definition [ref=e652]: Swap Gear from Target PC and Yourself
+                - term [ref=e653]: Target
+                - definition [ref=e654]: Target Ally
+                - term [ref=e655]: Rarity
+                - definition [ref=e656]: Common
+            - generic [ref=e657]:
+              - generic [ref=e658]:
+                - generic [ref=e659]:
+                  - generic [ref=e660]: Recycle
+                  - generic [ref=e661]: Cost 1
+                - generic [ref=e662]:
+                  - button "-" [disabled] [ref=e663] [cursor=pointer]
+                  - generic [ref=e664]: "0"
+                  - button "+" [ref=e665] [cursor=pointer]
+              - paragraph [ref=e666]: "Add card from Null Space back into your deck. Shuffle your Deck. • Target: Self"
+              - generic [ref=e667]:
+                - term [ref=e668]: Effect
+                - definition [ref=e669]: Add card from Null Space back into your deck. Shuffle your Deck.
+                - term [ref=e670]: Target
+                - definition [ref=e671]: Self
+                - term [ref=e672]: Rarity
+                - definition [ref=e673]: UnCommon
+            - generic [ref=e674]:
+              - generic [ref=e675]:
+                - generic [ref=e676]:
+                  - generic [ref=e677]: Pickpocket
+                  - generic [ref=e678]: Cost 1
+                - generic [ref=e679]:
+                  - button "-" [disabled] [ref=e680] [cursor=pointer]
+                  - generic [ref=e681]: "0"
+                  - button "+" [ref=e682] [cursor=pointer]
+              - paragraph [ref=e683]: "On Success; you receive Gear from your target. On Failure, you receive nothing • Target: Target CE"
+              - generic [ref=e684]:
+                - term [ref=e685]: Effect
+                - definition [ref=e686]: On Success; you receive Gear from your target. On Failure, you receive nothing
+                - term [ref=e687]: Target
+                - definition [ref=e688]: Target CE
+                - term [ref=e689]: Extra Actions
+                - definition [ref=e690]: Roll Active Opposition Roll vs Target
+                - term [ref=e691]: Rarity
+                - definition [ref=e692]: Common
+            - generic [ref=e693]:
+              - generic [ref=e694]:
+                - generic [ref=e695]:
+                  - generic [ref=e696]: CA Support
+                  - generic [ref=e697]: Cost 1
+                - generic [ref=e698]:
+                  - button "-" [disabled] [ref=e699] [cursor=pointer]
+                  - generic [ref=e700]: "0"
+                  - button "+" [ref=e701] [cursor=pointer]
+              - paragraph [ref=e702]: "Fix Target CA. You must be in the same zone as the target. • Target: Target Ally"
+              - generic [ref=e703]:
+                - term [ref=e704]: Effect
+                - definition [ref=e705]: Fix Target CA. You must be in the same zone as the target.
+                - term [ref=e706]: Target
+                - definition [ref=e707]: Target Ally
+                - term [ref=e708]: Rarity
+                - definition [ref=e709]: Common
+            - generic [ref=e710]:
+              - generic [ref=e711]:
+                - generic [ref=e712]:
+                  - generic [ref=e713]: Field Repair
+                  - generic [ref=e714]: Cost 1
+                - generic [ref=e715]:
+                  - button "-" [disabled] [ref=e716] [cursor=pointer]
+                  - generic [ref=e717]: "0"
+                  - button "+" [ref=e718] [cursor=pointer]
+              - paragraph [ref=e719]: "Fix Target CA. You must be in the same zone as the target. • Target: Self"
+              - generic [ref=e720]:
+                - term [ref=e721]: Effect
+                - definition [ref=e722]: Fix Target CA. You must be in the same zone as the target.
+                - term [ref=e723]: Target
+                - definition [ref=e724]: Self
+                - term [ref=e725]: Rarity
+                - definition [ref=e726]: Common
+            - generic [ref=e727]:
+              - generic [ref=e728]:
+                - generic [ref=e729]:
+                  - generic [ref=e730]: Scramble
+                  - generic [ref=e731]: Cost 1
+                - generic [ref=e732]:
+                  - button "-" [disabled] [ref=e733] [cursor=pointer]
+                  - generic [ref=e734]: "0"
+                  - button "+" [ref=e735] [cursor=pointer]
+              - paragraph [ref=e736]: "Return Hand to Deck, Reshuffle Deck. Draw to Hand • Target: Self"
+              - generic [ref=e737]:
+                - term [ref=e738]: Effect
+                - definition [ref=e739]: Return Hand to Deck, Reshuffle Deck. Draw to Hand
+                - term [ref=e740]: Target
+                - definition [ref=e741]: Self
+                - term [ref=e742]: Rarity
+                - definition [ref=e743]: Uncommon
+            - generic [ref=e744]:
+              - generic [ref=e745]:
+                - generic [ref=e746]:
+                  - generic [ref=e747]: Warp
+                  - generic [ref=e748]: Cost 2
+                - generic [ref=e749]:
+                  - button "-" [disabled] [ref=e750] [cursor=pointer]
+                  - generic [ref=e751]: "0"
+                  - button "+" [ref=e752] [cursor=pointer]
+              - paragraph [ref=e753]: "Transfer Gear to Target in Target Zone • Target: Target Ally"
+              - generic [ref=e754]:
+                - term [ref=e755]: Effect
+                - definition [ref=e756]: Transfer Gear to Target in Target Zone
+                - term [ref=e757]: Target
+                - definition [ref=e758]: Target Ally
+                - term [ref=e759]: Rarity
+                - definition [ref=e760]: Common
+            - generic [ref=e761]:
+              - generic [ref=e762]:
+                - generic [ref=e763]:
+                  - generic [ref=e764]: Viral
+                  - generic [ref=e765]: Cost 2
+                - generic [ref=e766]:
+                  - button "-" [disabled] [ref=e767] [cursor=pointer]
+                  - generic [ref=e768]: "0"
+                  - button "+" [ref=e769] [cursor=pointer]
+              - paragraph [ref=e770]: "Target creature receives the Poisoned Status Effect • Target: Target CE"
+              - generic [ref=e771]:
+                - term [ref=e772]: Effect
+                - definition [ref=e773]: Target creature receives the Poisoned Status Effect
+                - term [ref=e774]: Target
+                - definition [ref=e775]: Target CE
+                - term [ref=e776]: Rarity
+                - definition [ref=e777]: Uncommon
+            - generic [ref=e778]:
+              - generic [ref=e779]:
+                - generic [ref=e780]:
+                  - generic [ref=e781]: Shocking
+                  - generic [ref=e782]: Cost 2
+                - generic [ref=e783]:
+                  - button "-" [disabled] [ref=e784] [cursor=pointer]
+                  - generic [ref=e785]: "0"
+                  - button "+" [ref=e786] [cursor=pointer]
+              - paragraph [ref=e787]: "Target creature receives the Paralyzed Status Effect • Target: Target CE"
+              - generic [ref=e788]:
+                - term [ref=e789]: Effect
+                - definition [ref=e790]: Target creature receives the Paralyzed Status Effect
+                - term [ref=e791]: Target
+                - definition [ref=e792]: Target CE
+                - term [ref=e793]: Rarity
+                - definition [ref=e794]: Uncommon
+            - generic [ref=e795]:
+              - generic [ref=e796]:
+                - generic [ref=e797]:
+                  - generic [ref=e798]: Afar
+                  - generic [ref=e799]: Cost 2
+                - generic [ref=e800]:
+                  - button "-" [disabled] [ref=e801] [cursor=pointer]
+                  - generic [ref=e802]: "0"
+                  - button "+" [ref=e803] [cursor=pointer]
+              - paragraph [ref=e804]: "Send Effect to Target Zone • Target: Target Ally"
+              - generic [ref=e805]:
+                - term [ref=e806]: Effect
+                - definition [ref=e807]: Send Effect to Target Zone
+                - term [ref=e808]: Target
+                - definition [ref=e809]: Target Ally
+                - term [ref=e810]: Rarity
+                - definition [ref=e811]: Uncommon
+            - generic [ref=e812]:
+              - generic [ref=e813]:
+                - generic [ref=e814]:
+                  - generic [ref=e815]: Glitch
+                  - generic [ref=e816]: Cost 2
+                - generic [ref=e817]:
+                  - button "-" [disabled] [ref=e818] [cursor=pointer]
+                  - generic [ref=e819]: "0"
+                  - button "+" [ref=e820] [cursor=pointer]
+              - paragraph [ref=e821]: "Take Lower Roll • Target: Target CE"
+              - generic [ref=e822]:
+                - term [ref=e823]: Effect
+                - definition [ref=e824]: Take Lower Roll
+                - term [ref=e825]: Target
+                - definition [ref=e826]: Target CE
+                - term [ref=e827]: Extra Actions
+                - definition [ref=e828]: Roll Twice
+                - term [ref=e829]: Rarity
+                - definition [ref=e830]: Uncommon
+            - generic [ref=e831]:
+              - generic [ref=e832]:
+                - generic [ref=e833]:
+                  - generic [ref=e834]: Try Again
+                  - generic [ref=e835]: Cost 2
+                - generic [ref=e836]:
+                  - button "-" [disabled] [ref=e837] [cursor=pointer]
+                  - generic [ref=e838]: "0"
+                  - button "+" [ref=e839] [cursor=pointer]
+              - paragraph [ref=e840]: "Take Higher Roll • Target: Target Ally"
+              - generic [ref=e841]:
+                - term [ref=e842]: Effect
+                - definition [ref=e843]: Take Higher Roll
+                - term [ref=e844]: Target
+                - definition [ref=e845]: Target Ally
+                - term [ref=e846]: Extra Actions
+                - definition [ref=e847]: Roll Twice
+                - term [ref=e848]: Rarity
+                - definition [ref=e849]: Uncommon
+            - generic [ref=e850]:
+              - generic [ref=e851]:
+                - generic [ref=e852]:
+                  - generic [ref=e853]: Chill
+                  - generic [ref=e854]: Cost 2
+                - generic [ref=e855]:
+                  - button "-" [disabled] [ref=e856] [cursor=pointer]
+                  - generic [ref=e857]: "0"
+                  - button "+" [ref=e858] [cursor=pointer]
+              - paragraph [ref=e859]: "on fail, Target is Chilled • Target: Target CE"
+              - generic [ref=e860]:
+                - term [ref=e861]: Effect
+                - definition [ref=e862]: on fail, Target is Chilled
+                - term [ref=e863]: Target
+                - definition [ref=e864]: Target CE
+                - term [ref=e865]: Extra Actions
+                - definition [ref=e866]: Active Opposition Roll,
+                - term [ref=e867]: Rarity
+                - definition [ref=e868]: Uncommon
+            - generic [ref=e869]:
+              - generic [ref=e870]:
+                - generic [ref=e871]:
+                  - generic [ref=e872]: Distract
+                  - generic [ref=e873]: Cost 2
+                - generic [ref=e874]:
+                  - button "-" [disabled] [ref=e875] [cursor=pointer]
+                  - generic [ref=e876]: "0"
+                  - button "+" [ref=e877] [cursor=pointer]
+              - paragraph [ref=e878]: "On Result, Target rolls xd4. If any of their dice Ace, they are Distracted • Target: Target CE"
+              - generic [ref=e879]:
+                - term [ref=e880]: Effect
+                - definition [ref=e881]: On Result, Target rolls xd4. If any of their dice Ace, they are Distracted
+                - term [ref=e882]: Target
+                - definition [ref=e883]: Target CE
+                - term [ref=e884]: Extra Actions
+                - definition [ref=e885]: Roll 1d6
+                - term [ref=e886]: Rarity
+                - definition [ref=e887]: Uncommon
+            - generic [ref=e888]:
+              - generic [ref=e889]:
+                - generic [ref=e890]:
+                  - generic [ref=e891]: Vampire
+                  - generic [ref=e892]: Cost 2
+                - generic [ref=e893]:
+                  - button "-" [disabled] [ref=e894] [cursor=pointer]
+                  - generic [ref=e895]: "0"
+                  - button "+" [ref=e896] [cursor=pointer]
+              - paragraph [ref=e897]: "Target Takes Damage, You Heal • Target: Target CE"
+              - generic [ref=e898]:
+                - term [ref=e899]: Effect
+                - definition [ref=e900]: Target Takes Damage, You Heal
+                - term [ref=e901]: Target
+                - definition [ref=e902]: Target CE
+                - term [ref=e903]: Extra Actions
+                - definition [ref=e904]: Roll 1d4
+                - term [ref=e905]: Rarity
+                - definition [ref=e906]: Uncommon
+            - generic [ref=e907]:
+              - generic [ref=e908]:
+                - generic [ref=e909]:
+                  - generic [ref=e910]: Clear
+                  - generic [ref=e911]: Cost 2
+                - generic [ref=e912]:
+                  - button "-" [disabled] [ref=e913] [cursor=pointer]
+                  - generic [ref=e914]: "0"
+                  - button "+" [ref=e915] [cursor=pointer]
+              - paragraph [ref=e916]: "Discard target Passive Engram • Target: Target CE"
+              - generic [ref=e917]:
+                - term [ref=e918]: Effect
+                - definition [ref=e919]: Discard target Passive Engram
+                - term [ref=e920]: Target
+                - definition [ref=e921]: Target CE
+                - term [ref=e922]: Rarity
+                - definition [ref=e923]: Common
+            - generic [ref=e924]:
+              - generic [ref=e925]:
+                - generic [ref=e926]:
+                  - generic [ref=e927]: Intercept
+                  - generic [ref=e928]: Cost 3
+                - generic [ref=e929]:
+                  - button "-" [disabled] [ref=e930] [cursor=pointer]
+                  - generic [ref=e931]: "0"
+                  - button "+" [ref=e932] [cursor=pointer]
+              - paragraph [ref=e933]: "Target receives the Guarded Status Effect. You become their Guardian • Target: Target Ally"
+              - generic [ref=e934]:
+                - term [ref=e935]: Effect
+                - definition [ref=e936]: Target receives the Guarded Status Effect. You become their Guardian
+                - term [ref=e937]: Target
+                - definition [ref=e938]: Target Ally
+                - term [ref=e939]: Rarity
+                - definition [ref=e940]: Rare
+            - generic [ref=e941]:
+              - generic [ref=e942]:
+                - generic [ref=e943]:
+                  - generic [ref=e944]: Marked
+                  - generic [ref=e945]: Cost 2
+                - generic [ref=e946]:
+                  - button "-" [disabled] [ref=e947] [cursor=pointer]
+                  - generic [ref=e948]: "0"
+                  - button "+" [ref=e949] [cursor=pointer]
+              - paragraph [ref=e950]: "Mark a Target • Target: Target CE"
+              - generic [ref=e951]:
+                - term [ref=e952]: Effect
+                - definition [ref=e953]: Mark a Target
+                - term [ref=e954]: Target
+                - definition [ref=e955]: Target CE
+                - term [ref=e956]: Rarity
+                - definition [ref=e957]: Uncommon
+            - generic [ref=e958]:
+              - generic [ref=e959]:
+                - generic [ref=e960]:
+                  - generic [ref=e961]: Sadist
+                  - generic [ref=e962]: Cost 1
+                - generic [ref=e963]:
+                  - button "-" [disabled] [ref=e964] [cursor=pointer]
+                  - generic [ref=e965]: "0"
+                  - button "+" [ref=e966] [cursor=pointer]
+              - paragraph [ref=e967]: "Add +4 Final Damage • Target: Self"
+              - generic [ref=e968]:
+                - term [ref=e969]: Effect
+                - definition [ref=e970]: Add +4 Final Damage
+                - term [ref=e971]: Target
+                - definition [ref=e972]: Self
+                - term [ref=e973]: Extra Actions
+                - definition [ref=e974]: Add +1 Null Card to the Top of your Deck
+                - term [ref=e975]: Rarity
+                - definition [ref=e976]: Uncommon
+            - generic [ref=e977]:
+              - generic [ref=e978]:
+                - generic [ref=e979]:
+                  - generic [ref=e980]: Zone Heal
+                  - generic [ref=e981]: Cost 2
+                - generic [ref=e982]:
+                  - button "-" [disabled] [ref=e983] [cursor=pointer]
+                  - generic [ref=e984]: "0"
+                  - button "+" [ref=e985] [cursor=pointer]
+              - paragraph [ref=e986]: "Heal Allies with result of 1d12 Roll. • Target: Target Ally"
+              - generic [ref=e987]:
+                - term [ref=e988]: Effect
+                - definition [ref=e989]: Heal Allies with result of 1d12 Roll.
+                - term [ref=e990]: Target
+                - definition [ref=e991]: Target Ally
+                - term [ref=e992]: Extra Actions
+                - definition [ref=e993]: Roll 1d12
+                - term [ref=e994]: Rarity
+                - definition [ref=e995]: Uncommon
+            - generic [ref=e996]:
+              - generic [ref=e997]:
+                - generic [ref=e998]:
+                  - generic [ref=e999]: Obstruct
+                  - generic [ref=e1000]: Cost 3
+                - generic [ref=e1001]:
+                  - button "-" [disabled] [ref=e1002] [cursor=pointer]
+                  - generic [ref=e1003]: "0"
+                  - button "+" [ref=e1004] [cursor=pointer]
+              - paragraph [ref=e1005]: "Create temporary cover to hide your target. If your target moves, they are no longer hidden. • Target: Target Ally"
+              - generic [ref=e1006]:
+                - term [ref=e1007]: Effect
+                - definition [ref=e1008]: Create temporary cover to hide your target. If your target moves, they are no longer hidden.
+                - term [ref=e1009]: Target
+                - definition [ref=e1010]: Target Ally
+                - term [ref=e1011]: Rarity
+                - definition [ref=e1012]: Uncommon
+            - generic [ref=e1013]:
+              - generic [ref=e1014]:
+                - generic [ref=e1015]:
+                  - generic [ref=e1016]: Add it Up
+                  - generic [ref=e1017]: Cost 4
+                - generic [ref=e1018]:
+                  - button "-" [disabled] [ref=e1019] [cursor=pointer]
+                  - generic [ref=e1020]: "0"
+                  - button "+" [ref=e1021] [cursor=pointer]
+              - paragraph [ref=e1022]: "Target: Self"
+              - generic [ref=e1023]:
+                - term [ref=e1024]: Target
+                - definition [ref=e1025]: Self
+                - term [ref=e1026]: Extra Actions
+                - definition [ref=e1027]: Roll Twice and Add Results
+                - term [ref=e1028]: Rarity
+                - definition [ref=e1029]: Uncommon
+            - generic [ref=e1030]:
+              - generic [ref=e1031]:
+                - generic [ref=e1032]:
+                  - generic [ref=e1033]: Recycle+
+                  - generic [ref=e1034]: Cost 3
+                - generic [ref=e1035]:
+                  - button "-" [disabled] [ref=e1036] [cursor=pointer]
+                  - generic [ref=e1037]: "0"
+                  - button "+" [ref=e1038] [cursor=pointer]
+              - paragraph [ref=e1039]: "Add card from Null Space back into your hand. • Target: Self"
+              - generic [ref=e1040]:
+                - term [ref=e1041]: Effect
+                - definition [ref=e1042]: Add card from Null Space back into your hand.
+                - term [ref=e1043]: Target
+                - definition [ref=e1044]: Self
+                - term [ref=e1045]: Rarity
+                - definition [ref=e1046]: Uncommon
+            - generic [ref=e1047]:
+              - generic [ref=e1048]:
+                - generic [ref=e1049]:
+                  - generic [ref=e1050]: Eject
+                  - generic [ref=e1051]: Cost 4
+                - generic [ref=e1052]:
+                  - button "-" [disabled] [ref=e1053] [cursor=pointer]
+                  - generic [ref=e1054]: "0"
+                  - button "+" [ref=e1055] [cursor=pointer]
+              - paragraph [ref=e1056]: "Move Target to a new Zone • Target: Any"
+              - generic [ref=e1057]:
+                - term [ref=e1058]: Effect
+                - definition [ref=e1059]: Move Target to a new Zone
+                - term [ref=e1060]: Target
+                - definition [ref=e1061]: Any
+                - term [ref=e1062]: Rarity
+                - definition [ref=e1063]: Rare
+            - generic [ref=e1064]:
+              - generic [ref=e1065]:
+                - generic [ref=e1066]:
+                  - generic [ref=e1067]: Punish
+                  - generic [ref=e1068]: Cost 4
+                - generic [ref=e1069]:
+                  - button "-" [disabled] [ref=e1070] [cursor=pointer]
+                  - generic [ref=e1071]: "0"
+                  - button "+" [ref=e1072] [cursor=pointer]
+              - paragraph [ref=e1073]: "Add Additional Null Card to top of Target Deck • Target: Target CE"
+              - generic [ref=e1074]:
+                - term [ref=e1075]: Effect
+                - definition [ref=e1076]: Add Additional Null Card to top of Target Deck
+                - term [ref=e1077]: Target
+                - definition [ref=e1078]: Target CE
+                - term [ref=e1079]: Rarity
+                - definition [ref=e1080]: Uncommon
+            - generic [ref=e1081]:
+              - generic [ref=e1082]:
+                - generic [ref=e1083]:
+                  - generic [ref=e1084]: Ruin
+                  - generic [ref=e1085]: Cost 4
+                - generic [ref=e1086]:
+                  - button "-" [disabled] [ref=e1087] [cursor=pointer]
+                  - generic [ref=e1088]: "0"
+                  - button "+" [ref=e1089] [cursor=pointer]
+              - paragraph [ref=e1090]: "Burn top card from Target Deck • Target: Target CE"
+              - generic [ref=e1091]:
+                - term [ref=e1092]: Effect
+                - definition [ref=e1093]: Burn top card from Target Deck
+                - term [ref=e1094]: Target
+                - definition [ref=e1095]: Target CE
+                - term [ref=e1096]: Rarity
+                - definition [ref=e1097]: Rare
+            - generic [ref=e1098]:
+              - generic [ref=e1099]:
+                - generic [ref=e1100]:
+                  - generic [ref=e1101]: Hack
+                  - generic [ref=e1102]: Cost 5
+                - generic [ref=e1103]:
+                  - button "-" [disabled] [ref=e1104] [cursor=pointer]
+                  - generic [ref=e1105]: "0"
+                  - button "+" [ref=e1106] [cursor=pointer]
+              - paragraph [ref=e1107]: "Control Target for # of Turns • Target: Target CE"
+              - generic [ref=e1108]:
+                - term [ref=e1109]: Effect
+                - definition [ref=e1110]: "Control Target for # of Turns"
+                - term [ref=e1111]: Target
+                - definition [ref=e1112]: Target CE
+                - term [ref=e1113]: Extra Actions
+                - definition [ref=e1114]: Active Opposition Roll vs Target. on Success Roll 1d4.
+                - term [ref=e1115]: Rarity
+                - definition [ref=e1116]: Rare
+            - generic [ref=e1117]:
+              - generic [ref=e1118]:
+                - generic [ref=e1119]:
+                  - generic [ref=e1120]: Teleport
+                  - generic [ref=e1121]: Cost 5
+                - generic [ref=e1122]:
+                  - button "-" [disabled] [ref=e1123] [cursor=pointer]
+                  - generic [ref=e1124]: "0"
+                  - button "+" [ref=e1125] [cursor=pointer]
+              - paragraph [ref=e1126]: "Swap Positions with Target Ally • Target: Target Ally"
+              - generic [ref=e1127]:
+                - term [ref=e1128]: Effect
+                - definition [ref=e1129]: Swap Positions with Target Ally
+                - term [ref=e1130]: Target
+                - definition [ref=e1131]: Target Ally
+                - term [ref=e1132]: Rarity
+                - definition [ref=e1133]: Rare
+            - generic [ref=e1134]:
+              - generic [ref=e1135]:
+                - generic [ref=e1136]:
+                  - generic [ref=e1137]: Pickle
+                  - generic [ref=e1138]: Cost 5
+                - generic [ref=e1139]:
+                  - button "-" [disabled] [ref=e1140] [cursor=pointer]
+                  - generic [ref=e1141]: "0"
+                  - button "+" [ref=e1142] [cursor=pointer]
+              - paragraph [ref=e1143]: "Swap Positions with Target CE • Target: Target CE"
+              - generic [ref=e1144]:
+                - term [ref=e1145]: Effect
+                - definition [ref=e1146]: Swap Positions with Target CE
+                - term [ref=e1147]: Target
+                - definition [ref=e1148]: Target CE
+                - term [ref=e1149]: Rarity
+                - definition [ref=e1150]: Rare
+      - generic [ref=e1151]:
+        - generic [ref=e1153]:
+          - text: Hand Draw
+          - button "Draw 1" [disabled] [ref=e1155] [cursor=pointer]
+        - generic [ref=e1157]:
+          - heading "Hand" [level=3] [ref=e1158]
+          - generic [ref=e1160]: Duplicates stacked
+          - generic [ref=e1162]: No cards in hand
+        - generic [ref=e1164]:
+          - heading "Deck Operations" [level=2] [ref=e1165]
+          - paragraph [ref=e1166]: Shuffle, draw, and discard cards from your deck. Draw uses the top-of-deck (LIFO) model.
+          - generic [ref=e1167]:
+            - button "Build Deck" [ref=e1168] [cursor=pointer]
+            - button "Shuffle" [ref=e1169] [cursor=pointer]
+            - button "Lock Deck" [ref=e1170] [cursor=pointer]
+            - generic [ref=e1171]:
+              - textbox "Deck name" [ref=e1172]
+              - button "Save Deck" [ref=e1173] [cursor=pointer]
+              - button "Export" [ref=e1174] [cursor=pointer]
+              - button "Import" [ref=e1175] [cursor=pointer]
+          - generic [ref=e1176]:
+            - generic [ref=e1177]:
+              - text: "Deck Count:"
+              - strong [ref=e1178]: "0"
+            - generic [ref=e1179]:
+              - text: "Discard Count:"
+              - strong [ref=e1180]: "0"
+            - generic [ref=e1181]:
+              - text: Hand Limit
+              - generic [ref=e1182]:
+                - spinbutton [ref=e1183]: "5"
+                - generic [ref=e1184]: Active cap for hand cards.
+            - generic [ref=e1185]:
+              - generic [ref=e1186]: Saved Decks
+              - generic [ref=e1188]: No saved decks
+        - generic [ref=e1190]:
+          - heading "Discard Pile" [level=3] [ref=e1191]
+          - generic [ref=e1193]: Duplicates stacked
+          - generic [ref=e1195]: Discard pile is empty
+    - generic [ref=e1196]:
+      - button "Navigate to Overview" [ref=e1197] [cursor=pointer]:
+        - generic [ref=e1199]: Overview
+      - button "Navigate to Builder" [ref=e1200] [cursor=pointer]:
+        - generic [ref=e1202]: Builder
+      - button "Navigate to Deck Ops" [ref=e1203] [cursor=pointer]:
+        - generic [ref=e1205]: Deck Ops
+```

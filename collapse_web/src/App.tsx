@@ -1,13 +1,15 @@
-import React, { useState } from "react";
-import RoleSelectLanding, { UserRole } from "./components/RoleSelectLanding";
-import DeckBuilder from "./pages/DeckBuilder";
+import React, {useState} from 'react'
+import './index.css'
+import Landing from './components/Landing'
+import WorldCreation from './components/WorldCreation'
+import type { UserRole } from './components/RoleSelectLanding'
 
 export default function App() {
-  const [role, setRole] = useState<UserRole | null>(null);
+  const [role, setRole] = useState<UserRole | null>(null)
 
   if (!role) {
-    return <RoleSelectLanding onSelect={setRole} />;
+    return <Landing onSelectRole={setRole} />
   }
 
-  return <DeckBuilder />;
+  return <WorldCreation role={role} onBack={() => setRole(null)} />
 }

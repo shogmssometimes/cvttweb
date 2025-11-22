@@ -96,16 +96,31 @@ export default function DeckBuilder(){
   const [deckSeed, setDeckSeed] = useState(0)
   const [activePlay, setActivePlay] = useState<ActivePlay>(null)
   const [pageIndex, setPageIndex] = useState(0)
+  const PAGE_COUNT = 2
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [dragOffset, setDragOffset] = useState(0)
   const dragStartRef = useRef<number | null>(null)
   const pointerDownRef = useRef(false)
   const rootRef = useRef<HTMLDivElement | null>(null)
+  const pagerRef = useRef<HTMLDivElement | null>(null)
+  const pageRefs = useRef<Array<HTMLDivElement | null>>([])
+  const [pagerHeight, setPagerHeight] = useState<number | null>(null)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(builderState))
   }, [builderState])
+
+  useEffect(() => {
+    // keep the pager element sized to the active page to avoid overlapping of absolutely-positioned pages
+    function update() {
+      const el = pageRefs.current[pageIndex]
+      if (el) setPagerHeight(el.getBoundingClientRect().height)
+    }
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [pageIndex, builderState, dragOffset])
 
   const baseTotal = sumCounts(builderState.baseCounts)
   const modCapacityUsed = useMemo(() => getModCapacityUsed(modCards, builderState.modCounts), [builderState.modCounts, modCards])
@@ -139,7 +154,7 @@ export default function DeckBuilder(){
     window.removeEventListener('mousemove', onWindowMouseMove)
     window.removeEventListener('mouseup', onWindowMouseUp)
     if (Math.abs(delta) > 60) {
-      if (delta < 0) setPageIndex((p) => Math.min(1, p + 1))
+      if (delta < 0) setPageIndex((p) => Math.min(PAGE_COUNT - 1, p + 1))
       else setPageIndex((p) => Math.max(0, p - 1))
     }
   }
@@ -147,7 +162,7 @@ export default function DeckBuilder(){
   // keyboard left/right navigation for pager
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'ArrowRight') setPageIndex((p) => Math.min(1, p + 1))
+      if (e.key === 'ArrowRight') setPageIndex((p) => Math.min(PAGE_COUNT - 1, p + 1))
       if (e.key === 'ArrowLeft') setPageIndex((p) => Math.max(0, p - 1))
     }
     window.addEventListener('keydown', onKey)
@@ -600,7 +615,7 @@ export default function DeckBuilder(){
 
   // Play flow handlers (use pure helpers)
   function startPlayBase(cardId: string) {
-    setActivePlay((prev) => startPlaySelection(prev, cardId))
+    setActivePlay((prev: ActivePlay) => startPlaySelection(prev, cardId))
   }
 
   function attachModifier(cardId: string) {
@@ -609,7 +624,7 @@ export default function DeckBuilder(){
       return acc
     }, {})
     const cardCosts = Handbook.getAllCards().reduce<Record<string, number>>((acc, c) => { acc[c.id] = c.cost ?? 0; return acc }, {})
-    setActivePlay((prev) => toggleAttach(prev, cardId, handCounts, cardCosts, builderState.modifierCapacity))
+    setActivePlay((prev: ActivePlay) => toggleAttach(prev, cardId, handCounts, cardCosts, builderState.modifierCapacity))
   }
 
   function finalizePlay() {
@@ -617,7 +632,7 @@ export default function DeckBuilder(){
     if (!sel) return
     // move base and attached mods from hand into discard as 'played'
     discardGroupFromHand(sel.baseId, false, 'played')
-    sel.mods.forEach((m) => discardGroupFromHand(m, false, 'played'))
+    sel.mods.forEach((m: string) => discardGroupFromHand(m, false, 'played'))
     setActivePlay(null)
   }
 
@@ -648,6 +663,8 @@ export default function DeckBuilder(){
       </header>
 
       <div className="pager"
+        ref={pagerRef}
+        style={{ height: pagerHeight ? `${pagerHeight}px` : undefined }}
         onTouchStart={(e) => {
           dragStartRef.current = e.touches[0].clientX
         }}
@@ -661,7 +678,7 @@ export default function DeckBuilder(){
           dragStartRef.current = null
           setDragOffset(0)
           if (Math.abs(delta) > 60) {
-            if (delta < 0) setPageIndex((p) => Math.min(1, p + 1))
+            if (delta < 0) setPageIndex((p) => Math.min(PAGE_COUNT - 1, p + 1))
             else setPageIndex((p) => Math.max(0, p - 1))
           }
         }}
@@ -672,9 +689,19 @@ export default function DeckBuilder(){
           window.addEventListener('mouseup', onWindowMouseUp)
         }}
       >
-        <div className="pager-inner" style={{transform: `translateX(-${pageIndex * 100}%) translateX(${dragOffset}px)`}}>
-          {/* Page 1: main builder UI (everything except Discard + Deck Operations) */}
-          <div className="page">
+        <div className="pager-inner">
+          {/* Page 1: Builder (Base Skill Cards + Summary) */}
+
+          <div
+            className="page"
+            ref={(el) => (pageRefs.current[0] = el)}
+            aria-hidden={pageIndex !== 0}
+            data-hidden={pageIndex !== 0 ? 'true' : 'false'}
+            style={{
+              transform: `translate3d(${(0 - pageIndex) * 100}%,0,0) translate3d(${dragOffset}px,0,0)`,
+              zIndex: pageIndex === 0 ? 2 : 1,
+            }}
+          >
             <section className="card-grid base-card-grid" style={{border:'1px solid #222',borderRadius:12,padding:16,background:'#080808'}}>
               <div>
                 <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Base Cards</div>
@@ -699,7 +726,6 @@ export default function DeckBuilder(){
                 <button onClick={resetBuilder} style={{marginTop:8}}>Reset Builder</button>
               </div>
             </section>
-
             <section style={{border:'1px solid #222',borderRadius:12,padding:16}}>
               <h2>Base Skill Cards</h2>
               <p style={{marginTop:0,color:'#9aa0a6'}}>Pick any combination of the 15 skills until you reach 26 total cards.</p>
@@ -726,7 +752,7 @@ export default function DeckBuilder(){
                       )
                 })}
               </div>
-            </section>
+                </section>
 
                 <section style={{border:'1px solid #222',borderRadius:12,padding:16,display:'flex',flexDirection:'column',gap:16}}>
                   <div style={{display:'flex',flexWrap:'wrap',gap:12,justifyContent:'space-between',alignItems:'center'}}>
@@ -769,12 +795,20 @@ export default function DeckBuilder(){
                       )
                     })}
                   </div>
-                </section>
-
-          </div>
+                    </section>
+                  </div>
 
           {/* Page 2: Deck Operations + Discard Pile */}
-          <div className="page">
+          <div
+            className="page"
+            ref={(el) => (pageRefs.current[1] = el)}
+            aria-hidden={pageIndex !== 1}
+            data-hidden={pageIndex !== 1 ? 'true' : 'false'}
+            style={{
+              transform: `translate3d(${(1 - pageIndex) * 100}%,0,0) translate3d(${dragOffset}px,0,0)`,
+              zIndex: pageIndex === 1 ? 2 : 1,
+            }}
+          >
             <section style={{border:'1px solid #222',borderRadius:12,padding:16,display:'grid',gridTemplateColumns:'1fr',gap:12}}>
               <div>
                 <label style={{fontWeight:600}}>Hand Draw</label>

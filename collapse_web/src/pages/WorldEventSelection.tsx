@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
-import { SocialMatrix } from "../components/SocialMatrix";
-import { WorldEventCard } from "../components/WorldEventCard";
+import SocialMatrix from "../components/SocialMatrix";
+import WorldEventCard from "../components/WorldEventCard";
 import { Meters } from "../domain/meters";
 import { WorldEvent } from "../domain/worldEvents";
 import { worldEvents } from "../data/worldEvents";
@@ -93,3 +93,5 @@ export const WorldEventSelection: React.FC<WorldEventSelectionProps> = ({ mode, 
     </div>
   );
 };
+
+export default WorldEventSelection;
