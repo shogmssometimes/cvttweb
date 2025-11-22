@@ -22,3 +22,15 @@ if ('serviceWorker' in navigator) {
     });
   });
 }
+
+// Debug: add 'debug-overflow' class to documentElement when ?debug=overflow is present
+if (typeof window !== 'undefined') {
+  try {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('debug') === 'overflow') {
+      document.documentElement.classList.add('debug-overflow')
+    }
+  } catch (e) {
+    // ignore
+  }
+}

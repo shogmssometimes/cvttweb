@@ -115,7 +115,8 @@ main {
 }
 
 .card-grid.base-card-grid {
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
 }
 
 .card-grid.mod-card-grid {
@@ -133,11 +134,46 @@ main {
   overflow-wrap: anywhere;
   width: 100%;
   box-sizing: border-box;
+  overflow-x: hidden; /* ensure card content cannot overflow horizontally */
+  max-width: 100%;
 }
 
 .card * {
   min-width: 0; /* prevent child content (dd, dt, divs) from causing overflow */
 }
+
+/* Ensure the header row of cards allows the left content to shrink and the right controls to remain anchored inside the border */
+.card > div > div:first-child { min-width:0; flex: 1 1 auto; }
+.card > div > div:last-child { flex: 0 0 auto; min-width:0; }
+/* Prevent the left header content from growing too large and pushing action buttons beyond the right edge */
+.card > div > div:first-child { max-width: calc(100% - 120px); }
+@media (max-width: 520px) {
+  .card > div > div:first-child { max-width: calc(100% - 96px); }
+}
+/* Ensure long header line wraps inside the left column to avoid pushing right controls out */
+.card > div > div:first-child { overflow-wrap: anywhere; word-break: break-word; white-space: normal; }
+
+/* Base-card-specific header adjustments to ensure control buttons remain inside the card border */
+.card-grid.base-card-grid .card > div { overflow: hidden; }
+.card-grid.base-card-grid .card > div > div:last-child { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+.card-grid.base-card-grid .card > div > div:last-child button { min-width: 36px; width: 36px; height: 36px; padding: 0; box-sizing: border-box; }
+.card-grid.base-card-grid .card > div > div:last-child button svg, .card-grid.base-card-grid .card > div > div:last-child button span { display:block; width:100%; height:100%; }
+
+/* Class-based sizing and padding rules for base and mod cards */
+.card.base-card { padding: 12px 18px; border-radius: 10px; }
+.card.mod-card { padding: 12px; border-radius: 10px; }
+.card.small-card { padding: 8px; border-radius: 10px; }
+
+/* Base-card header override for explicit scoping */
+.card.base-card > div { overflow: hidden; }
+.card.base-card > div > div:first-child { min-width: 0; flex: 1 1 auto; }
+.card.base-card > div > div:last-child { flex: 0 0 auto; min-width: 0; margin-left: 12px; }
+
+/* Debug class overlays element bounds: only visible when ?debug=overflow is set */
+.debug-overflow * {
+  outline: 1px dashed rgba(255,64,64,0.2);
+}
+.debug-overflow .card { outline: 2px solid rgba(255, 64, 64, 0.25); }
 
 .card dl dt,
 .card dl dd {
@@ -146,9 +182,25 @@ main {
   white-space: normal;
 }
 
+/* Details grid class; default layout uses two columns (label/value) */
+.card-details { display: grid; grid-template-columns: minmax(80px, 30%) 1fr; column-gap: 8px; row-gap: 4px; }
+.card-details dt, .card-details dd { margin: 0; }
+@media (max-width: 1400px) {
+  .card-details { grid-template-columns: 1fr; }
+}
+
+/* More aggressive stacking on phone-sized viewports to avoid label/value wide columns */
+@media (max-width: 1080px) {
+  .card-details { grid-template-columns: 1fr; }
+}
+
 /* Label column sizing: give dt a max width to prevent large left column from forcing horizontal layout */
 .card dl dt { max-width: 30%; min-width: 80px; }
 .card dl dd { max-width: 70%; }
+
+/* Tighter label widths for base cards to reduce content wrap */
+.card-grid.base-card-grid .card .card-details dt { max-width: 18%; min-width: 60px; }
+.card-grid.base-card-grid .card .card-details dd { max-width: 82%; }
 
 /* Ensure images and svgs do not overflow cards */
 .card img, .card svg { max-width: 100%; height: auto; display: block; }
@@ -163,6 +215,7 @@ main {
   button { padding: 0.5rem 0.85rem; }
   main { padding: 0.5rem; }
   .card-grid { grid-template-columns: minmax(0, 1fr) !important; }
+  .card-grid.base-card-grid .card { max-width: calc(100% - 16px); }
   .ops-save button,
   .ops-toolbar button {
     flex: 1 1 140px;
@@ -226,8 +279,10 @@ main {
 
 /* Increase page gutters for mobile to avoid edge glancing */
 @media (max-width: 1080px) {
-  .page { padding-left: 1.25rem; padding-right: 1.25rem; }
-  .app-shell { padding-left: 1rem; padding-right: 1rem; }
+  .page { padding-left: clamp(16px, 4vw, 24px) !important; padding-right: clamp(16px, 4vw, 24px) !important; }
+  .app-shell { padding-left: clamp(12px, 3vw, 20px) !important; padding-right: clamp(12px, 3vw, 20px) !important; }
+  /* ensure card grid has internal gutters */
+  .card-grid.base-card-grid { padding-left: 12px; padding-right: 12px; }
 }
 
 /* Target 1080x1920 and smaller devices (common Full HD mobile) */
@@ -242,6 +297,38 @@ main {
   .card p, .card dl, .card div { font-size: clamp(0.8rem, 2.4vw, 1rem); }
   .page, .app-shell { overflow-x: hidden; }
   .card { box-sizing: border-box; }
+}
+
+/* Add a little more right padding to keep action buttons comfortably inside card bounds */
+@media (max-width: 1080px) {
+  .card { padding-right: clamp(12px, 4vw, 20px) !important; }
+  /* More aggressive right padding for base cards on mobile; include safe-area insets */
+  .card.base-card { padding-inline-end: calc(clamp(18px, 6vw, 28px) + env(safe-area-inset-right, 0px)) !important; }
+}
+
+/* Extra padding on very narrow devices to ensure visual padding even when safe-area is limited */
+@media (max-width: 420px) {
+  .card.base-card { padding-inline-end: calc(22px + env(safe-area-inset-right, 0px)) !important; }
+}
+
+/* PWA (standalone) display mode often has different viewports and no browser chrome; add extra padding */
+@media (display-mode: standalone) {
+  .card.base-card { padding-inline-end: calc(22px + env(safe-area-inset-right, 0px)) !important; }
+}
+
+@media (max-width: 420px) and (display-mode: standalone) {
+  .card.base-card { padding-inline-end: calc(28px + env(safe-area-inset-right, 0px)) !important; }
+}
+
+/* Ensure base card horizontal padding prevents edge touching on various phones */
+@media (max-width: 1080px) {
+  .card-grid.base-card-grid .card {
+    padding-left: clamp(12px, 4vw, 18px) !important;
+    padding-right: clamp(12px, 4vw, 18px) !important;
+  }
+  /* Force label column restraint for base cards (override broader rules) */
+  .card-grid.base-card-grid .card .card-details dt { max-width: 18% !important; min-width: 56px; }
+  .card-grid.base-card-grid .card .card-details dd { max-width: 82% !important; }
 }
 
 /* On mobile widths, stack pager pages vertically to avoid any swipe/hidden content issues */
