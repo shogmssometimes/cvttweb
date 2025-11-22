@@ -674,7 +674,7 @@ export default function DeckBuilder(){
       >
         <div className="pager-inner" style={{transform: `translateX(-${pageIndex * 100}%) translateX(${dragOffset}px)`}}>
           {/* Page 1: main builder UI (everything except Discard + Deck Operations) */}
-          <div className="page" style={{padding:0}}>
+          <div className="page">
             <section className="card-grid base-card-grid" style={{border:'1px solid #222',borderRadius:12,padding:16,background:'#080808'}}>
               <div>
                 <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Base Cards</div>
@@ -774,33 +774,55 @@ export default function DeckBuilder(){
           </div>
 
           {/* Page 2: Deck Operations + Discard Pile */}
-          <div className="page" style={{padding:0}}>
+          <div className="page">
             <section style={{border:'1px solid #222',borderRadius:12,padding:16,display:'grid',gridTemplateColumns:'1fr',gap:12}}>
               <div>
-                <h3>Discard Pile</h3>
+                <label style={{fontWeight:600}}>Hand Draw</label>
+                <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
+                  <button onClick={()=>draw()} disabled={!builderState.isLocked || ((builderState.hand ?? []).length >= (builderState.handLimit ?? 5))}>Draw 1</button>
+                </div>
+              </div>
+            </section>
+
+            <section className="card-grid base-card-grid" style={{border:'1px solid #222',borderRadius:12,padding:16}}>
+              <div>
+                <h3>Hand</h3>
                 <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
                   <div style={{fontSize:'0.85rem',color:'#9aa0a6'}}>Duplicates stacked</div>
                 </div>
-                <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                  {groupedDiscardElements}
-                  {(groupedDiscardElements?.length ?? 0) === 0 && (builderState.discard ?? []).map((item, idx) => {
-                    const card = Handbook.getAllCards().find(c => c.id === item.id)
+                <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+                  {groupedHandElements}
+                  {(groupedHandElements?.length ?? 0) === 0 && (builderState.hand ?? []).map((handCard, idx) => {
+                      const card = Handbook.getAllCards().find(c => c.id === handCard.id)
                     return (
-                      <div key={idx} style={{border:'1px solid #333',borderRadius:10,padding:8,background:'#050505',minWidth:0}}>
-                        <div style={{fontWeight:700}}>{card?.name ?? item.id}</div>
-                        <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>#{idx+1} • {item.origin === 'played' ? 'Played' : 'Discarded'}</div>
-                        <div style={{marginTop:8}}>{renderDetails(card ?? {id:item.id,name:item.id,type:'',cost:0,text:'' as any})}</div>
-                        <div style={{display:'flex',gap:8,marginTop:8}}>
-                          <button onClick={() => returnDiscardItemToDeck(idx)}>Return to Deck (Top)</button>
-                          <button onClick={() => returnDiscardItemToHand(idx)} disabled={(builderState.hand ?? []).length >= (builderState.handLimit ?? 5)}>Return to Hand</button>
+                        <div key={idx} style={{border:'1px solid #333',borderRadius:10,padding:8,background:'#050505',minWidth:0}}>
+                          <div style={{fontWeight:700}}>{card?.name ?? handCard.id}</div>
+                        <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>{card?.type ?? ''}</div>
+                        <div style={{marginTop:8}}>{renderDetails(card ?? {id:handCard.id,name:handCard.id,type:'',cost:0,text:'' as any})}</div>
+                        <div style={{marginTop:8,display:'flex',gap:8,flexDirection:'column'}}>
+                          <div style={{fontSize:'0.9rem',fontWeight:600}}>{handCard.state === 'played' ? 'Played' : ''}</div>
+                            <div style={{display:'flex',gap:8}}>
+                            <button onClick={()=>discardFromHand(idx, 'discarded')}>Discard</button>
+                            {handCard.state === 'unspent' && (
+                              card?.type === 'base' ? (
+                                <button onClick={() => startPlayBase(handCard.id)}>Play</button>
+                              ) : (
+                                activePlay ? (
+                                  <button onClick={() => attachModifier(handCard.id)}>Play</button>
+                                ) : null
+                              )
+                            )}
+                            </div>
                         </div>
                       </div>
                     )
                   })}
-                  {((builderState.discard ?? []).length === 0) && <div style={{color:'#9aa0a6'}}>Discard pile is empty</div>}
+                  {((builderState.hand ?? []).length === 0) && <div style={{color:'#9aa0a6'}}>No cards in hand</div>}
                 </div>
               </div>
             </section>
+
+            {/* Discard Pile will be added after Deck Operations */}
 
             <section className="card-grid base-card-grid" style={{border:'1px solid #222',borderRadius:12,padding:16}}>
               <div>
@@ -856,47 +878,29 @@ export default function DeckBuilder(){
               </div>
             </section>
 
-            <section className="card-grid base-card-grid" style={{border:'1px solid #222',borderRadius:12,padding:16}}>
+            <section style={{border:'1px solid #222',borderRadius:12,padding:16,display:'grid',gridTemplateColumns:'1fr',gap:12}}>
               <div>
-                <label style={{fontWeight:600}}>Hand Draw</label>
-                <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
-                  <button onClick={()=>draw()} disabled={!builderState.isLocked || ((builderState.hand ?? []).length >= (builderState.handLimit ?? 5))}>Draw 1</button>
-                </div>
-              </div>
-
-              <div>
-                <h3>Hand</h3>
+                <h3>Discard Pile</h3>
                 <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
                   <div style={{fontSize:'0.85rem',color:'#9aa0a6'}}>Duplicates stacked</div>
                 </div>
-                <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
-                  {groupedHandElements}
-                  {(groupedHandElements?.length ?? 0) === 0 && (builderState.hand ?? []).map((handCard, idx) => {
-                      const card = Handbook.getAllCards().find(c => c.id === handCard.id)
+                <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                  {groupedDiscardElements}
+                  {(groupedDiscardElements?.length ?? 0) === 0 && (builderState.discard ?? []).map((item, idx) => {
+                    const card = Handbook.getAllCards().find(c => c.id === item.id)
                     return (
-                        <div key={idx} style={{border:'1px solid #333',borderRadius:10,padding:8,background:'#050505',minWidth:0}}>
-                          <div style={{fontWeight:700}}>{card?.name ?? handCard.id}</div>
-                        <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>{card?.type ?? ''}</div>
-                        <div style={{marginTop:8}}>{renderDetails(card ?? {id:handCard.id,name:handCard.id,type:'',cost:0,text:'' as any})}</div>
-                        <div style={{marginTop:8,display:'flex',gap:8,flexDirection:'column'}}>
-                          <div style={{fontSize:'0.9rem',fontWeight:600}}>{handCard.state === 'played' ? 'Played' : ''}</div>
-                            <div style={{display:'flex',gap:8}}>
-                            <button onClick={()=>discardFromHand(idx, 'discarded')}>Discard</button>
-                            {handCard.state === 'unspent' && (
-                              card?.type === 'base' ? (
-                                <button onClick={() => startPlayBase(handCard.id)}>Play</button>
-                              ) : (
-                                activePlay ? (
-                                  <button onClick={() => attachModifier(handCard.id)}>Play</button>
-                                ) : null
-                              )
-                            )}
-                            </div>
+                      <div key={idx} style={{border:'1px solid #333',borderRadius:10,padding:8,background:'#050505',minWidth:0}}>
+                        <div style={{fontWeight:700}}>{card?.name ?? item.id}</div>
+                        <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>#{idx+1} • {item.origin === 'played' ? 'Played' : 'Discarded'}</div>
+                        <div style={{marginTop:8}}>{renderDetails(card ?? {id:item.id,name:item.id,type:'',cost:0,text:'' as any})}</div>
+                        <div style={{display:'flex',gap:8,marginTop:8}}>
+                          <button onClick={() => returnDiscardItemToDeck(idx)}>Return to Deck (Top)</button>
+                          <button onClick={() => returnDiscardItemToHand(idx)} disabled={(builderState.hand ?? []).length >= (builderState.handLimit ?? 5)}>Return to Hand</button>
                         </div>
                       </div>
                     )
                   })}
-                  {((builderState.hand ?? []).length === 0) && <div style={{color:'#9aa0a6'}}>No cards in hand</div>}
+                  {((builderState.discard ?? []).length === 0) && <div style={{color:'#9aa0a6'}}>Discard pile is empty</div>}
                 </div>
               </div>
             </section>

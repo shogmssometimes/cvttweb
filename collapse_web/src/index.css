@@ -224,6 +224,12 @@ main {
   .card dl dd { max-width: 80%; }
 }
 
+/* Increase page gutters for mobile to avoid edge glancing */
+@media (max-width: 1080px) {
+  .page { padding-left: 1.25rem; padding-right: 1.25rem; }
+  .app-shell { padding-left: 1rem; padding-right: 1rem; }
+}
+
 /* Target 1080x1920 and smaller devices (common Full HD mobile) */
 @media (max-width: 1080px) {
   .app-shell { width: 100%; max-width: 1080px; padding: 0.75rem; }
