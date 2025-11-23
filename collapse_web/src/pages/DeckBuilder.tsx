@@ -1,5 +1,4 @@
 import React, {useEffect, useMemo, useState, useCallback, useRef} from 'react'
-import Pager from '../components/Pager'
 import { startPlaySelection, toggleAttach, finalizeSelection, cancelSelection, ActivePlay } from '../utils/playFlow'
 import { getModCapacityUsed, canAddModCardFrom } from '../utils/modCapacity'
 import { validateImportedDeck, exportObjectAsJSON } from '../utils/deckExportImport'
@@ -98,6 +97,9 @@ export default function DeckBuilder(){
   const [activePlay, setActivePlay] = useState<ActivePlay>(null)
   const [pageIndex, setPageIndex] = useState(0)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const [dragOffset, setDragOffset] = useState(0)
+  const dragStartRef = useRef<number | null>(null)
+  const pointerDownRef = useRef(false)
   const rootRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -121,7 +123,36 @@ export default function DeckBuilder(){
   const modValid = modCapacityUsed <= builderState.modifierCapacity
   const deckIsValid = baseValid && nullValid && modValid
 
-  // keyboard left/right navigation for pager is handled by Pager component
+  // Mouse move/up handlers attached to window for desktop drag support
+  function onWindowMouseMove(e: MouseEvent) {
+    if (!pointerDownRef.current || dragStartRef.current === null) return
+    const delta = e.clientX - (dragStartRef.current ?? 0)
+    setDragOffset(delta)
+  }
+
+  function onWindowMouseUp(e: MouseEvent) {
+    if (!pointerDownRef.current) return
+    const delta = dragOffset
+    pointerDownRef.current = false
+    dragStartRef.current = null
+    setDragOffset(0)
+    window.removeEventListener('mousemove', onWindowMouseMove)
+    window.removeEventListener('mouseup', onWindowMouseUp)
+    if (Math.abs(delta) > 60) {
+      if (delta < 0) setPageIndex((p) => Math.min(1, p + 1))
+      else setPageIndex((p) => Math.max(0, p - 1))
+    }
+  }
+
+  // keyboard left/right navigation for pager
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'ArrowRight') setPageIndex((p) => Math.min(1, p + 1))
+      if (e.key === 'ArrowLeft') setPageIndex((p) => Math.max(0, p - 1))
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   const filteredModCards = useMemo(() => {
     if (!modSearch.trim()) return modCards
@@ -616,7 +647,32 @@ export default function DeckBuilder(){
         <p className="muted">Assemble MTG-style decks from official handbook data. Decks require 26 base cards, at least 5 Nulls, and modifier capacity must not be exceeded.</p>
       </header>
 
-      <Pager pageIndex={pageIndex} onPageIndexChange={setPageIndex}>
+      <div className="pager"
+        onTouchStart={(e) => {
+          dragStartRef.current = e.touches[0].clientX
+        }}
+        onTouchMove={(e) => {
+          if (dragStartRef.current === null) return
+          const delta = e.touches[0].clientX - (dragStartRef.current ?? 0)
+          setDragOffset(delta)
+        }}
+        onTouchEnd={() => {
+          const delta = dragOffset
+          dragStartRef.current = null
+          setDragOffset(0)
+          if (Math.abs(delta) > 60) {
+            if (delta < 0) setPageIndex((p) => Math.min(1, p + 1))
+            else setPageIndex((p) => Math.max(0, p - 1))
+          }
+        }}
+        onMouseDown={(e) => {
+          pointerDownRef.current = true
+          dragStartRef.current = e.clientX
+          window.addEventListener('mousemove', onWindowMouseMove)
+          window.addEventListener('mouseup', onWindowMouseUp)
+        }}
+      >
+        <div className="pager-inner" style={{transform: `translateX(-${pageIndex * 100}%) translateX(${dragOffset}px)`}}>
           {/* Page 1: main builder UI (everything except Discard + Deck Operations) */}
           <div className="page">
             <section className="card-grid base-card-grid" style={{border:'1px solid #222',borderRadius:12,padding:16,background:'#080808'}}>
@@ -768,7 +824,8 @@ export default function DeckBuilder(){
                               )
                             )}
                             </div>
-                        </Pager>
+                        </div>
+                      </div>
                     )
                   })}
                   {((builderState.hand ?? []).length === 0) && <div style={{color:'#9aa0a6'}}>No cards in hand</div>}
