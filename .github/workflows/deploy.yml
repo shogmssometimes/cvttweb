@@ -28,8 +28,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: 'npm'
-          cache-dependency-path: collapse_web/package-lock.json
 
       - name: Install & build collapse_web
         working-directory: collapse_web
