@@ -91,6 +91,16 @@ main {
   min-width: 100%;
   padding: 1rem;
 }
+
+/* Make pages use viewport height and scroll internally on small screens so
+   content doesn't force the page wider than the viewport. Adjust the
+   subtraction value if your header or pager sizes change. */
+.page {
+  box-sizing: border-box;
+  height: calc(100vh - 7.5rem);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
 .pager-nav {
   display:flex;
   gap:8px;
@@ -209,7 +219,7 @@ main {
 @media (max-width: 840px) {
   .app-shell {
     width: min(100%, 520px);
-    padding: 0.75rem 0.85rem 6.5rem;
+    padding: 0.5rem 0.75rem 6.5rem;
   }
   .card { padding:10px; }
   button { padding: 0.5rem 0.85rem; }
