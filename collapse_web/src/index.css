@@ -331,10 +331,11 @@ main {
   .card-grid.base-card-grid .card .card-details dd { max-width: 82% !important; }
 }
 
-/* On mobile widths, stack pager pages vertically to avoid any swipe/hidden content issues */
+/* On mobile widths, keep pager horizontal so Builder and Deck Ops remain separate pages.
+   This enforces the page-per-panel UX instead of stacking everything vertically. */
 @media (max-width: 1080px) {
-  .pager-inner { display: block !important; width: auto !important; transform: none !important; }
-  .pager-inner .page { min-width: auto !important; width: 100% !important; }
+  .pager-inner { display: flex !important; width: 200% !important; transform: translateX(-var(--pager-offset, 0%)) !important; }
+  .pager-inner .page { min-width: 100% !important; width: 100% !important; }
 }
 
 /* Fallback for very small devices where Safari visual viewport might cause overflow: ensure card content fits by shrinking font and spacing */
