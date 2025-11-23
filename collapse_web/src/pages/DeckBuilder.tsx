@@ -690,7 +690,18 @@ export default function DeckBuilder(){
               <div>
                 <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Modifier Capacity</div>
                 <div style={{fontSize:'1.8rem',fontWeight:700}}>{modCapacityUsed} / {builderState.modifierCapacity}</div>
-                <div style={{fontSize:'0.85rem',color:'#9aa0a6'}}>Mod Capacity Used</div>
+                <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
+                  <label style={{fontSize:'0.85rem',color:'#9aa0a6'}}>Capacity</label>
+                  <input
+                    aria-label="Modifier Capacity"
+                    type="number"
+                    min={0}
+                    value={builderState.modifierCapacity}
+                    onChange={(e) => setModifierCapacity(Number.parseInt(e.target.value || '0', 10))}
+                    style={{width:92,padding:'4px 8px',background:'#0b0b0b',border:'1px solid #333',color:'#fff',borderRadius:6}}
+                  />
+                </div>
+                <div style={{fontSize:'0.85rem',color:'#9aa0a6',marginTop:6}}>Mod Capacity Used</div>
                 {!modValid && <div style={{color:'#ff6b6b',fontSize:'0.85rem'}}>Reduce modifier cards or raise capacity.</div>}
               </div>
               <div>
