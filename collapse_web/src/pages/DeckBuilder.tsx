@@ -647,32 +647,7 @@ export default function DeckBuilder(){
         <p className="muted">Assemble MTG-style decks from official handbook data. Decks require 26 base cards, at least 5 Nulls, and modifier capacity must not be exceeded.</p>
       </header>
 
-      <div className="pager"
-        onTouchStart={(e) => {
-          dragStartRef.current = e.touches[0].clientX
-        }}
-        onTouchMove={(e) => {
-          if (dragStartRef.current === null) return
-          const delta = e.touches[0].clientX - (dragStartRef.current ?? 0)
-          setDragOffset(delta)
-        }}
-        onTouchEnd={() => {
-          const delta = dragOffset
-          dragStartRef.current = null
-          setDragOffset(0)
-          if (Math.abs(delta) > 60) {
-            if (delta < 0) setPageIndex((p) => Math.min(1, p + 1))
-            else setPageIndex((p) => Math.max(0, p - 1))
-          }
-        }}
-        onMouseDown={(e) => {
-          pointerDownRef.current = true
-          dragStartRef.current = e.clientX
-          window.addEventListener('mousemove', onWindowMouseMove)
-          window.addEventListener('mouseup', onWindowMouseUp)
-        }}
-      >
-        <div className="pager-inner" style={{transform: `translateX(-${pageIndex * 100}%) translateX(${dragOffset}px)`}}>
+      <Pager pageIndex={pageIndex} onPageIndexChange={setPageIndex}>
           {/* Page 1: main builder UI (everything except Discard + Deck Operations) */}
           <div className="page">
             <section className="card-grid base-card-grid" style={{border:'1px solid #222',borderRadius:12,padding:16,background:'#080808'}}>
@@ -915,10 +890,9 @@ export default function DeckBuilder(){
                 </div>
               </div>
             </section>
-          </div>
-        </div>
+      </Pager>
 
-        <div className="pager-nav" style={{display:'flex',justifyContent:'center',marginTop:12,gap:8}}>
+      <div className="pager-nav" style={{display:'flex',justifyContent:'center',marginTop:12,gap:8}}>
           {[{i:0,label:'Builder'},{i:1,label:'Deck Ops'}].map(({i,label}) => (
             <div key={i} className={`pager-item`} aria-current={pageIndex === i} onClick={()=>setPageIndex(i)} style={{cursor:'pointer'}} role="button" aria-label={`Navigate to ${label}`}>
               <div className={`pager-dot ${pageIndex === i ? 'active' : ''}`} />
