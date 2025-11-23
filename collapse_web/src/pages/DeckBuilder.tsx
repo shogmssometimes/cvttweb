@@ -1,4 +1,5 @@
 import React, {useEffect, useMemo, useState, useCallback, useRef} from 'react'
+import Pager from '../components/Pager'
 import { startPlaySelection, toggleAttach, finalizeSelection, cancelSelection, ActivePlay } from '../utils/playFlow'
 import { getModCapacityUsed, canAddModCardFrom } from '../utils/modCapacity'
 import { validateImportedDeck, exportObjectAsJSON } from '../utils/deckExportImport'
@@ -890,7 +891,8 @@ export default function DeckBuilder(){
                 </div>
               </div>
             </section>
-      </Pager>
+              </div>
+          </Pager>
 
       <div className="pager-nav" style={{display:'flex',justifyContent:'center',marginTop:12,gap:8}}>
           {[{i:0,label:'Builder'},{i:1,label:'Deck Ops'}].map(({i,label}) => (
@@ -900,7 +902,6 @@ export default function DeckBuilder(){
             </div>
           ))}
         </div>
-      </div>
     </main>
   )
 }
