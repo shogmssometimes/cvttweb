@@ -643,14 +643,14 @@ export default function DeckBuilder(){
 
   return (
     <main className="app-shell">
-      <header>
-        <h1>Engram Deck Builder</h1>
-        <p className="muted">Assemble MTG-style decks from official handbook data. Decks require 26 base cards, at least 5 Nulls, and modifier capacity must not be exceeded.</p>
-      </header>
 
       <Pager pageIndex={pageIndex} onPageIndexChange={setPageIndex}>
           {/* Page 1: main builder UI (everything except Discard + Deck Operations) */}
           <div className="page">
+            <div className="page-header" style={{marginBottom:12}}>
+              <h1>Engram Deck Builder</h1>
+              <p className="muted">Assemble MTG-style decks from official handbook data. Decks require 26 base cards, at least 5 Nulls, and modifier capacity must not be exceeded.</p>
+            </div>
             <section className="card-grid base-card-grid" style={{border:'1px solid #222',borderRadius:12,padding:16,background:'#080808'}}>
               <div>
                 <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Base Cards</div>

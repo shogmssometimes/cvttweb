@@ -232,7 +232,7 @@ main {
 @media (max-width: 840px) {
   .app-shell {
     width: min(100%, 520px);
-    padding: 0.5rem 0.75rem 6.5rem;
+    padding: 0.5rem 0 6.5rem;
   }
   .card { padding:10px; }
   button { padding: 0.5rem 0.85rem; }
@@ -260,6 +260,14 @@ main {
   /* Prevent any accidental horizontal overflow in page content */
   .page, .app-shell { overflow-x: hidden; }
   .page * { min-width: 0; max-width: 100%; }
+}
+
+/* Ensure consistent horizontal gutters on small/medium screens: rely on .page
+   padding for consistent left/right spacing and remove app-shell horizontal
+   padding which caused uneven left-side spacing. */
+@media (max-width: 1080px) {
+  .app-shell { padding-inline: 0 !important; }
+  .page { padding-left: clamp(16px, 4vw, 24px) !important; padding-right: clamp(16px, 4vw, 24px) !important; }
 }
 
 /* Narrow phone-specific adjustments */
