@@ -75,31 +75,44 @@ main {
 }
 
 /* Pager and mobile-forward layout */
-.pager {
-  width: 100%;
-  overflow: hidden;
+:root {
+  --app-header-height: 7.5rem; /* adjust if header size changes */
 }
-.pager { touch-action: pan-y; }
+
+.pager {
+  width: 100vw;
+  overflow: hidden;
+  position: relative;
+  touch-action: pan-y;
+}
+
 .pager-inner {
   display: flex;
-  width: 200%; /* two pages */
+  flex-direction: row;
   transition: transform 320ms cubic-bezier(.2,.8,.2,1);
+  will-change: transform;
 }
 .pager-inner { cursor: grab; }
 .pager-inner:active { cursor: grabbing; }
+.pager-inner.disable-pointer-events { pointer-events: none; }
+
 .page {
-  min-width: 100%;
+  flex: 0 0 100vw;
+  width: 100vw;
   padding: 1rem;
+  box-sizing: border-box;
 }
 
 /* Make pages use viewport height and scroll internally on small screens so
    content doesn't force the page wider than the viewport. Adjust the
    subtraction value if your header or pager sizes change. */
 .page {
-  box-sizing: border-box;
-  height: calc(100vh - 7.5rem);
+  /* Use the header height variable so we can tune across devices */
+  height: calc(100vh - var(--app-header-height));
+  max-height: calc(100vh - var(--app-header-height));
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain; /* lock overscroll to the page container */
 }
 .pager-nav {
   display:flex;
@@ -341,12 +354,19 @@ main {
   .card-grid.base-card-grid .card .card-details dd { max-width: 82% !important; }
 }
 
-/* On mobile widths, keep pager horizontal so Builder and Deck Ops remain separate pages.
-   This enforces the page-per-panel UX instead of stacking everything vertically. */
-@media (max-width: 1080px) {
-  .pager-inner { display: flex !important; width: 200% !important; transform: translateX(-var(--pager-offset, 0%)) !important; }
-  .pager-inner .page { min-width: 100% !important; width: 100% !important; }
-}
+/* Permanent horizontal pager: always position pages in a single row and move
+  the track using a translateX transform controlled via the CSS variable
+  `--pager-offset` (value in percentage, e.g. 0% or 100%). This keeps layout
+  stable, performant and avoids scrollLeft-based movement. */
+.pager-inner { transform: translateX(calc(-1 * var(--pager-offset, 0%))); }
+
+/* defensive mobile layout: ensure pages are viewport-locked and cannot cause
+  horizontal bleed. Keep this rule active for all sizes to make the horizontal
+  layout permanent and predictable. */
+html, body, #root { width: 100vw; overflow-x: hidden; }
+
+/* Make sure the pager nav (sticky bottom) doesn't cover page content by
+  providing bottom padding via the main/app-shell when needed. */
 
 /* Fallback for very small devices where Safari visual viewport might cause overflow: ensure card content fits by shrinking font and spacing */
 @media (max-width: 400px) {
