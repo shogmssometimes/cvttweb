@@ -1,3 +1,26 @@
+/* Page header styles for responsive design */
+.page-header {
+  /* Inline styles used in code were replaced by a class to make responsive rules clearer */
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+@media (max-width: 840px) {
+  .page-header { flex-direction: column; align-items: flex-start; }
+}
+
+/* Compact card: reduced paddings and less pronounced border for nested/summary sections */
+.card.compact {
+  padding: 10px !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(34,34,34,0.75) !important;
+  background: rgba(8,8,8,0.85) !important;
+}
+@media (max-width: 840px) {
+  .card.compact { padding: 8px !important; border: none !important; background: transparent !important; }
+}
 :root {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: #f8f9fa;

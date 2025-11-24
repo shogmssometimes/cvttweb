@@ -127,7 +127,7 @@ export default function ImportExportJSON({ filenamePrefix = 'collapse-data' }: {
   }
 
   return (
-    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+    <div className="ops-toolbar">
       <input ref={fileRef} type="file" accept="application/json" style={{ display: 'none' }} onChange={(e) => handleFile(e.target.files?.[0] ?? null)} />
       <button onClick={handleExportAll} title="Export all localStorage to JSON (includes meta)">Export JSON</button>
       <button onClick={handleImportClick} title="Import JSON and replace all localStorage (backup will be downloaded)">Import (Replace All)</button>

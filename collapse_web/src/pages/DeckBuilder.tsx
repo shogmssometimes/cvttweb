@@ -648,16 +648,17 @@ export default function DeckBuilder(){
       <Pager pageIndex={pageIndex} onPageIndexChange={setPageIndex}>
           {/* Page 1: main builder UI (everything except Discard + Deck Operations) */}
           <div className="page">
-            <div className="page-header" style={{marginBottom:12, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12}}>
-              <div>
-                <h1>Engram Deck Builder</h1>
-                <p className="muted">Assemble MTG-style decks from official handbook data. Decks require 26 base cards, at least 5 Nulls, and modifier capacity must not be exceeded.</p>
+            <div className="page-header">
+                <div>
+                  <h1>Engram Deck Builder</h1>
+                  <p className="muted">Assemble MTG-style decks from official handbook data. Decks require 26 base cards, at least 5 Nulls, and modifier capacity must not be exceeded.</p>
+                  {/* Move export/import controls under the flavor text so they don't get squashed */}
+                  <div style={{marginTop:8}}>
+                    <ImportExportJSON filenamePrefix={`collapse-deck`} />
+                  </div>
+                </div>
               </div>
-              <div style={{display:'flex',alignItems:'center',gap:8}}>
-                <ImportExportJSON filenamePrefix={`collapse-deck`} />
-              </div>
-            </div>
-            <section className="card-grid base-card-grid" style={{border:'1px solid #222',borderRadius:12,padding:16,background:'#080808'}}>
+            <section className="card-grid base-card-grid compact" style={{border:'1px solid #222',borderRadius:12,padding:16,background:'#080808'}}>
               <div>
                 <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Base Cards</div>
                 <div style={{fontSize:'1.8rem',fontWeight:700}}>{baseTotal} / {BASE_TARGET}</div>
@@ -693,7 +694,7 @@ export default function DeckBuilder(){
               </div>
             </section>
 
-            <section style={{border:'1px solid #222',borderRadius:12,padding:16}}>
+            <section className="compact" style={{border:'1px solid #222',borderRadius:12,padding:16}}>
               <h2>Base Skill Cards</h2>
               <p style={{marginTop:0,color:'#9aa0a6'}}>Pick any combination of the 15 skills until you reach 26 total cards.</p>
                 <div className="card-grid base-card-grid">
@@ -721,7 +722,7 @@ export default function DeckBuilder(){
               </div>
             </section>
 
-                <section style={{border:'1px solid #222',borderRadius:12,padding:16,display:'flex',flexDirection:'column',gap:16}}>
+                <section className="compact" style={{border:'1px solid #222',borderRadius:12,padding:16,display:'flex',flexDirection:'column',gap:16}}>
                   <div style={{display:'flex',flexWrap:'wrap',gap:12,justifyContent:'space-between',alignItems:'center'}}>
                     <div>
                       <h2 style={{marginBottom:4}}>Modifier Cards</h2>
@@ -777,7 +778,7 @@ export default function DeckBuilder(){
               </div>
             </section>
 
-            <section className="card-grid base-card-grid" style={{border:'1px solid #222',borderRadius:12,padding:16}}>
+            <section className="card-grid base-card-grid compact" style={{border:'1px solid #222',borderRadius:12,padding:16}}>
               <div>
                 <h3>Hand</h3>
                 <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
@@ -826,11 +827,9 @@ export default function DeckBuilder(){
                   <button onClick={()=>shuffleDeck()}>Shuffle</button>
                   <button onClick={()=>toggleLockDeck()}>{builderState.isLocked ? 'Unlock Deck' : 'Lock Deck'}</button>
                   <div className="ops-save">
-                    <input placeholder="Deck name" value={builderState.deckName ?? ''} onChange={(e)=>setDeckName(e.target.value)} />
-                    <button onClick={()=>saveDeck()}>Save Deck</button>
-                    <button onClick={handleExport} title="Export current deck as JSON">Export</button>
-                    <button onClick={onClickImport} title="Import deck from JSON file">Import</button>
-                    <input ref={fileInputRef} type="file" accept="application/json" style={{display:'none'}} onChange={(e)=>handleImportedFile(e.target.files ? e.target.files[0] : null)} />
+                    {/* Saved deck controls kept as visible list below; remove duplicate save/export/import controls from Deck Ops */}
+                    {/* If we still want to allow directly saving, keep the name input; otherwise we rely on saved deck UI below. */}
+                    {/* Deck name input removed from Deck Ops to avoid duplication. Saved decks are managed below. */}
                   </div>
                 </div>
                 <div style={{marginTop:12}}>
