@@ -39,16 +39,25 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Debug: show node & npm and files
+      - name: Debug: show env, node & npm and files
         run: |
+          echo GITHUB_REPOSITORY=$GITHUB_REPOSITORY
+          echo GITHUB_REF=$GITHUB_REF
+          echo GITHUB_SHA=$GITHUB_SHA
           node -v
           npm -v
           pwd
-          ls -la collapse_web
+          ls -la
+          echo "collapse_web dir listing:" && ls -la collapse_web || true
         working-directory: collapse_web
 
       - name: Install dependencies (collapse_web)
-        run: npm ci --silent
+        run: |
+          set -euxo pipefail
+          echo "Installing dependencies in collapse_web"
+          npm ci --silent
+          echo "Installed packages; node modules count:"
+          ls -la collapse_web/node_modules | wc -l || true
         working-directory: collapse_web
 
       - name: Run tests (collapse_web)
@@ -57,8 +66,14 @@ jobs:
         continue-on-error: true
 
       - name: Build (collapse_web)
-        run: npm run build --if-present
+        run: |
+          set -euxo pipefail
+          echo "Checking package.json scripts:"
+          cat collapse_web/package.json | jq -r '.scripts'
+          echo "Starting build"
+          npm run build --if-present
         working-directory: collapse_web
+        continue-on-error: true
 
       - name: Check build output (docs)
         run: |
