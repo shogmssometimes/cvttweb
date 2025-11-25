@@ -61,6 +61,7 @@ jobs:
         working-directory: collapse_web
 
       - name: Deploy to gh-pages (publish collapse_web/docs)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
