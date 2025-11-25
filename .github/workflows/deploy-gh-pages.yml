@@ -16,8 +16,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
+    outputs:
+      docs-path: ${{ steps.set-docs-path.outputs.docs-path }}
 
     steps:
       - name: Checkout repo
@@ -102,14 +104,29 @@ jobs:
           name: build_debug
           path: build_debug
 
-      - name: Deploy to gh-pages via peaceiris
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: peaceiris/actions-gh-pages@v4
+      - name: Set docs path output
+        id: set-docs-path
+        run: echo "::set-output name=docs-path::collapse_web/docs"
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          github_token: ${{ secrets.GH_PAGES_TOKEN || secrets.GITHUB_TOKEN }}
-          deploy_key: ${{ secrets.DEPLOY_SSH_KEY }}
-          external_repository: shogmssometimes/cvttweb
+          fetch-depth: 0
+
+      - name: Deploy to gh-pages via peaceiris
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: collapse_web/docs
           publish_branch: gh-pages
-          user_name: github-actions[bot]
-          user_email: github-actions[bot]@users.noreply.github.com
+          allow_empty_commit: true
