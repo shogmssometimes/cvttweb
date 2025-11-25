@@ -31,9 +31,9 @@ jobs:
           npm run build
 
       - name: Upload pages artifact (Pages API format)
-        uses: actions/upload-pages-artifact@v1
+        uses: actions/upload-pages-artifact@v3
         with:
           path: collapse_web/docs
 
       - name: Deploy to GitHub Pages (via Pages API)
-        uses: actions/deploy-pages@v1
+        uses: actions/deploy-pages@v4
