@@ -101,10 +101,15 @@ jobs:
           name: build_debug
           path: build_debug
 
-      - name: Upload pages artifact (as a generic artifact named 'pages')
+      - name: Upload pages artifact (generic artifact named 'pages')
         uses: actions/upload-artifact@v4
         with:
           name: pages
+          path: collapse_web/docs
+
+      - name: Upload pages artifact (Pages API format)
+        uses: actions/upload-pages-artifact@v1
+        with:
           path: collapse_web/docs
 
       - name: Set docs path output
@@ -126,13 +131,20 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Download pages artifact
+      - name: Deploy to GitHub Pages (via Pages API)
+        id: deploy_pages_api
+        uses: actions/deploy-pages@v1
+        continue-on-error: true
+
+      - name: Fallback - Download pages artifact
+        if: ${{ steps.deploy_pages_api.outcome == 'failure' }}
         uses: actions/download-artifact@v4
         with:
           name: pages
           path: pages
 
-      - name: Deploy to gh-pages via peaceiris (fallback)
+      - name: Fallback - Deploy to gh-pages via peaceiris
+        if: ${{ steps.deploy_pages_api.outcome == 'failure' }}
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
