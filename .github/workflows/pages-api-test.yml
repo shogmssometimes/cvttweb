@@ -33,6 +33,7 @@ jobs:
       - name: Upload pages artifact (Pages API format)
         uses: actions/upload-pages-artifact@v3
         with:
+          name: pages
           path: collapse_web/docs
 
       - name: Deploy to GitHub Pages (via Pages API)

@@ -104,6 +104,7 @@ jobs:
       - name: Upload pages artifact (Pages API format)
         uses: actions/upload-pages-artifact@v3
         with:
+          name: pages
           path: collapse_web/docs
 
       - name: Set docs path output
@@ -131,14 +132,14 @@ jobs:
         continue-on-error: true
 
       - name: Fallback - Download pages artifact
-        if: ${{ steps.deploy_pages_api.outcome == 'failure' }}
+        if: ${{ steps.deploy_pages_api.conclusion == 'failure' }}
         uses: actions/download-artifact@v4
         with:
           name: pages
           path: pages
 
       - name: Fallback - Deploy to gh-pages via peaceiris
-        if: ${{ steps.deploy_pages_api.outcome == 'failure' }}
+        if: ${{ steps.deploy_pages_api.conclusion == 'failure' }}
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
