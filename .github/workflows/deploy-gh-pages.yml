@@ -1,0 +1,55 @@
+name: Build and Deploy (gh-pages)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  packages: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: gh-pages-deploy
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies (collapse_web)
+        run: npm ci
+        working-directory: collapse_web
+
+      - name: Run tests (collapse_web)
+        run: npm test -- --run
+        working-directory: collapse_web
+
+      - name: Build (collapse_web)
+        run: npm run build
+        working-directory: collapse_web
+
+      - name: Deploy to gh-pages (publish collapse_web/docs)
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: collapse_web/docs
+          user_name: github-actions[bot]
+          user_email: github-actions[bot]@users.noreply.github.com
+          allow_empty_commit: false
