@@ -60,6 +60,16 @@ jobs:
         run: npm run build --if-present
         working-directory: collapse_web
 
+      - name: Check build output (docs)
+        run: |
+          echo "Collapse web build dir listing:"
+          ls -la collapse_web/docs || true
+          echo "--- index.html head ---"
+          head -n 30 collapse_web/docs/index.html || true
+          echo "--- assets listing ---"
+          ls -la collapse_web/docs/assets || true
+        working-directory: collapse_web
+
       - name: Archive debug info
         run: |
           mkdir -p build_debug
