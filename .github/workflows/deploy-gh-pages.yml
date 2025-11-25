@@ -103,6 +103,11 @@ jobs:
           name: build_debug
           path: build_debug
 
+      - name: Upload pages artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: collapse_web/docs
+
       - name: Set docs path output
         id: set-docs-path
         run: echo "::set-output name=docs-path::collapse_web/docs"
@@ -117,15 +122,5 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Deploy to gh-pages via peaceiris
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: collapse_web/docs
-          publish_branch: gh-pages
-          allow_empty_commit: true
+      - name: Deploy to GitHub Pages (via Pages API)
+        uses: actions/deploy-pages@v1

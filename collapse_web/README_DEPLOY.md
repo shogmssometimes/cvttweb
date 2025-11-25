@@ -1,9 +1,9 @@
-Simple GitHub Pages deploy
+Simple GitHub Pages deploy (Pages API)
 
-This repo builds the `collapse_web` app and publishes compiled artifacts to `gh-pages` branch for GitHub Pages to serve.
+This repo builds the `collapse_web` app and publishes compiled artifacts directly to GitHub Pages using the Pages API. The automated CI workflow uploads the built `collapse_web/docs` artifact and deploys it without requiring a `gh-pages` branch.
 
 Deployment pipeline:
-- CI: `.github/workflows/deploy-gh-pages.yml` builds `collapse_web` on `main` pushes and deploys `collapse_web/docs` to `gh-pages` using `peaceiris/actions-gh-pages@v3`.
+- CI: `.github/workflows/deploy-gh-pages.yml` builds `collapse_web` on `main` pushes, uploads `collapse_web/docs` as an artifact, and publishes via `actions/deploy-pages@v1`.
 
 Manual deploy:
 - Build locally
@@ -12,7 +12,7 @@ Manual deploy:
   npm ci
   npm run build
   ```
-- Push to gh-pages manually (overwrite `gh-pages` with the built `docs` directory):
+-- (Optional) Push to `gh-pages` manually (overwrite `gh-pages` with the built `docs` directory):
   ```bash
   # From repository root
   git checkout --orphan gh-pages-deploy
@@ -28,4 +28,4 @@ Manual deploy:
 Notes:
 - Keep `main` as the default branch for development.
 - Protect `main` with required PR reviews and CI checks.
-- Restrict direct pushes to `gh-pages` if you want only the action to update it.
+- With the Pages API approach the `gh-pages` branch is optional — if you prefer a visible branch with the built artifacts keep `gh-pages` and the `peaceiris` deployment method instead.
