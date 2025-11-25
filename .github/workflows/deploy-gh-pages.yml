@@ -76,13 +76,12 @@ jobs:
           name: build_debug
           path: build_debug
 
-      - name: Deploy to gh-pages (publish collapse_web/docs)
+      - name: Upload Pages artifact (collapse_web/docs)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: peaceiris/actions-gh-pages@v3
+        uses: actions/upload-pages-artifact@v1
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: gh-pages
-          publish_dir: collapse_web/docs
-          user_name: github-actions[bot]
-          user_email: github-actions[bot]@users.noreply.github.com
-          allow_empty_commit: false
+          path: collapse_web/docs
+
+      - name: Deploy to GitHub Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/deploy-pages@v1
