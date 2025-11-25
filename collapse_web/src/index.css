@@ -25,6 +25,7 @@
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: #f8f9fa;
   background-color: #0b0b0b;
+  font-size: 14px;
 }
 
 * {
@@ -47,11 +48,12 @@ body {
 
 button {
   border-radius: 6px;
-  border: 1px solid #2a2a2a;
+  border: 1px solid #222;
   background: #151515;
   color: inherit;
-  padding: 0.4rem 0.75rem;
+  padding: 0.28rem 0.6rem;
   cursor: pointer;
+  font-size: 0.92rem;
 }
 
 button:hover {
@@ -65,10 +67,10 @@ main {
 .app-shell {
   width: min(100%, 1100px);
   margin: 0 auto;
-  padding: 1rem;
+  padding: 0.6rem;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 12px;
 }
 
 .ops-toolbar,
@@ -159,23 +161,23 @@ main {
 /* Shared card grids */
 .card-grid {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 .card-grid.base-card-grid {
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
 }
 
 .card-grid.mod-card-grid {
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
 /* Card-like containers */
 .card {
-  border:1px solid #222;
-  border-radius:12px;
-  padding:12px;
+  border:1px solid #111;
+  border-radius:8px;
+  padding:8px;
   background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.1));
   min-width: 0; /* allow grid children to shrink on mobile */
   word-break: break-word;
@@ -189,6 +191,43 @@ main {
 .card * {
   min-width: 0; /* prevent child content (dd, dt, divs) from causing overflow */
 }
+
+/* Compact header and counter layout for card items */
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+.card-title {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+.card-title .card-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 700;
+}
+.card-controls {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex: 0 0 auto;
+}
+.counter-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: 0.9rem;
+}
+.counter-value {
+  min-width: 20px;
+  text-align: center;
+}
+
 
 /* Ensure the header row of cards allows the left content to shrink and the right controls to remain anchored inside the border */
 .card > div > div:first-child { min-width:0; flex: 1 1 auto; }
@@ -204,7 +243,7 @@ main {
 /* Base-card-specific header adjustments to ensure control buttons remain inside the card border */
 .card-grid.base-card-grid .card > div { overflow: hidden; }
 .card-grid.base-card-grid .card > div > div:last-child { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
-.card-grid.base-card-grid .card > div > div:last-child button { min-width: 36px; width: 36px; height: 36px; padding: 0; box-sizing: border-box; }
+.card-grid.base-card-grid .card > div > div:last-child button { min-width: 28px; width: 28px; height: 28px; padding: 0; box-sizing: border-box; }
 .card-grid.base-card-grid .card > div > div:last-child button svg, .card-grid.base-card-grid .card > div > div:last-child button span { display:block; width:100%; height:100%; }
 
 /* Class-based sizing and padding rules for base and mod cards */
@@ -231,10 +270,11 @@ main {
 }
 
 /* Details grid class; default layout uses two columns (label/value) */
-.card-details { display: grid; grid-template-columns: minmax(80px, 30%) 1fr; column-gap: 8px; row-gap: 4px; }
+.card-details { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; row-gap: 4px; align-items: center; }
 .card-details dt, .card-details dd { margin: 0; }
+/* Keep two-column metadata layout even on narrow screens but keep label narrow and values flexible */
 @media (max-width: 1400px) {
-  .card-details { grid-template-columns: 1fr; }
+  .card-details { grid-template-columns: 120px 1fr; }
 }
 
 /* More aggressive stacking on phone-sized viewports to avoid label/value wide columns */
@@ -243,8 +283,8 @@ main {
 }
 
 /* Label column sizing: give dt a max width to prevent large left column from forcing horizontal layout */
-.card dl dt { max-width: 30%; min-width: 80px; }
-.card dl dd { max-width: 70%; }
+.card dl dt { max-width: 120px; min-width: 56px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card dl dd { max-width: calc(100% - 140px); overflow: hidden; text-overflow: ellipsis; }
 
 /* Tighter label widths for base cards to reduce content wrap */
 .card-grid.base-card-grid .card .card-details dt { max-width: 18%; min-width: 60px; }
@@ -299,7 +339,7 @@ main {
 @media (max-width: 520px) {
   /* Always single column */
   .card-grid.base-card-grid, .card-grid.mod-card-grid { grid-template-columns: 1fr !important; }
-  .card { padding: 10px 12px; }
+  .card { padding: 8px 10px; }
   .app-shell { width: min(100%, 480px); }
 }
 
