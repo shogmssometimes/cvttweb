@@ -101,12 +101,6 @@ jobs:
           name: build_debug
           path: build_debug
 
-      - name: Upload pages artifact (generic artifact named 'pages')
-        uses: actions/upload-artifact@v4
-        with:
-          name: pages
-          path: collapse_web/docs
-
       - name: Upload pages artifact (Pages API format)
         uses: actions/upload-pages-artifact@v1
         with:
