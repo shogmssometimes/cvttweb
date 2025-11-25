@@ -39,7 +39,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Debug: show env, node & npm and files
+      - name: "Debug: show env, node & npm and files"
         run: |
           echo GITHUB_REPOSITORY=$GITHUB_REPOSITORY
           echo GITHUB_REF=$GITHUB_REF
