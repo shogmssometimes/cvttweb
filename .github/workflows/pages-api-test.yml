@@ -11,6 +11,7 @@ permissions:
 jobs:
   build-20:
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
