@@ -452,7 +452,11 @@ function initUI() {
   const heightInput = null;
     // Removed advanced and random controls; simplify
     const advancedControls = null;
-  // advanced persistence input removed
+    // advanced persistence input removed
+    let windowClickHandlerRef = null;
+    let attachedZoomSliderRef = null;
+    let attachedSliderHandlerRef = null;
+    let attachedMinimapHandlerRef = null;
   const paletteSelect = document.getElementById('palette');
   const generateBtn = document.getElementById('generate');
   const downloadBtn = document.getElementById('download');
@@ -589,7 +593,11 @@ function initUI() {
     // connect zoom slider
     const zoomSlider = document.getElementById('zoomSlider');
     if (zoomSlider) {
-      zoomSlider.addEventListener('input', (ev) => {
+      if (attachedZoomSliderRef && attachedSliderHandlerRef) {
+        attachedZoomSliderRef.removeEventListener('input', attachedSliderHandlerRef);
+      }
+      attachedZoomSliderRef = zoomSlider;
+      attachedSliderHandlerRef = (ev) => {
         const v = Number(zoomSlider.value);
         // slider 1..100 maps to srcW between minSrcW..offCanvas.width
         const minSrcW = Math.max(100, Math.round(offCanvas.width / 20));
@@ -603,7 +611,25 @@ function initUI() {
         camera.srcX = worldX - camera.srcW / 2; camera.srcY = worldY - camera.srcH / 2;
         clampCamValues(camera, offCanvas);
         drawView(canvas, offCanvas);
-      });
+      };
+      zoomSlider.addEventListener('input', attachedSliderHandlerRef);
+    }
+    // minimap click -> center camera
+    const mini = document.getElementById('minimap');
+    if (mini) {
+      if (attachedMinimapHandlerRef) mini.removeEventListener('click', attachedMinimapHandlerRef);
+      attachedMinimapHandlerRef = function(me) {
+        const r = mini.getBoundingClientRect();
+        const mx = me.clientX - r.left;
+        const my = me.clientY - r.top;
+        const worldX = (mx / mini.width) * offCanvas.width;
+        const worldY = (my / mini.height) * offCanvas.height;
+        camera.srcX = worldX - camera.srcW / 2;
+        camera.srcY = worldY - camera.srcH / 2;
+        clampCamValues(camera, offCanvas);
+        drawView(canvas, offCanvas);
+      };
+      mini.addEventListener('click', attachedMinimapHandlerRef);
     }
     canvas.onmousedown = function(e) {
       dragging = true;
@@ -658,70 +684,36 @@ function initUI() {
       menu.dataset.clientY = e.clientY;
     });
 
-    // click outside hides it
-    window.addEventListener('click', function(ev) {
+    // click outside hides it (replace any previous handler)
+    if (windowClickHandlerRef) window.removeEventListener('click', windowClickHandlerRef);
+    windowClickHandlerRef = function(ev) {
       const menu = document.getElementById('ctx-menu');
       if (!menu) return;
       const target = ev.target;
       // if clicking on the menu we don't hide yet
       if (menu.contains(target)) return;
       menu.style.display = 'none'; menu.setAttribute('aria-hidden', 'true');
-    });
+    };
+    window.addEventListener('click', windowClickHandlerRef);
   }
 
-    // Implement context menu actions here so offCanvas is in scope
-    const ctxMenuZoomIn = document.getElementById('ctx-zoom-in');
-    const ctxMenuZoomOut = document.getElementById('ctx-zoom-out');
-    if (ctxMenuZoomIn && ctxMenuZoomOut) {
-      ctxMenuZoomIn.addEventListener('click', (ev) => {
-        const menu = document.getElementById('ctx-menu');
-        if (!menu) return;
-        const cx = Number(menu.dataset.clientX);
-        const cy = Number(menu.dataset.clientY);
-        const rect = canvas.getBoundingClientRect();
-        const mx = cx - rect.left;
-        const my = cy - rect.top;
-        const worldX = camera.srcX + (mx / canvas.width) * camera.srcW;
-        const worldY = camera.srcY + (my / canvas.height) * camera.srcH;
-        // zoom in
-        const zoomFactor = 0.5;
-        const newSrcW = Math.max(20, camera.srcW * zoomFactor);
-        const newSrcH = (newSrcW * canvas.height) / canvas.width;
-        camera.srcX = worldX - (mx / canvas.width) * newSrcW;
-        camera.srcY = worldY - (my / canvas.height) * newSrcH;
-        camera.srcW = newSrcW; camera.srcH = newSrcH;
-        clampCamValues(camera, offCanvas);
-        drawView(canvas, offCanvas);
-        menu.style.display = 'none';
-      });
-      ctxMenuZoomOut.addEventListener('click', (ev) => {
-        const menu = document.getElementById('ctx-menu');
-        if (!menu) return;
-        const cx = Number(menu.dataset.clientX);
-        const cy = Number(menu.dataset.clientY);
-        const rect = canvas.getBoundingClientRect();
-        const mx = cx - rect.left;
-        const my = cy - rect.top;
-        const worldX = camera.srcX + (mx / canvas.width) * camera.srcW;
-        const worldY = camera.srcY + (my / canvas.height) * camera.srcH;
-        // zoom out
-        const zoomFactor = 2.0;
-        const newSrcW = Math.min(offCanvas.width, camera.srcW * zoomFactor);
-        const newSrcH = (newSrcW * canvas.height) / canvas.width;
-        camera.srcX = worldX - (mx / canvas.width) * newSrcW;
-        camera.srcY = worldY - (my / canvas.height) * newSrcH;
-        camera.srcW = newSrcW; camera.srcH = newSrcH;
-        clampCamValues(camera, offCanvas);
-        drawView(canvas, offCanvas);
-        menu.style.display = 'none';
-      });
-    }
+    // context menu actions are handled inside this setup so offCanvas is in scope
   function unsetupPanZoom(canvas) {
     canvas.onwheel = null;
     canvas.onmousedown = null;
     canvas.ondblclick = null;
     window.onmousemove = null;
     window.onmouseup = null;
+    // remove click handler and attached slider listener
+    if (windowClickHandlerRef) { window.removeEventListener('click', windowClickHandlerRef); windowClickHandlerRef = null; }
+    if (attachedZoomSliderRef && attachedSliderHandlerRef) {
+      attachedZoomSliderRef.removeEventListener('input', attachedSliderHandlerRef);
+      attachedZoomSliderRef = null; attachedSliderHandlerRef = null;
+    }
+    // remove minimap click handler
+    const mini = document.getElementById('minimap');
+    if (attachments => {});
+    if (attachedMinimapHandlerRef && mini) { mini.removeEventListener('click', attachedMinimapHandlerRef); attachedMinimapHandlerRef = null; }
     panZoomAttached = false;
   }
 

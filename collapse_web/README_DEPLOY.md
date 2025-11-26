@@ -31,12 +31,10 @@ Manual deploy:
 Notes:
 - Keep `main` as the default branch for development.
 - Protect `main` with required PR reviews and CI checks.
-- With the Pages API approach the `gh-pages` branch is optional — if you prefer a visible branch with the built artifacts keep `gh-pages` and the `peaceiris` deployment method instead.
 
-Getting the deployed site URL
------------------------------
+<!-- Deploy trigger: small edit to prompt a Pages API redeploy from GitHub Actions - {{timestamp}} -->
+ 
 
-- The deploy job emits a `page_url` output available on the deploy job and the `deploy-pages` step.
 - You can view the deployed site URL in the Actions run details under the `Deploy` job > `Deploy to GitHub Pages (via Pages API)` step outputs.
 - Example usage in another job within the same workflow to access the URL:
 
