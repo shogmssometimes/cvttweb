@@ -385,6 +385,30 @@ function renderWorldOffscreen(features, baseWidth, baseHeight, options) {
   return off;
 }
 
+// Draw a Regions overlay on the offscreen canvas (translucent color grids for now)
+function drawRegionsLayer(offCtx, bbox, baseWidth, baseHeight) {
+  // define simple region boxes (longitude/latitude ranges); rough partitions
+  const regions = [
+    { name: 'Pacific/West', lonA: -170, lonB: -125, latA: 14, latB: 72, color: 'rgba(255,214,0,0.12)' },
+    { name: 'Rockies/Plains', lonA: -125, lonB: -100, latA: 14, latB: 72, color: 'rgba(0,204,136,0.10)' },
+    { name: 'Midwest/East', lonA: -100, lonB: -80, latA: 14, latB: 72, color: 'rgba(0,122,255,0.08)' },
+    { name: 'Atlantic/East', lonA: -80, lonB: -50, latA: 14, latB: 72, color: 'rgba(255,88,88,0.08)' },
+    { name: 'Mexico', lonA: -118, lonB: -86, latA: 14, latB: 32, color: 'rgba(255,160,0,0.12)' }
+  ];
+  function rectFromLonLatBox(lonA, latA, lonB, latB) {
+    const tl = lonLatToXY(lonA, latB, baseWidth, baseHeight, bbox);
+    const br = lonLatToXY(lonB, latA, baseWidth, baseHeight, bbox);
+    return { x: tl.x, y: tl.y, w: Math.max(1, br.x - tl.x), h: Math.max(1, br.y - tl.y) };
+  }
+  regions.forEach(r => {
+    const rect = rectFromLonLatBox(r.lonA, r.latA, r.lonB, r.latB);
+    offCtx.fillStyle = r.color;
+    offCtx.fillRect(rect.x, rect.y, rect.w, rect.h);
+    offCtx.strokeStyle = 'rgba(255,255,255,0.08)';
+    offCtx.strokeRect(rect.x + 0.5, rect.y + 0.5, rect.w - 1, rect.h - 1);
+  });
+}
+
 // Create pixel-level coastline overlay by scanning elevation array
 function createCoastlineOverlay(elev, width, height, threshold) {
   const overlay = new Uint8ClampedArray(width * height);
@@ -423,8 +447,9 @@ function seedFromString(str) {
 // UI wiring
 function initUI() {
   const canvas = document.getElementById('map');
-  const widthInput = document.getElementById('width');
-  const heightInput = document.getElementById('height');
+  // canvas is fixed to 1920x1080
+  const widthInput = null;
+  const heightInput = null;
     // Removed advanced and random controls; simplify
     const advancedControls = null;
   // advanced persistence input removed
@@ -502,6 +527,33 @@ function initUI() {
     camera.srcY = Math.max(0, Math.min(camera.srcY, offCanvas.height - camera.srcH));
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(offCanvas, camera.srcX, camera.srcY, camera.srcW, camera.srcH, 0, 0, canvas.width, canvas.height);
+    // update minimap
+    const mini = document.getElementById('minimap');
+    if (mini) {
+      const mctx = mini.getContext('2d');
+      // scale the whole world into minimap
+      mctx.clearRect(0, 0, mini.width, mini.height);
+      mctx.drawImage(offCanvas, 0, 0, offCanvas.width, offCanvas.height, 0, 0, mini.width, mini.height);
+      // draw viewport rectangle
+      mctx.strokeStyle = 'rgba(255,255,255,0.8)';
+      mctx.lineWidth = 2;
+      mctx.setLineDash([4,4]);
+      const rx = (camera.srcX / offCanvas.width) * mini.width;
+      const ry = (camera.srcY / offCanvas.height) * mini.height;
+      const rw = (camera.srcW / offCanvas.width) * mini.width;
+      const rh = (camera.srcH / offCanvas.height) * mini.height;
+      mctx.strokeRect(rx + 0.5, ry + 0.5, Math.max(1, rw - 1), Math.max(1, rh - 1));
+      mctx.setLineDash([]);
+    }
+  // update zoom slider to reflect current camera zoom
+  const zoomSlider = document.getElementById('zoomSlider');
+  if (zoomSlider && camera && offCanvas) {
+    const minSrcW = Math.max(100, Math.round(offCanvas.width / 20));
+    const maxSrcW = offCanvas.width;
+    const t = (camera.srcW - minSrcW) / (maxSrcW - minSrcW);
+    const val = Math.round(1 + (t * 99));
+    zoomSlider.value = Math.max(1, Math.min(100, val));
+  }
   }
 
   function clampCamValues(cam, off) {
@@ -534,6 +586,25 @@ function initUI() {
       clampCamValues(camera, offCanvas);
       drawView(canvas, offCanvas);
     };
+    // connect zoom slider
+    const zoomSlider = document.getElementById('zoomSlider');
+    if (zoomSlider) {
+      zoomSlider.addEventListener('input', (ev) => {
+        const v = Number(zoomSlider.value);
+        // slider 1..100 maps to srcW between minSrcW..offCanvas.width
+        const minSrcW = Math.max(100, Math.round(offCanvas.width / 20));
+        const maxSrcW = offCanvas.width;
+        const t = (v - 1) / 99.0;
+        const newSrcW = minSrcW + t * (maxSrcW - minSrcW);
+        const newSrcH = (newSrcW * canvas.height) / canvas.width;
+        const worldX = camera.srcX + camera.srcW / 2;
+        const worldY = camera.srcY + camera.srcH / 2;
+        camera.srcW = newSrcW; camera.srcH = newSrcH;
+        camera.srcX = worldX - camera.srcW / 2; camera.srcY = worldY - camera.srcH / 2;
+        clampCamValues(camera, offCanvas);
+        drawView(canvas, offCanvas);
+      });
+    }
     canvas.onmousedown = function(e) {
       dragging = true;
       lastMouse = { x: e.clientX, y: e.clientY };
@@ -571,7 +642,80 @@ function initUI() {
       camera = { srcX, srcY, srcW, srcH, initialized: true };
       drawView(canvas, offCanvas);
     };
+
+    // right click - custom context menu
+    canvas.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+      const menu = document.getElementById('ctx-menu');
+      if (!menu) return;
+      // position menu
+      menu.style.left = e.clientX + 'px';
+      menu.style.top = e.clientY + 'px';
+      menu.style.display = 'block';
+      menu.setAttribute('aria-hidden', 'false');
+      // store pointer location for actions
+      menu.dataset.clientX = e.clientX;
+      menu.dataset.clientY = e.clientY;
+    });
+
+    // click outside hides it
+    window.addEventListener('click', function(ev) {
+      const menu = document.getElementById('ctx-menu');
+      if (!menu) return;
+      const target = ev.target;
+      // if clicking on the menu we don't hide yet
+      if (menu.contains(target)) return;
+      menu.style.display = 'none'; menu.setAttribute('aria-hidden', 'true');
+    });
   }
+
+    // Implement context menu actions here so offCanvas is in scope
+    const ctxMenuZoomIn = document.getElementById('ctx-zoom-in');
+    const ctxMenuZoomOut = document.getElementById('ctx-zoom-out');
+    if (ctxMenuZoomIn && ctxMenuZoomOut) {
+      ctxMenuZoomIn.addEventListener('click', (ev) => {
+        const menu = document.getElementById('ctx-menu');
+        if (!menu) return;
+        const cx = Number(menu.dataset.clientX);
+        const cy = Number(menu.dataset.clientY);
+        const rect = canvas.getBoundingClientRect();
+        const mx = cx - rect.left;
+        const my = cy - rect.top;
+        const worldX = camera.srcX + (mx / canvas.width) * camera.srcW;
+        const worldY = camera.srcY + (my / canvas.height) * camera.srcH;
+        // zoom in
+        const zoomFactor = 0.5;
+        const newSrcW = Math.max(20, camera.srcW * zoomFactor);
+        const newSrcH = (newSrcW * canvas.height) / canvas.width;
+        camera.srcX = worldX - (mx / canvas.width) * newSrcW;
+        camera.srcY = worldY - (my / canvas.height) * newSrcH;
+        camera.srcW = newSrcW; camera.srcH = newSrcH;
+        clampCamValues(camera, offCanvas);
+        drawView(canvas, offCanvas);
+        menu.style.display = 'none';
+      });
+      ctxMenuZoomOut.addEventListener('click', (ev) => {
+        const menu = document.getElementById('ctx-menu');
+        if (!menu) return;
+        const cx = Number(menu.dataset.clientX);
+        const cy = Number(menu.dataset.clientY);
+        const rect = canvas.getBoundingClientRect();
+        const mx = cx - rect.left;
+        const my = cy - rect.top;
+        const worldX = camera.srcX + (mx / canvas.width) * camera.srcW;
+        const worldY = camera.srcY + (my / canvas.height) * camera.srcH;
+        // zoom out
+        const zoomFactor = 2.0;
+        const newSrcW = Math.min(offCanvas.width, camera.srcW * zoomFactor);
+        const newSrcH = (newSrcW * canvas.height) / canvas.width;
+        camera.srcX = worldX - (mx / canvas.width) * newSrcW;
+        camera.srcY = worldY - (my / canvas.height) * newSrcH;
+        camera.srcW = newSrcW; camera.srcH = newSrcH;
+        clampCamValues(camera, offCanvas);
+        drawView(canvas, offCanvas);
+        menu.style.display = 'none';
+      });
+    }
   function unsetupPanZoom(canvas) {
     canvas.onwheel = null;
     canvas.onmousedown = null;
@@ -585,8 +729,8 @@ function initUI() {
 
   function doGenerate() {
     const options = {
-      width: Number(widthInput.value),
-      height: Number(heightInput.value),
+      width: 1920,
+      height: 1080,
       // fixed detail for realistic base; procedural fallback uses defaults
       scale: 80,
       octaves: 4,
@@ -605,6 +749,9 @@ function initUI() {
     const features = worldFeatureCollection || naFeatureCollection;
     if (features) {
       const off = renderWorldOffscreen(features, options.width * 2, options.height * 2, options);
+      // draw regions overlay onto offscreen: use bbox passed via options
+      const offCtx = off.getContext('2d');
+      drawRegionsLayer(offCtx, options.bbox, off.width, off.height);
       // initialize camera (src rect) to North America focus if not already set
       if (!camera || !camera.initialized) {
         const naBbox = { west: -170, east: -50, north: 72, south: 14 };

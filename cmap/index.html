@@ -14,8 +14,7 @@
   <main>
     <aside class="controls">
       <!-- Simple realistic-only map UI -->
-      <label>Width: <input id="width" type="number" value="900" min="256" max="4096"></label>
-      <label>Height: <input id="height" type="number" value="450" min="256" max="4096"></label>
+      <!-- Canvas is fixed at 1920x1080 (no width/height input) -->
       <label>Palette: 
         <select id="palette">
           <option value="classic">Classic (water → grass → mountain)</option>
@@ -34,8 +33,16 @@
     </aside>
     <section class="canvas-wrap">
       <canvas id="map"></canvas>
+      <div style="position: absolute; right: 24px; bottom: 24px; display:flex; flex-direction:column; align-items:center; gap:6px">
+        <canvas id="minimap" width="240" height="135" aria-hidden="true"></canvas>
+        <input id="zoomSlider" type="range" min="1" max="100" value="20" aria-label="Zoom slider" style="width:240px" />
+      </div>
     </section>
   </main>
+  <div id="ctx-menu" class="context-menu" role="menu" aria-hidden="true">
+    <button id="ctx-zoom-in" role="menuitem">Zoom here</button>
+    <button id="ctx-zoom-out" role="menuitem">Zoom out here</button>
+  </div>
   <footer>
     <small>cmap — realistic map renderer</small>
   </footer>

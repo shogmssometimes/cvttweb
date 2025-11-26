@@ -13,6 +13,15 @@ main { display: flex; gap: 1rem; padding: 1rem; }
 .controls .buttons { display:flex; gap: .5rem; margin-top: .5rem; }
 button { background:#0d6efd; color:white; border: none; padding: 6px 10px; border-radius: 6px; cursor:pointer; }
 button#download { background:#198754 }
-.canvas-wrap { flex:1; display:flex; justify-content: center; align-items: center; }
+.canvas-wrap { flex:1; display:flex; justify-content: center; align-items: center; position: relative; }
 canvas { max-width: 100%; height: auto; image-rendering: pixelated; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.7); }
+/* minimap positioning */
+/* minimap container */
+#minimap { width: 240px; height: 135px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06); box-shadow: 0 8px 24px rgba(0,0,0,0.5); background: rgba(255,255,255,0.02); }
+#minimap + #zoomSlider { width: 240px; }
+
+/* context menu */
+.context-menu { position: absolute; display: none; z-index: 1000; background: #111; color: #eee; padding: 8px 0; border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.7); min-width: 180px; font-size: .9rem; }
+.context-menu button { all: unset; display: block; padding: 8px 12px; cursor: pointer; }
+.context-menu button:hover { background: rgba(255,255,255,0.02); }
 footer { padding: .5rem 1rem; font-size: .75rem; color:#bbb; background:#111; border-top:1px solid #333 }

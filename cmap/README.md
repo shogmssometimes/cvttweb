@@ -2,12 +2,16 @@
 
 A minimal, static realistic map renderer that uses GeoJSON country polygons to draw the world map. The UI is intentionally simple and beginner-friendly — no advanced procedural controls are shown.
 
-Features:
+- Features:
 - Realistic polygon-based base map using GeoJSON country polygons (world dataset)
 - Default focus on North America with pan/zoom controls for detail
 - Palette selection for color styles
 - Always-visible subtle country borders and coastline outlines
 - Download map as PNG
+ - Fixed canvas size: 1920x1080 (so outputs always match this resolution)
+ - Minimap: visual indicator in the lower-right showing where the viewport sits over the rendered map
+ - Right-click context menu on the map with "Zoom here" and "Zoom out here"
+ - Regions layer: translucent partitions over the map for coarse regional grouping
 
 How to run locally:
 1. Run a simple local static server:
