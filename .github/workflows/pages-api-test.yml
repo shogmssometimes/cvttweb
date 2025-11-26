@@ -19,26 +19,20 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Checkout repo
-        uses: actions/checkout@v4
 
-      - name: Use Node.js ${{ matrix.node }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node }}
+      - name: Debug repo root (list files)
+        run: ls -la
 
       - name: Install dependencies
-        run: |
-          cd collapse_web
-          npm ci
+        working-directory: collapse_web
+        run: npm ci
       - name: Rebuild native modules (diagnostic)
-        run: |
-          cd collapse_web
-          npm rebuild || true
+        working-directory: collapse_web
+        run: npm rebuild || true
 
       - name: Check Rollup bindings (diagnostic)
+        working-directory: collapse_web
         run: |
-          cd collapse_web
           node -v && npm -v
           echo "rollup/package.json:"
           node -e "try { console.log(require('rollup/package.json').version) } catch (e) { console.error('rollup not found', e.message); }" || true
@@ -47,12 +41,12 @@ jobs:
           echo "Installed optional rollup packages:"
           ls -la node_modules/@rollup | grep rollup- || true
           echo "File exists check for linux x64 gnu binding:"
-          node -e "console.log(require('fs').existsSync(require('path').resolve('node_modules/@rollup/rollup-linux-x64-gnu')))"
+          node -e "console.log(require('fs').existsSync(require('path').resolve('node_modules/@rollup/rollup-linux-x64-gnu')))" || true
 
       - name: Ensure rollup native (Linux x64) if missing
         if: runner.os == 'Linux'
+        working-directory: collapse_web
         run: |
-          cd collapse_web
           set -euxo pipefail
           ROLLUP_VER=$(node -p "require('rollup/package.json').version")
           echo "Detected rollup version: $ROLLUP_VER"
@@ -62,9 +56,8 @@ jobs:
           ls -la node_modules/@rollup || true
 
       - name: Build site
-        run: |
-          cd collapse_web
-          npm run build
+        working-directory: collapse_web
+        run: npm run build
 
       - name: Upload pages artifact (Pages API format)
         uses: actions/upload-pages-artifact@v3
@@ -84,17 +77,15 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
-        run: |
-          cd collapse_web
-          npm ci
+        working-directory: collapse_web
+        run: npm ci
       - name: Rebuild native modules (diagnostic)
-        run: |
-          cd collapse_web
-          npm rebuild || true
+        working-directory: collapse_web
+        run: npm rebuild || true
 
       - name: Check Rollup bindings (diagnostic)
+        working-directory: collapse_web
         run: |
-          cd collapse_web
           node -v && npm -v
           echo "rollup/package.json:"
           node -e "try { console.log(require('rollup/package.json').version) } catch (e) { console.error('rollup not found', e.message); process.exit(0) }"
@@ -103,12 +94,12 @@ jobs:
           echo "Installed optional rollup packages:"
           ls -la node_modules/@rollup | grep rollup- || true
           echo "File exists check for linux x64 gnu binding:"
-          node -e "console.log(require('fs').existsSync(require('path').resolve('node_modules/@rollup/rollup-linux-x64-gnu')))"
+          node -e "console.log(require('fs').existsSync(require('path').resolve('node_modules/@rollup/rollup-linux-x64-gnu')))" || true
 
       - name: Ensure rollup native (Linux x64) if missing
         if: runner.os == 'Linux'
+        working-directory: collapse_web
         run: |
-          cd collapse_web
           set -euxo pipefail
           ROLLUP_VER=$(node -p "require('rollup/package.json').version")
           echo "Detected rollup version: $ROLLUP_VER"
@@ -118,9 +109,8 @@ jobs:
           ls -la node_modules/@rollup || true
 
       - name: Build site
-        run: |
-          cd collapse_web
-          npm run build
+        working-directory: collapse_web
+        run: npm run build
 
       - name: Upload pages artifact (Pages API format)
         uses: actions/upload-pages-artifact@v3
