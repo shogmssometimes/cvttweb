@@ -47,7 +47,7 @@ jobs:
           ROLLUP_VER=$(node -p "require('rollup/package.json').version")
           echo "Detected rollup version: $ROLLUP_VER"
           echo "Installing optional rollup native package for linux-x64-gnu"
-          npm i --no-save @rollup/rollup-linux-x64-gnu@$ROLLUP_VER || true
+          npm i --no-save @rollup/rollup-linux-x64-gnu@$ROLLUP_VER
           echo "After installing optional package, list @rollup packages:"
           ls -la node_modules/@rollup || true
 
