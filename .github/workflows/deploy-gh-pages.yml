@@ -103,6 +103,9 @@ jobs:
       id-token: write
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
+    outputs:
+      page_url: ${{ steps.deploy_pages_api.outputs.page_url }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -113,6 +116,9 @@ jobs:
         id: deploy_pages_api
         uses: actions/deploy-pages@v4
         continue-on-error: true
+
+      - name: Output Pages URL
+        run: echo "Deployed site URL: ${{ steps.deploy_pages_api.outputs.page_url }}"
 
       # Pages API is the primary deploy method. The explicit `peaceiris` fallback was removed
       # after successful validation runs. If you need a branch-based fallback later, re-add

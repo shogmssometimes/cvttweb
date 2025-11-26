@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>cmap — Map Generator</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>cmap — Realistic Map Renderer</h1>
+    <div id="status" style="font-size:.85rem;color:#9ca3af;margin-left:12px">Loading data...</div>
+  </header>
+  <main>
+    <aside class="controls">
+      <!-- Simple realistic-only map UI -->
+      <label>Width: <input id="width" type="number" value="900" min="256" max="4096"></label>
+      <label>Height: <input id="height" type="number" value="450" min="256" max="4096"></label>
+      <label>Palette: 
+        <select id="palette">
+          <option value="classic">Classic (water → grass → mountain)</option>
+          <option value="grayscale">Grayscale</option>
+          <option value="dessert">Desert</option>
+        </select>
+      </label>
+      <div style="font-size:.9rem;color:#9ca3af;margin-top:.4rem">
+        Realistic world map (polygon-based). Coastlines and country borders are shown by default.
+      </div>
+      <div style="font-size:.8rem;color:#9ca3af;margin-top:.6rem">Pan: Drag with mouse → Zoom: Mouse wheel → Reset: Double-click</div>
+      <div class="buttons">
+        <button id="generate">Refresh</button>
+        <button id="download">Download PNG</button>
+      </div>
+    </aside>
+    <section class="canvas-wrap">
+      <canvas id="map"></canvas>
+    </section>
+  </main>
+  <footer>
+    <small>cmap — realistic map renderer</small>
+  </footer>
+
+  <script src="map.js"></script>
+</body>
+</html>

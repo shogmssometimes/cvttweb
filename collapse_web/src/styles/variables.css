@@ -1,0 +1,29 @@
+/* Centralized design tokens for Collapse PWA compact theme */
+:root {
+  /* spacing */
+  --gap-small: 4px;
+  --gap-1: 8px;
+  --gap-2: 12px;
+  --gap-3: 16px;
+
+  /* typography */
+  --type-page: 20px;
+  --type-section: 14px;
+  --type-body: 12px;
+  --type-footnote: 11px;
+
+  --stat-large: 1.8rem;
+
+  --counter-size: 34px;
+  --hit-area: 44px;
+
+  /* colors */
+  --bg-dark: #0b0b0b;
+  --accent: #0ff6ff;
+  --muted: #9aa0a6;
+  --separator: rgba(255,255,255,0.06);
+  --border: #333;
+  --warning: #f7b500;
+  --error: #ff6b6b;
+  --success: #4caf50;
+}

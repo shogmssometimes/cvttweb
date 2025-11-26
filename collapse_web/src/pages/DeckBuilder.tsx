@@ -98,6 +98,7 @@ export default function DeckBuilder(){
   const [deckSeed, setDeckSeed] = useState(0)
   const [activePlay, setActivePlay] = useState<ActivePlay>(null)
   const [pageIndex, setPageIndex] = useState(0)
+  const [compactView, setCompactView] = useState(true)
   const [dragOffset, setDragOffset] = useState(0)
   const dragStartRef = useRef<number | null>(null)
   const pointerDownRef = useRef(false)
@@ -485,15 +486,15 @@ export default function DeckBuilder(){
     return Object.entries(groups).map(([id,g]) => {
       const card = Handbook.getAllCards().find(c => c.id === id)
       return (
-        <div key={id} className={`card base-card small-card compact`} style={{border:'1px solid #333',background:'#050505'}}>
+        <div key={id} className={`card base-card small-card compact`}>
           <div className="card-header">
-            <div className="card-title"><div className="card-name" style={{fontWeight:700}}>{card?.name ?? id} <span style={{color:'#9aa0a6',fontSize:'0.9rem'}}>(x{g.count})</span></div></div>
+            <div className="card-title"><div className="card-name">{card?.name ?? id} <span className="muted text-section">(x{g.count})</span></div></div>
             <div className="card-controls">
               <button className="counter-btn" onClick={()=>returnDiscardGroupToDeck(id)}>Deck</button>
               <button className="counter-btn" onClick={()=>returnDiscardGroupToHand(id)} disabled={(builderState.hand ?? []).length >= (builderState.handLimit ?? 5)}>Hand</button>
             </div>
           </div>
-          <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Stacked</div>
+          <div className="muted text-body">Stacked</div>
           <div style={{marginTop:8}}>{renderDetails(card ?? {id, name:id, type:'', cost:0, text:'' as any})}</div>
           
         </div>
@@ -512,9 +513,9 @@ export default function DeckBuilder(){
     return Object.entries(groups).map(([id,g]) => {
       const card = Handbook.getAllCards().find(c => c.id === id)
       return (
-        <div key={id} className={`card base-card small-card compact`} style={{border:'1px solid #333',background:'#050505'}}>
+        <div key={id} className={`card base-card small-card compact`}>
           <div className="card-header">
-            <div className="card-title"><div className="card-name" style={{fontWeight:700}}>{card?.name ?? id} <span style={{color:'#9aa0a6',fontSize:'0.9rem'}}>(x{g.count})</span></div></div>
+            <div className="card-title"><div className="card-name">{card?.name ?? id} <span className="muted text-section">(x{g.count})</span></div></div>
             <div className="card-controls">
               {/* Small inline controls for the grouped hand */}
               {card?.type === 'base' ? (
@@ -530,7 +531,7 @@ export default function DeckBuilder(){
               )}
             </div>
           </div>
-          <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>{card?.type ?? ''}</div>
+          <div className="muted text-body">{card?.type ?? ''}</div>
           <div style={{marginTop:8}}>{renderDetails(card ?? {id, name:id, type:'', cost:0, text:'' as any})}</div>
           <div style={{marginTop:8,display:'flex',gap:8,flexDirection:'column'}}>
             <div style={{display:'flex',gap:8}}>
@@ -606,7 +607,7 @@ export default function DeckBuilder(){
   function renderDetails(card: Card) {
     if (!card.details || card.details.length === 0) return null
     return (
-      <dl className="card-details" style={{marginTop:8,marginBottom:0,fontSize:'0.8rem',width:'100%'}}>
+      <dl className="card-details text-body" style={{marginTop:8,marginBottom:0,width:'100%'}}>
         {card.details.map((detail) => (
           <React.Fragment key={`${card.id}-${detail.label}`}>
             <dt style={{fontWeight:600}}>{detail.label}</dt>
@@ -628,61 +629,62 @@ export default function DeckBuilder(){
                   <h1>Engram Deck Builder</h1>
                   <p className="muted">Assemble MTG-style decks from official handbook data. Decks require 26 base cards, at least 5 Nulls, and modifier capacity must not be exceeded.</p>
                   {/* Move export/import controls under the flavor text so they don't get squashed */}
-                  <div style={{marginTop:8}}>
-                    <ImportExportJSON filenamePrefix={`collapse-deck`} />
-                  </div>
+                  <div style={{marginTop:8, display:'flex', gap:8, alignItems:'center'}}>
+                      <ImportExportJSON filenamePrefix={`collapse-deck`} />
+                      <button onClick={()=>setCompactView((c)=>!c)} aria-pressed={compactView} aria-label="Toggle compact view">{compactView ? 'Compact View' : 'Default View'}</button>
+                    </div>
                 </div>
               </div>
-            <section className="card-grid base-card-grid compact" style={{border:'1px solid #222',borderRadius:12,padding:16,background:'#080808'}}>
+            <section className={`card-grid base-card-grid ${compactView ? 'compact' : ''}`}>
               <div>
-                <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Base Cards</div>
-                <div style={{fontSize:'1.8rem',fontWeight:700}}>{baseTotal} / {BASE_TARGET}</div>
-                {!baseValid && <div style={{color:'#f7b500',fontSize:'0.85rem'}}>Deck must contain exactly 26 base cards.</div>}
+                <div className="muted text-body">Base Cards</div>
+                <div className="stat-large">{baseTotal} / {BASE_TARGET}</div>
+                {!baseValid && <div className="status-warning text-body">Deck must contain exactly 26 base cards.</div>}
               </div>
 
               <div>
-                <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Null Cards</div>
-                <div style={{fontSize:'1.8rem',fontWeight:700}}>{builderState.nullCount}</div>
-                {!nullValid && <div style={{color:'#f7b500',fontSize:'0.85rem'}}>Minimum of {MIN_NULLS} Nulls required.</div>}
+                <div className="muted text-body">Null Cards</div>
+                <div className="stat-large">{builderState.nullCount}</div>
+                {!nullValid && <div className="status-warning text-body">Minimum of {MIN_NULLS} Nulls required.</div>}
               </div>
               <div>
-                <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Modifier Capacity</div>
-                <div style={{fontSize:'1.8rem',fontWeight:700}}>{modCapacityUsed} / {builderState.modifierCapacity}</div>
+                <div className="muted text-body">Modifier Capacity</div>
+                <div className="stat-large">{modCapacityUsed} / {builderState.modifierCapacity}</div>
                 <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
-                  <label style={{fontSize:'0.85rem',color:'#9aa0a6'}}>Capacity</label>
+                  <label className="muted text-body">Capacity</label>
                   <input
                     aria-label="Modifier Capacity"
                     type="number"
                     min={0}
                     value={builderState.modifierCapacity}
                     onChange={(e) => setModifierCapacity(Number.parseInt(e.target.value || '0', 10))}
-                    style={{width:92,padding:'4px 8px',background:'#0b0b0b',border:'1px solid #333',color:'#fff',borderRadius:6}}
+                    className="capacity-input"
                   />
                 </div>
-                <div style={{fontSize:'0.85rem',color:'#9aa0a6',marginTop:6}}>Mod Capacity Used</div>
-                {!modValid && <div style={{color:'#ff6b6b',fontSize:'0.85rem'}}>Reduce modifier cards or raise capacity.</div>}
+                <div className="muted text-body" style={{marginTop:6}}>Mod Capacity Used</div>
+                {!modValid && <div className="status-error text-body">Reduce modifier cards or raise capacity.</div>}
               </div>
               <div>
-                <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Deck Status</div>
-                <div style={{fontSize:'1.8rem',fontWeight:700,color:deckIsValid ? '#4caf50' : '#ff6b6b'}}>{deckIsValid ? 'Ready' : 'Needs Attention'}</div>
+                <div className="muted text-body">Deck Status</div>
+                <div className={`stat-large ${deckIsValid ? 'status-success' : 'status-error'}`}>{deckIsValid ? 'Ready' : 'Needs Attention'}</div>
                 <button onClick={resetBuilder} style={{marginTop:8}}>Reset Builder</button>
               </div>
             </section>
 
-            <section className="compact" style={{border:'1px solid #222',borderRadius:12,padding:16}}>
+            <section className="compact">
               <h2>Base Skill Cards</h2>
-              <p style={{marginTop:0,color:'#9aa0a6'}}>Pick any combination of the 15 skills until you reach 26 total cards.</p>
-                <div className="card-grid base-card-grid">
+              <p className="muted" style={{marginTop:0}}>Pick any combination of the 15 skills until you reach 26 total cards.</p>
+                <div className={`card-grid base-card-grid ${compactView ? 'compact' : ''}`}>
                 {baseCards.map((card) => {
                   const qty = builderState.baseCounts[card.id] ?? 0
                       const isSelectedBase = activePlay?.baseId === card.id
                       return (
-                        <div key={card.id} className={`card base-card compact`} style={{border:`1px solid ${isSelectedBase ? '#7b78ff' : '#333'}`,background:'#050505'}}>
+                        <div key={card.id} className={`card base-card ${compactView ? 'compact' : ''} ${isSelectedBase ? 'is-selected' : ''}`}>
                           <div className="card-header">
                             <div className="card-title">
                               <div className="card-name">{card.name}</div>
-                              {isSelectedBase && <div style={{fontSize:'0.75rem',color:'#7b78ff',marginTop:4}}>Selected Base</div>}
-                              <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>{card.text}</div>
+                              {isSelectedBase && <div className="accent text-footnote" style={{marginTop:4}}>Selected Base</div>}
+                              <div className="muted text-body">{card.text}</div>
                             </div>
                             <div className="card-controls">
                               <button className="counter-btn" onClick={()=>adjustBaseCount(card.id,-1)} disabled={qty === 0 || builderState.isLocked}>-</button>
@@ -697,11 +699,11 @@ export default function DeckBuilder(){
               </div>
             </section>
 
-                <section className="compact" style={{border:'1px solid #222',borderRadius:12,padding:16,display:'flex',flexDirection:'column',gap:16}}>
+                <section className="compact" style={{display:'flex',flexDirection:'column',gap:16}}>
                   <div style={{display:'flex',flexWrap:'wrap',gap:12,justifyContent:'space-between',alignItems:'center'}}>
                     <div>
                       <h2 style={{marginBottom:4}}>Modifier Cards</h2>
-                      <p style={{marginTop:0,color:'#9aa0a6'}}>Each modifier consumes capacity equal to its card cost. Stay within your Engram Modifier Capacity.</p>
+                      <p className="muted" style={{marginTop:0}}>Each modifier consumes capacity equal to its card cost. Stay within your Engram Modifier Capacity.</p>
                     </div>
                     <div style={{display:'flex',flexDirection:'column',gap:8}}>
                       <label style={{fontWeight:600}}>Modifier Capacity</label>
@@ -713,18 +715,18 @@ export default function DeckBuilder(){
                     </div>
                   </div>
 
-                  <div className="card-grid mod-card-grid">
+                    <div className={`card-grid mod-card-grid ${compactView ? 'compact' : ''}`}>
                     {filteredModCards.map((card) => {
                       const qty = builderState.modCounts[card.id] ?? 0
                       const cost = card.cost ?? 0
                       const isAttached = activePlay?.mods?.includes(card.id)
                       return (
-                        <div key={card.id} className={`card mod-card compact`} style={{border:`1px solid ${isAttached ? '#7b78ff' : '#333'}`,background:'#050505'}}>
+                                <div key={card.id} className={`card mod-card ${compactView ? 'compact' : ''} ${isAttached ? 'is-selected' : ''}`}>
                           <div className="card-header" style={{gap:12}}>
                             <div className="card-title" style={{minWidth:0, flex: '1 1 auto'}}>
                               <div className="card-name">{card.name}</div>
-                              <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>Cost {cost}</div>
-                              {isAttached && <div style={{fontSize:'0.75rem',color:'#7b78ff',marginTop:4}}>Attached</div>}
+                              <div className="muted text-body">Cost {cost}</div>
+                              {isAttached && <div className="accent text-footnote" style={{marginTop:4}}>Attached</div>}
                             </div>
                             <div className="card-controls">
                               <button className="counter-btn" onClick={()=>adjustModCount(card.id,-1)} disabled={qty === 0 || builderState.isLocked}>-</button>
@@ -732,7 +734,7 @@ export default function DeckBuilder(){
                               <button className="counter-btn" onClick={()=>adjustModCount(card.id,1)} disabled={builderState.isLocked || !canAddModCard(card.id)}>+</button>
                             </div>
                           </div>
-                          <p style={{margin:0,fontSize:'0.85rem'}}>{card.text}</p>
+                          <p className="text-body" style={{margin:0}}>{card.text}</p>
                           {renderDetails(card)}
                         </div>
                       )
@@ -744,7 +746,7 @@ export default function DeckBuilder(){
 
           {/* Page 2: Deck Operations + Discard Pile */}
           <div className="page">
-            <section style={{border:'1px solid #222',borderRadius:12,padding:16,display:'grid',gridTemplateColumns:'1fr',gap:12}}>
+            <section style={{display:'grid',gridTemplateColumns:'1fr',gap:12}}>
               <div>
                 <label style={{fontWeight:600}}>Hand Draw</label>
                 <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
@@ -753,18 +755,18 @@ export default function DeckBuilder(){
               </div>
             </section>
 
-            <section className="card-grid base-card-grid compact" style={{border:'1px solid #222',borderRadius:12,padding:16}}>
+            <section className={`card-grid base-card-grid ${compactView ? 'compact' : ''}`}>
               <div>
                 <h3>Hand</h3>
                 <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
-                  <div style={{fontSize:'0.85rem',color:'#9aa0a6'}}>Duplicates stacked</div>
+                  <div className="muted text-body">Duplicates stacked</div>
                 </div>
                 <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
                   {groupedHandElements}
                   {(groupedHandElements?.length ?? 0) === 0 && (builderState.hand ?? []).map((handCard, idx) => {
                       const card = Handbook.getAllCards().find(c => c.id === handCard.id)
                     return (
-                        <div key={idx} className={`card base-card small-card compact`} style={{border:'1px solid #333',background:'#050505'}}>
+                        <div key={idx} className={`card base-card small-card ${compactView ? 'compact' : ''}`}>
                           <div className="card-header">
                             <div className="card-title"><div className="card-name" style={{fontWeight:700}}>{card?.name ?? handCard.id}</div></div>
                             <div className="card-controls">
@@ -780,25 +782,25 @@ export default function DeckBuilder(){
                               )}
                             </div>
                           </div>
-                          <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>{card?.type ?? ''}</div>
+                          <div className="muted text-body">{card?.type ?? ''}</div>
                           <div style={{marginTop:8}}>{renderDetails(card ?? {id:handCard.id,name:handCard.id,type:'',cost:0,text:'' as any})}</div>
                           <div style={{marginTop:6,display:'flex',gap:8}}>
-                            <div style={{fontSize:'0.9rem',fontWeight:600}}>{handCard.state === 'played' ? 'Played' : ''}</div>
+                            <div className="label-strong">{handCard.state === 'played' ? 'Played' : ''}</div>
                           </div>
                         </div>
                       )
                   })}
-                  {((builderState.hand ?? []).length === 0) && <div style={{color:'#9aa0a6'}}>No cards in hand</div>}
+                  {((builderState.hand ?? []).length === 0) && <div className="muted">No cards in hand</div>}
                 </div>
               </div>
             </section>
 
             {/* Discard Pile will be added after Deck Operations */}
 
-            <section className="card-grid base-card-grid" style={{border:'1px solid #222',borderRadius:12,padding:16}}>
+            <section className={`card-grid base-card-grid ${compactView ? 'compact' : ''}`}>
               <div>
                 <h2>Deck Operations</h2>
-                <p style={{marginTop:0,color:'#9aa0a6'}}>Shuffle, draw, and discard cards from your deck. Draw uses the top-of-deck (LIFO) model.</p>
+                <p className="muted" style={{marginTop:0}}>Shuffle, draw, and discard cards from your deck. Draw uses the top-of-deck (LIFO) model.</p>
                 <div className="ops-toolbar">
                   <button onClick={()=>generateDeck(true)}>Build Deck</button>
                   <button onClick={()=>shuffleDeck()}>Shuffle</button>
@@ -810,13 +812,13 @@ export default function DeckBuilder(){
                   </div>
                 </div>
                 <div style={{marginTop:12}}>
-                  <div style={{fontSize:'0.85rem'}}>Deck Count: <strong>{(builderState.deck ?? []).length}</strong></div>
-                  <div style={{fontSize:'0.85rem'}}>Discard Count: <strong>{(builderState.discard ?? []).length}</strong></div>
+                  <div className="text-body">Deck Count: <strong>{(builderState.deck ?? []).length}</strong></div>
+                  <div className="text-body">Discard Count: <strong>{(builderState.discard ?? []).length}</strong></div>
                   {activePlay && (
                     <div style={{marginTop:12,border:'1px solid #444',padding:8,borderRadius:8,background:'#0a0a0a'}}>
                       <div style={{fontWeight:700}}>Active Play</div>
-                      <div style={{fontSize:'0.9rem',color:'#9aa0a6',marginTop:6}}>Base: {Handbook.getAllCards().find(c=>c.id===activePlay.baseId)?.name ?? activePlay.baseId}</div>
-                      <div style={{fontSize:'0.85rem',color:'#9aa0a6',marginTop:6}}>Modifiers: {activePlay.mods.length}</div>
+                      <div className="muted text-section" style={{marginTop:6}}>Base: {Handbook.getAllCards().find(c=>c.id===activePlay.baseId)?.name ?? activePlay.baseId}</div>
+                      <div className="muted text-body" style={{marginTop:6}}>Modifiers: {activePlay.mods.length}</div>
                       <div style={{display:'flex',gap:8,marginTop:8}}>
                         <button onClick={()=>finalizePlay()}>Finalize Play</button>
                         <button onClick={()=>cancelPlay()}>Cancel Play</button>
@@ -827,13 +829,13 @@ export default function DeckBuilder(){
                     <label style={{fontWeight:600}}>Hand Limit</label>
                     <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
                       <input type="number" min={0} value={builderState.handLimit ?? 5} onChange={(e)=>setBuilderState(prev=>({...prev, handLimit: parseInt(e.target.value,10)||5}))} style={{width:80,maxWidth:'100%',textAlign:'center'}} />
-                      <div style={{color:'#9aa0a6',fontSize:'0.85rem'}}>Active cap for hand cards.</div>
+                      <div className="muted text-body">Active cap for hand cards.</div>
                     </div>
                   </div>
                   <div style={{marginTop:8}}>
                     <div style={{fontWeight:600}}>Saved Decks</div>
                     <div style={{display:'flex',flexDirection:'column',gap:6,marginTop:6}}>
-                      {Object.keys(builderState.savedDecks ?? {}).length === 0 && <div style={{color:'#9aa0a6'}}>No saved decks</div>}
+                      {Object.keys(builderState.savedDecks ?? {}).length === 0 && <div className="muted">No saved decks</div>}
                       {Object.entries(builderState.savedDecks ?? {}).map(([k,v])=> (
                         <div key={k} style={{display:'flex',gap:8,alignItems:'center'}}>
                           <div style={{minWidth:160}}>{v.name}</div>
@@ -847,18 +849,18 @@ export default function DeckBuilder(){
               </div>
             </section>
 
-            <section style={{border:'1px solid #222',borderRadius:12,padding:16,display:'grid',gridTemplateColumns:'1fr',gap:12}}>
+            <section style={{display:'grid',gridTemplateColumns:'1fr',gap:12}}>
               <div>
                 <h3>Discard Pile</h3>
                 <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
-                  <div style={{fontSize:'0.85rem',color:'#9aa0a6'}}>Duplicates stacked</div>
+                  <div className="muted text-body">Duplicates stacked</div>
                 </div>
                 <div style={{display:'flex',flexDirection:'column',gap:8}}>
                   {groupedDiscardElements}
                   {(groupedDiscardElements?.length ?? 0) === 0 && (builderState.discard ?? []).map((item, idx) => {
                     const card = Handbook.getAllCards().find(c => c.id === item.id)
                     return (
-                      <div key={idx} className={`card base-card small-card compact`} style={{border:'1px solid #333',background:'#050505'}}>
+                      <div key={idx} className={`card base-card small-card ${compactView ? 'compact' : ''}`}>
                         <div className="card-header">
                           <div className="card-title"><div className="card-name" style={{fontWeight:700}}>{card?.name ?? item.id}</div></div>
                           <div className="card-controls">
@@ -866,12 +868,12 @@ export default function DeckBuilder(){
                             <button className="counter-btn" onClick={() => returnDiscardItemToHand(idx)} disabled={(builderState.hand ?? []).length >= (builderState.handLimit ?? 5)}>Hand</button>
                           </div>
                         </div>
-                        <div style={{fontSize:'0.8rem',color:'#9aa0a6'}}>#{idx+1} • {item.origin === 'played' ? 'Played' : 'Discarded'}</div>
+                        <div className="muted text-body">#{idx+1} • {item.origin === 'played' ? 'Played' : 'Discarded'}</div>
                         <div style={{marginTop:8}}>{renderDetails(card ?? {id:item.id,name:item.id,type:'',cost:0,text:'' as any})}</div>
                       </div>
                     )
                   })}
-                  {((builderState.discard ?? []).length === 0) && <div style={{color:'#9aa0a6'}}>Discard pile is empty</div>}
+                  {((builderState.discard ?? []).length === 0) && <div className="muted">Discard pile is empty</div>}
                 </div>
               </div>
             </section>

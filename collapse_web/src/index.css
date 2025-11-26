@@ -13,18 +13,20 @@
 
 /* Compact card: reduced paddings and less pronounced border for nested/summary sections */
 .card.compact {
-  padding: 10px !important;
-  border-radius: 10px !important;
+  padding: var(--gap-1) !important;
+  border-radius: 8px !important;
   border: 1px solid rgba(34,34,34,0.75) !important;
   background: rgba(8,8,8,0.85) !important;
 }
 @media (max-width: 840px) {
   .card.compact { padding: 8px !important; border: none !important; background: transparent !important; }
 }
+
 :root {
+  /* Design tokens for compact mobile-first layout */
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: #f8f9fa;
-  background-color: #0b0b0b;
+  background-color: var(--bg-dark);
   font-size: 14px;
 }
 
@@ -164,6 +166,14 @@ main {
   gap: 8px;
 }
 
+/* Compact grid variant: tighter gap and edge-to-edge content for dense lists */
+.card-grid.compact { gap: var(--gap-small); padding: 0; background: transparent; border: none; }
+
+/* Compact visual rules: prefer edge-to-edge lists in compact mode */
+.card-grid.compact .card { border: none; background: transparent; border-radius: 0; padding: var(--gap-1) 0; }
+.section.compact, section.compact { padding: var(--gap-1) 0; border: none; background: transparent; }
+.card-grid.compact .card.base-card { padding: var(--gap-1) 0; }
+
 .card-grid.base-card-grid {
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 8px;
@@ -175,9 +185,9 @@ main {
 
 /* Card-like containers */
 .card {
-  border:1px solid #111;
+  border:1px solid #333;
   border-radius:8px;
-  padding:8px;
+  padding: var(--gap-1);
   background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.1));
   min-width: 0; /* allow grid children to shrink on mobile */
   word-break: break-word;
@@ -193,36 +203,20 @@ main {
 }
 
 /* Compact header and counter layout for card items */
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  flex-wrap: nowrap;
-}
+.card-header { display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:nowrap }
 .card-title {
   min-width: 0;
   flex: 1 1 auto;
   overflow: hidden;
 }
-.card-title .card-name {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-weight: 700;
-}
+.card-title .card-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight:700; font-size: var(--type-section); }
 .card-controls {
   display: flex;
   gap: 6px;
   align-items: center;
   flex: 0 0 auto;
 }
-.counter-btn {
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  font-size: 0.9rem;
-}
+.counter-btn { width: var(--counter-size); height: var(--counter-size); padding: 0; font-size: 0.9rem; }
 .counter-value {
   min-width: 20px;
   text-align: center;
@@ -246,10 +240,13 @@ main {
 .card-grid.base-card-grid .card > div > div:last-child button { min-width: 28px; width: 28px; height: 28px; padding: 0; box-sizing: border-box; }
 .card-grid.base-card-grid .card > div > div:last-child button svg, .card-grid.base-card-grid .card > div > div:last-child button span { display:block; width:100%; height:100%; }
 
+
+/* Selected / highlight state */
+.card.is-selected { border-color: #7b78ff; box-shadow: none; }
 /* Class-based sizing and padding rules for base and mod cards */
-.card.base-card { padding: 12px 18px; border-radius: 10px; }
-.card.mod-card { padding: 12px; border-radius: 10px; }
-.card.small-card { padding: 8px; border-radius: 10px; }
+.card.base-card { padding: calc(var(--gap-1) + 2px) calc(var(--gap-2)); border-radius: 8px; }
+.card.mod-card { padding: calc(var(--gap-1) + 2px); border-radius: 8px; }
+.card.small-card { padding: var(--gap-1); border-radius: 8px; }
 
 /* Base-card header override for explicit scoping */
 .card.base-card > div { overflow: hidden; }
@@ -269,6 +266,26 @@ main {
   white-space: normal;
 }
 
+/* Compact font scaling for dense lists */
+.card-grid.compact .card p, .card-grid.compact .card .card-details, .card-grid.compact .card .row-meta { font-size: var(--type-body); color: var(--muted); }
+
+/* Utility text classes using centralized tokens */
+.text-page { font-size: var(--type-page); }
+.text-section { font-size: var(--type-section); }
+.text-body { font-size: var(--type-body); }
+.text-footnote { font-size: var(--type-footnote); }
+.stat-large { font-size: var(--stat-large); font-weight: 700; }
+.muted { color: var(--muted); }
+.accent { color: var(--accent); }
+.status-success { color: var(--success); }
+.status-warning { color: var(--warning); }
+.status-error { color: var(--error); }
+.card-name { font-weight: 700; }
+.weight-600 { font-weight: 600; }
+.label-strong { font-weight: 600; font-size: var(--type-section); }
+
+.capacity-input { width: 92px; padding: 4px 8px; background: var(--bg-dark); border: 1px solid var(--border); color: #fff; border-radius: 6px; }
+
 /* Details grid class; default layout uses two columns (label/value) */
 .card-details { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; row-gap: 4px; align-items: center; }
 .card-details dt, .card-details dd { margin: 0; }
@@ -278,8 +295,15 @@ main {
 }
 
 /* More aggressive stacking on phone-sized viewports to avoid label/value wide columns */
+/* Keep two-column metadata in compact grids; switch to single column only if space is extreme */
 @media (max-width: 1080px) {
   .card-details { grid-template-columns: 1fr; }
+}
+
+/* For compact card grids, prefer a tighter 2-column layout for metadata to maximize density */
+.card-grid.compact .card-details { grid-template-columns: 1fr 1fr; column-gap: 6px; row-gap: 2px; }
+@media (max-width: 520px) {
+  .card-grid.compact .card-details { grid-template-columns: 1fr 1fr; }
 }
 
 /* Label column sizing: give dt a max width to prevent large left column from forcing horizontal layout */

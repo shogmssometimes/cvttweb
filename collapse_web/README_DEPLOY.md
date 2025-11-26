@@ -1,5 +1,7 @@
 Simple GitHub Pages deploy (Pages API)
 
+[![Deploy Status](https://github.com/OWNER/REPO/actions/workflows/deploy-gh-pages.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/deploy-gh-pages.yml)
+
 This repo builds the `collapse_web` app and publishes compiled artifacts directly to GitHub Pages using the Pages API. The automated CI workflow uploads the built `collapse_web/docs` artifact and deploys it directly via Actions, no `gh-pages` branch is required.
 
 Deployment pipeline:
@@ -30,3 +32,36 @@ Notes:
 - Keep `main` as the default branch for development.
 - Protect `main` with required PR reviews and CI checks.
 - With the Pages API approach the `gh-pages` branch is optional — if you prefer a visible branch with the built artifacts keep `gh-pages` and the `peaceiris` deployment method instead.
+
+Getting the deployed site URL
+-----------------------------
+
+- The deploy job emits a `page_url` output available on the deploy job and the `deploy-pages` step.
+- You can view the deployed site URL in the Actions run details under the `Deploy` job > `Deploy to GitHub Pages (via Pages API)` step outputs.
+- Example usage in another job within the same workflow to access the URL:
+
+```yaml
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    outputs:
+      page_url: ${{ steps.deploy_pages_api.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages (via Pages API)
+        id: deploy_pages_api
+        uses: actions/deploy-pages@v4
+
+  post-deploy:
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - name: Show deployed URL
+        run: echo "Deployed site: ${{ needs.deploy.outputs.page_url }}"
+```
+
+If you want to programmatically obtain the Pages site URL from outside of Actions, use the GitHub API (requires a token with repo permissions):
+
+```bash
+# Replace OWNER and REPO with your repository details and set `GH_TOKEN` to a PAT with repo scope
+curl -s -H "Authorization: token $GH_TOKEN" https://api.github.com/repos/OWNER/REPO/pages | jq -r '.html_url'
+```
