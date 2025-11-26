@@ -65,8 +65,10 @@ jobs:
       - name: Upload pages artifact (Pages API format)
         uses: actions/upload-pages-artifact@v3
         with:
-          name: pages
+          name: pages-node-${{ matrix.node }}
           path: collapse_web/docs
 
       - name: Deploy to GitHub Pages (via Pages API)
         uses: actions/deploy-pages@v4
+        with:
+          artifact_name: pages-node-${{ matrix.node }}
