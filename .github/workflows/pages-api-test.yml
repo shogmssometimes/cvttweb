@@ -39,6 +39,18 @@ jobs:
           node -e "console.log(require('fs').existsSync(require('path').resolve('node_modules/@rollup/rollup-linux-x64-gnu')))
 "
 
+      - name: Ensure rollup native (Linux x64) if missing
+        if: runner.os == 'Linux'
+        run: |
+          cd collapse_web
+          set -euxo pipefail
+          ROLLUP_VER=$(node -p "require('rollup/package.json').version")
+          echo "Detected rollup version: $ROLLUP_VER"
+          echo "Installing optional rollup native package for linux-x64-gnu"
+          npm i --no-save @rollup/rollup-linux-x64-gnu@$ROLLUP_VER || true
+          echo "After installing optional package, list @rollup packages:"
+          ls -la node_modules/@rollup || true
+
       - name: Build site
         run: |
           cd collapse_web
