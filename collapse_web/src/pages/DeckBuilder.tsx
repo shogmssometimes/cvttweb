@@ -737,163 +737,7 @@ export default function DeckBuilder(){
                 <button onClick={resetBuilder} style={{marginTop:8}}>Reset Builder</button>
               </div>
             </section>
-            {/* Page 3: HUD */}
-            <div className="page">
-              <section className={`card-grid base-card-grid ${compactView ? 'compact' : ''}`}>
-                <div>
-                  <h2>HUD</h2>
-                  <p className="muted" style={{marginTop:0}}>Adjust character or encounter stats for testing and simulation.</p>
-                </div>
-
-                <div>
-                  <div className={`card base-card small-card ${compactView ? 'compact' : ''}`}>
-                    <div className="card-header">
-                      <div className="card-title">
-                        <div className="card-name">HP <span className="muted text-section">{builderState.hp}/{builderState.maxHp}</span></div>
-                        <div className="muted text-body">Hit Points</div>
-                      </div>
-                      <div className="card-controls">
-                        <button className="counter-btn" onClick={()=>changeHpDelta(-1)}>-</button>
-                        <div className="counter-value">{builderState.hp}</div>
-                        <button className="counter-btn" onClick={()=>changeHpDelta(1)}>+</button>
-                      </div>
-                    </div>
-                    <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
-                      <label className="muted text-body">Set HP</label>
-                      <input className="capacity-input" type="number" min={0} value={builderState.hp ?? 0} onChange={(e)=>setHp(Number.parseInt(e.target.value || '0',10))} />
-                      <label className="muted text-body">Max</label>
-                      <input className="capacity-input" type="number" min={1} value={builderState.maxHp ?? 0} onChange={(e)=>setMaxHp(Number.parseInt(e.target.value || '1',10))} />
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className={`card base-card small-card ${compactView ? 'compact' : ''}`}>
-                    <div className="card-header">
-                      <div className="card-title">
-                        <div className="card-name">Viv <span className="muted text-section">{builderState.viv}</span></div>
-                        <div className="muted text-body">Vivacity</div>
-                      </div>
-                      <div className="card-controls">
-                        <button className="counter-btn" onClick={()=>adjustHud('viv', -1)}>-</button>
-                        <div className="counter-value">{builderState.viv}</div>
-                        <button className="counter-btn" onClick={()=>adjustHud('viv', 1)}>+</button>
-                      </div>
-                    </div>
-                    <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
-                      <label className="muted text-body">Set</label>
-                      <input className="capacity-input" type="number" min={0} value={builderState.viv ?? 0} onChange={(e)=>setHudValue('viv', Number.parseInt(e.target.value || '0',10))} />
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className={`card base-card small-card ${compactView ? 'compact' : ''}`}>
-                    <div className="card-header">
-                      <div className="card-title">
-                        <div className="card-name">Capacity <span className="muted text-section">{builderState.capacityHud}</span></div>
-                        <div className="muted text-body">Arbitrary capacity</div>
-                      </div>
-                      <div className="card-controls">
-                        <button className="counter-btn" onClick={()=>adjustHud('capacityHud', -1)}>-</button>
-                        <div className="counter-value">{builderState.capacityHud}</div>
-                        <button className="counter-btn" onClick={()=>adjustHud('capacityHud', 1)}>+</button>
-                      </div>
-                    </div>
-                    <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
-                      <label className="muted text-body">Set</label>
-                      <input className="capacity-input" type="number" min={0} value={builderState.capacityHud ?? 0} onChange={(e)=>setHudValue('capacityHud', Number.parseInt(e.target.value || '0',10))} />
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className={`card base-card small-card ${compactView ? 'compact' : ''}`}>
-                    <div className="card-header">
-                      <div className="card-title">
-                        <div className="card-name">Movement <span className="muted text-section">{builderState.movement}</span></div>
-                        <div className="muted text-body">Movement Points</div>
-                      </div>
-                      <div className="card-controls">
-                        <button className="counter-btn" onClick={()=>adjustHud('movement', -1)}>-</button>
-                        <div className="counter-value">{builderState.movement}</div>
-                        <button className="counter-btn" onClick={()=>adjustHud('movement', 1)}>+</button>
-                      </div>
-                    </div>
-                    <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
-                      <label className="muted text-body">Set</label>
-                      <input className="capacity-input" type="number" min={0} value={builderState.movement ?? 0} onChange={(e)=>setHudValue('movement', Number.parseInt(e.target.value || '0',10))} />
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className={`card base-card small-card ${compactView ? 'compact' : ''}`}>
-                    <div className="card-header">
-                      <div className="card-title">
-                        <div className="card-name">Initiative <span className="muted text-section">{builderState.initiative}</span></div>
-                        <div className="muted text-body">Initiative</div>
-                      </div>
-                      <div className="card-controls">
-                        <button className="counter-btn" onClick={()=>adjustHud('initiative', -1)}>-</button>
-                        <div className="counter-value">{builderState.initiative}</div>
-                        <button className="counter-btn" onClick={()=>adjustHud('initiative', 1)}>+</button>
-                      </div>
-                    </div>
-                    <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
-                      <label className="muted text-body">Set</label>
-                      <input className="capacity-input" type="number" min={0} value={builderState.initiative ?? 0} onChange={(e)=>setHudValue('initiative', Number.parseInt(e.target.value || '0',10))} />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Grouped attributes: Vigor / Inference / Personality */}
-                <div>
-                  <div className={`card base-card small-card ${compactView ? 'compact' : ''}`}>
-                    <div className="card-header">
-                      <div className="card-title">
-                        <div className="card-name">Attributes</div>
-                        <div className="muted text-body">Vigor • Inference • Personality</div>
-                      </div>
-                      <div className="card-controls" style={{display:'grid',gridTemplateColumns:'auto auto auto',gap:6}}>
-                        <div style={{display:'flex',flexDirection:'column',alignItems:'center'}}>
-                          <div className="muted text-body">Vigor</div>
-                          <div style={{display:'flex',alignItems:'center',gap:4}}>
-                            <button className="counter-btn" onClick={()=>adjustHud('vigor', -1)}>-</button>
-                            <div className="counter-value">{builderState.vigor}</div>
-                            <button className="counter-btn" onClick={()=>adjustHud('vigor', 1)}>+</button>
-                          </div>
-                        </div>
-                        <div style={{display:'flex',flexDirection:'column',alignItems:'center'}}>
-                          <div className="muted text-body">Inference</div>
-                          <div style={{display:'flex',alignItems:'center',gap:4}}>
-                            <button className="counter-btn" onClick={()=>adjustHud('inference', -1)}>-</button>
-                            <div className="counter-value">{builderState.inference}</div>
-                            <button className="counter-btn" onClick={()=>adjustHud('inference', 1)}>+</button>
-                          </div>
-                        </div>
-                        <div style={{display:'flex',flexDirection:'column',alignItems:'center'}}>
-                          <div className="muted text-body">Personality</div>
-                          <div style={{display:'flex',alignItems:'center',gap:4}}>
-                            <button className="counter-btn" onClick={()=>adjustHud('personality', -1)}>-</button>
-                            <div className="counter-value">{builderState.personality}</div>
-                            <button className="counter-btn" onClick={()=>adjustHud('personality', 1)}>+</button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
-                      <label className="muted text-body">Edit Vigor</label>
-                      <input className="capacity-input" type="number" min={0} value={builderState.vigor ?? 0} onChange={(e)=>setHudValue('vigor', Number.parseInt(e.target.value || '0',10))} />
-                      <label className="muted text-body">Inference</label>
-                      <input className="capacity-input" type="number" min={0} value={builderState.inference ?? 0} onChange={(e)=>setHudValue('inference', Number.parseInt(e.target.value || '0',10))} />
-                      <label className="muted text-body">Personality</label>
-                      <input className="capacity-input" type="number" min={0} value={builderState.personality ?? 0} onChange={(e)=>setHudValue('personality', Number.parseInt(e.target.value || '0',10))} />
-                    </div>
-                  </div>
-                </div>
-              </section>
-            </div>
+            
 
             <section className="compact">
               <h2>Base Skill Cards</h2>
@@ -975,6 +819,164 @@ export default function DeckBuilder(){
                 <label style={{fontWeight:600}}>Hand Draw</label>
                 <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
                   <button onClick={()=>draw()} disabled={!builderState.isLocked || ((builderState.hand ?? []).length >= (builderState.handLimit ?? 5))}>Draw 1</button>
+                </div>
+
+                {/* Page 3: HUD */}
+                <div className="page">
+                  <section className={`card-grid base-card-grid ${compactView ? 'compact' : ''}`}>
+                    <div>
+                      <h2>HUD</h2>
+                      <p className="muted" style={{marginTop:0}}>Adjust character or encounter stats for testing and simulation.</p>
+                    </div>
+
+                    <div>
+                      <div className={`card base-card small-card ${compactView ? 'compact' : ''}`}>
+                        <div className="card-header">
+                          <div className="card-title">
+                            <div className="card-name">HP <span className="muted text-section">{builderState.hp}/{builderState.maxHp}</span></div>
+                            <div className="muted text-body">Hit Points</div>
+                          </div>
+                          <div className="card-controls">
+                            <button className="counter-btn" onClick={()=>changeHpDelta(-1)}>-</button>
+                            <div className="counter-value">{builderState.hp}</div>
+                            <button className="counter-btn" onClick={()=>changeHpDelta(1)}>+</button>
+                          </div>
+                        </div>
+                        <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
+                          <label className="muted text-body">Set HP</label>
+                          <input className="capacity-input" type="number" min={0} value={builderState.hp ?? 0} onChange={(e)=>setHp(Number.parseInt(e.target.value || '0',10))} />
+                          <label className="muted text-body">Max</label>
+                          <input className="capacity-input" type="number" min={1} value={builderState.maxHp ?? 0} onChange={(e)=>setMaxHp(Number.parseInt(e.target.value || '1',10))} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className={`card base-card small-card ${compactView ? 'compact' : ''}`}>
+                        <div className="card-header">
+                          <div className="card-title">
+                            <div className="card-name">Viv <span className="muted text-section">{builderState.viv}</span></div>
+                            <div className="muted text-body">Vivacity</div>
+                          </div>
+                          <div className="card-controls">
+                            <button className="counter-btn" onClick={()=>adjustHud('viv', -1)}>-</button>
+                            <div className="counter-value">{builderState.viv}</div>
+                            <button className="counter-btn" onClick={()=>adjustHud('viv', 1)}>+</button>
+                          </div>
+                        </div>
+                        <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
+                          <label className="muted text-body">Set</label>
+                          <input className="capacity-input" type="number" min={0} value={builderState.viv ?? 0} onChange={(e)=>setHudValue('viv', Number.parseInt(e.target.value || '0',10))} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className={`card base-card small-card ${compactView ? 'compact' : ''}`}>
+                        <div className="card-header">
+                          <div className="card-title">
+                            <div className="card-name">Capacity <span className="muted text-section">{builderState.capacityHud}</span></div>
+                            <div className="muted text-body">Arbitrary capacity</div>
+                          </div>
+                          <div className="card-controls">
+                            <button className="counter-btn" onClick={()=>adjustHud('capacityHud', -1)}>-</button>
+                            <div className="counter-value">{builderState.capacityHud}</div>
+                            <button className="counter-btn" onClick={()=>adjustHud('capacityHud', 1)}>+</button>
+                          </div>
+                        </div>
+                        <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
+                          <label className="muted text-body">Set</label>
+                          <input className="capacity-input" type="number" min={0} value={builderState.capacityHud ?? 0} onChange={(e)=>setHudValue('capacityHud', Number.parseInt(e.target.value || '0',10))} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className={`card base-card small-card ${compactView ? 'compact' : ''}`}>
+                        <div className="card-header">
+                          <div className="card-title">
+                            <div className="card-name">Movement <span className="muted text-section">{builderState.movement}</span></div>
+                            <div className="muted text-body">Movement Points</div>
+                          </div>
+                          <div className="card-controls">
+                            <button className="counter-btn" onClick={()=>adjustHud('movement', -1)}>-</button>
+                            <div className="counter-value">{builderState.movement}</div>
+                            <button className="counter-btn" onClick={()=>adjustHud('movement', 1)}>+</button>
+                          </div>
+                        </div>
+                        <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
+                          <label className="muted text-body">Set</label>
+                          <input className="capacity-input" type="number" min={0} value={builderState.movement ?? 0} onChange={(e)=>setHudValue('movement', Number.parseInt(e.target.value || '0',10))} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className={`card base-card small-card ${compactView ? 'compact' : ''}`}>
+                        <div className="card-header">
+                          <div className="card-title">
+                            <div className="card-name">Initiative <span className="muted text-section">{builderState.initiative}</span></div>
+                            <div className="muted text-body">Initiative</div>
+                          </div>
+                          <div className="card-controls">
+                            <button className="counter-btn" onClick={()=>adjustHud('initiative', -1)}>-</button>
+                            <div className="counter-value">{builderState.initiative}</div>
+                            <button className="counter-btn" onClick={()=>adjustHud('initiative', 1)}>+</button>
+                          </div>
+                        </div>
+                        <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
+                          <label className="muted text-body">Set</label>
+                          <input className="capacity-input" type="number" min={0} value={builderState.initiative ?? 0} onChange={(e)=>setHudValue('initiative', Number.parseInt(e.target.value || '0',10))} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Grouped attributes: Vigor / Inference / Personality */}
+                    <div>
+                      <div className={`card base-card small-card ${compactView ? 'compact' : ''}`}>
+                        <div className="card-header">
+                          <div className="card-title">
+                            <div className="card-name">Attributes</div>
+                            <div className="muted text-body">Vigor • Inference • Personality</div>
+                          </div>
+                          <div className="card-controls" style={{display:'grid',gridTemplateColumns:'auto auto auto',gap:6}}>
+                            <div style={{display:'flex',flexDirection:'column',alignItems:'center'}}>
+                              <div className="muted text-body">Vigor</div>
+                              <div style={{display:'flex',alignItems:'center',gap:4}}>
+                                <button className="counter-btn" onClick={()=>adjustHud('vigor', -1)}>-</button>
+                                <div className="counter-value">{builderState.vigor}</div>
+                                <button className="counter-btn" onClick={()=>adjustHud('vigor', 1)}>+</button>
+                              </div>
+                            </div>
+                            <div style={{display:'flex',flexDirection:'column',alignItems:'center'}}>
+                              <div className="muted text-body">Inference</div>
+                              <div style={{display:'flex',alignItems:'center',gap:4}}>
+                                <button className="counter-btn" onClick={()=>adjustHud('inference', -1)}>-</button>
+                                <div className="counter-value">{builderState.inference}</div>
+                                <button className="counter-btn" onClick={()=>adjustHud('inference', 1)}>+</button>
+                              </div>
+                            </div>
+                            <div style={{display:'flex',flexDirection:'column',alignItems:'center'}}>
+                              <div className="muted text-body">Personality</div>
+                              <div style={{display:'flex',alignItems:'center',gap:4}}>
+                                <button className="counter-btn" onClick={()=>adjustHud('personality', -1)}>-</button>
+                                <div className="counter-value">{builderState.personality}</div>
+                                <button className="counter-btn" onClick={()=>adjustHud('personality', 1)}>+</button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
+                          <label className="muted text-body">Edit Vigor</label>
+                          <input className="capacity-input" type="number" min={0} value={builderState.vigor ?? 0} onChange={(e)=>setHudValue('vigor', Number.parseInt(e.target.value || '0',10))} />
+                          <label className="muted text-body">Inference</label>
+                          <input className="capacity-input" type="number" min={0} value={builderState.inference ?? 0} onChange={(e)=>setHudValue('inference', Number.parseInt(e.target.value || '0',10))} />
+                          <label className="muted text-body">Personality</label>
+                          <input className="capacity-input" type="number" min={0} value={builderState.personality ?? 0} onChange={(e)=>setHudValue('personality', Number.parseInt(e.target.value || '0',10))} />
+                        </div>
+                      </div>
+                    </div>
+                  </section>
                 </div>
               </div>
             </section>

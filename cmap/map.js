@@ -382,30 +382,307 @@ function renderWorldOffscreen(features, baseWidth, baseHeight, options) {
     ctx.setLineDash([2,2]);
     ctx.stroke(path);
     ctx.restore();
+  // add gentle coastline shadow under the coastline to give depth
+  ctx.save();
+  ctx.strokeStyle = 'rgba(0,0,0,0.12)'; ctx.lineWidth = 2.5; ctx.stroke(path);
+  ctx.restore();
+  // add a soft texture overlay (subtle paper-like noise)
+  applyNoiseTexture(ctx, off.width, off.height, options.seedNumeric);
   return off;
 }
 
-// Draw a Regions overlay on the offscreen canvas (translucent color grids for now)
-function drawRegionsLayer(offCtx, bbox, baseWidth, baseHeight) {
-  // define simple region boxes (longitude/latitude ranges); rough partitions
-  const regions = [
-    { name: 'Pacific/West', lonA: -170, lonB: -125, latA: 14, latB: 72, color: 'rgba(255,214,0,0.12)' },
-    { name: 'Rockies/Plains', lonA: -125, lonB: -100, latA: 14, latB: 72, color: 'rgba(0,204,136,0.10)' },
-    { name: 'Midwest/East', lonA: -100, lonB: -80, latA: 14, latB: 72, color: 'rgba(0,122,255,0.08)' },
-    { name: 'Atlantic/East', lonA: -80, lonB: -50, latA: 14, latB: 72, color: 'rgba(255,88,88,0.08)' },
-    { name: 'Mexico', lonA: -118, lonB: -86, latA: 14, latB: 32, color: 'rgba(255,160,0,0.12)' }
-  ];
-  function rectFromLonLatBox(lonA, latA, lonB, latB) {
-    const tl = lonLatToXY(lonA, latB, baseWidth, baseHeight, bbox);
-    const br = lonLatToXY(lonB, latA, baseWidth, baseHeight, bbox);
-    return { x: tl.x, y: tl.y, w: Math.max(1, br.x - tl.x), h: Math.max(1, br.y - tl.y) };
+function applyNoiseTexture(ctx, w, h, seed) {
+  // small tiled texture with low opacity to provide subtle detail
+  const tile = document.createElement('canvas'); tile.width = 256; tile.height = 256; const tctx = tile.getContext('2d');
+  const id = tctx.createImageData(tile.width, tile.height);
+  const rand = mulberry32((seed || 0) + 12345);
+  for (let i = 0; i < id.data.length; i += 4) {
+    const v = 200 + Math.floor((rand() - 0.5) * 30); id.data[i] = v; id.data[i+1] = v; id.data[i+2] = v; id.data[i+3] = 20; // low alpha
   }
-  regions.forEach(r => {
-    const rect = rectFromLonLatBox(r.lonA, r.latA, r.lonB, r.latB);
-    offCtx.fillStyle = r.color;
-    offCtx.fillRect(rect.x, rect.y, rect.w, rect.h);
-    offCtx.strokeStyle = 'rgba(255,255,255,0.08)';
-    offCtx.strokeRect(rect.x + 0.5, rect.y + 0.5, rect.w - 1, rect.h - 1);
+  tctx.putImageData(id, 0, 0);
+  const pattern = ctx.createPattern(tile, 'repeat');
+  ctx.save();
+  ctx.globalAlpha = 0.08;
+  ctx.globalCompositeOperation = 'overlay';
+  ctx.fillStyle = pattern; ctx.fillRect(0,0,w,h);
+  ctx.restore();
+}
+
+// Draw a Regions overlay on the offscreen canvas (translucent color grids for now)
+  function drawRegionsLayer(offCtx, bbox, baseWidth, baseHeight, regionCount, smoothPasses) {
+  // Weighted points for population/resources to bias region seeds
+  const REGION_WEIGHT_POINTS = [
+    { lon: -74.0060, lat: 40.7128, w: 3 }, // New York
+    { lon: -118.2437, lat: 34.0522, w: 3 }, // Los Angeles
+    { lon: -87.6298, lat: 41.8781, w: 2 }, // Chicago
+    { lon: -99.1332, lat: 19.4326, w: 2 }, // Mexico City
+    { lon: -79.3832, lat: 43.6532, w: 1.5 }, // Toronto
+    { lon: -3.5, lat: 60.0, w: 0.2 }, // out-of-bbox placeholder (ignored)
+    { lon: -123.1207, lat: 49.2827, w: 1.2 }, // Vancouver
+    { lon: -122.3321, lat: 47.6062, w: 1.3 }, // Seattle
+    { lon: -95.3698, lat: 29.7604, w: 1.8 }, // Houston
+    { lon: -112.0740, lat: 33.4484, w: 1.1 }, // Phoenix
+    { lon: -80.1918, lat: 25.7617, w: 1 }, // Miami
+    { lon: -104.9903, lat: 39.7392, w: 1 }, // Denver
+    { lon: -123.1162, lat: 49.2463, w: 0.8 }, // lower vancouver repeat
+    { lon: -106.3468, lat: 56.1304, w: 0.6 }, // northern central canada
+    { lon: -149.4937, lat: 64.2008, w: 0.6 }, // Alaska Anchorage/Talkeetna area
+    { lon: -89.0, lat: 43.5, w: 0.9 }, // Great Lakes
+    { lon: -95.9928, lat: 36.15398, w: 0.7 }, // Kansas region
+    { lon: -111.0937, lat: 45.5202, w: 0.6 }, // Portland
+    { lon: -100.0, lat: 45.0, w: 0.6 }, // Prairies
+    { lon: -101.0, lat: 29.4, w: 0.7 }, // Texas
+    { lon: -80.0, lat: 35.0, w: 0.7 }, // East coast mid
+    { lon: -75.0, lat: 39.0, w: 0.7 }, // Mid-atlantic
+    { lon: -88.0, lat: 19.0, w: 0.7 }, // Yucatan / Mexico gulf
+  ].filter(p => p.lon >= bbox.west - 20 && p.lon <= bbox.east + 20 && p.lat >= bbox.south - 10 && p.lat <= bbox.north + 10);
+
+  // small helper RNG: use a deterministic-ish value based on regionCount and sizes
+  const seedBrush = Math.abs(Math.floor((baseWidth + baseHeight) * (regionCount || 8)));
+  const rrand = mulberry32(seedBrush);
+
+  function randBetween(min, max) { return min + (max - min) * rrand(); }
+  function pickWeighted(points) {
+    const s = points.reduce((a, b) => a + b.w, 0);
+    let t = rrand() * s;
+    for (const pt of points) { t -= pt.w; if (t <= 0) return pt; }
+    return points[points.length - 1];
+  }
+
+  // sample seeds near weighted points with jitter; ensure Alaska limited to 2 seeds
+  function generateSeeds(k) {
+    const seeds = [];
+    for (let i = 0; i < k; i++) {
+      const p = pickWeighted(REGION_WEIGHT_POINTS);
+      // jitter with random gaussian-ish offset, but bounded to bbox
+      const lon = Math.max(bbox.west, Math.min(bbox.east, p.lon + randBetween(-3, 3)));
+      const lat = Math.max(bbox.south, Math.min(bbox.north, p.lat + randBetween(-2, 2)));
+      seeds.push({ lon, lat });
+    }
+    // count Alaska seeds and reduce if >2
+    const alaskaCount = seeds.filter(s => s.lon < -140 && s.lat > 55).length;
+    if (alaskaCount > 2) {
+      // move extra seeds more southwards
+      let moved = 0;
+      for (let i = 0; i < seeds.length && moved < alaskaCount - 2; i++) {
+        const s = seeds[i];
+        if (s.lon < -140 && s.lat > 55) {
+          s.lat = Math.max(bbox.south + 5, s.lat - 12);
+          moved++;
+        }
+      }
+    }
+    return seeds;
+  }
+
+  // grid-based voronoi: assign each grid cell to nearest seed
+  const gridW = Math.max(200, Math.round(baseWidth / 8));
+  const gridH = Math.max(120, Math.round(baseHeight / 8));
+  const seeds = generateSeeds(regionCount || 8);
+  const assignments = new Int32Array(gridW * gridH);
+  // create a small downsampled version of the existing world render so we can skip ocean cells
+  const temp = document.createElement('canvas'); temp.width = gridW; temp.height = gridH; const tctx = temp.getContext('2d');
+  tctx.drawImage(offCtx.canvas, 0, 0, baseWidth, baseHeight, 0, 0, gridW, gridH);
+  const img = tctx.getImageData(0, 0, gridW, gridH).data;
+
+  // Multi-source BFS flood fill across the grid to create organic region shapes
+  assignments.fill(-1);
+  // seed initial queue positions
+  const queue = [];
+  const seedGridCoords = seeds.map(s => ({ x: Math.round((s.lon - bbox.west) / (bbox.east - bbox.west) * (gridW - 1)), y: Math.round((bbox.north - s.lat) / (bbox.north - bbox.south) * (gridH - 1)) }));
+  for (let i = 0; i < seedGridCoords.length; i++) {
+    const sc = seedGridCoords[i];
+    const idx = sc.y * gridW + sc.x;
+    if (idx < 0 || idx >= assignments.length) continue;
+    // skip ocean seeds; find nearest land cell if needed
+    const startIsLand = (img[(sc.y * gridW + sc.x) * 4] !== 0 || img[(sc.y * gridW + sc.x) * 4 + 1] !== 0 || img[(sc.y * gridW + sc.x) * 4 + 2] !== 0);
+    if (!startIsLand) {
+      // search around for nearest land neighbour
+      let found = false;
+      for (let r = 1; r < 10 && !found; r++) {
+        for (let oy = -r; oy <= r && !found; oy++) {
+          for (let ox = -r; ox <= r && !found; ox++) {
+            const nx = sc.x + ox, ny = sc.y + oy;
+            if (nx < 0 || nx >= gridW || ny < 0 || ny >= gridH) continue;
+            const nidx = (ny * gridW + nx) * 4;
+            const rr = img[nidx], gg = img[nidx+1], bb = img[nidx+2];
+            const dr = rr - 113, dg = gg - 166, db = bb - 213; const dist2 = dr*dr + dg*dg + db*db;
+            if (dist2 >= 45 * 45) continue; // still ocean
+            // found
+            assignments[ny * gridW + nx] = i;
+            queue.push({ x: nx, y: ny, id: i });
+            found = true;
+          }
+        }
+      }
+      if (!found) continue; // no land seed found
+    } else {
+      assignments[idx] = i; queue.push({ x: sc.x, y: sc.y, id: i });
+    }
+  }
+  const neighborDirs = [[1,0],[-1,0],[0,1],[0,-1]];
+  while (queue.length) {
+    const p = queue.shift();
+    for (const [dx, dy] of neighborDirs) {
+      const nx = p.x + dx, ny = p.y + dy;
+      if (nx < 0 || nx >= gridW || ny < 0 || ny >= gridH) continue;
+      const aidx = ny * gridW + nx;
+      if (assignments[aidx] !== -1) continue;
+      const pidx = (aidx) * 4;
+      const r = img[pidx], g = img[pidx + 1], b = img[pidx + 2];
+      const dr = r - 113, dg = g - 166, db = b - 213; const dist2 = dr * dr + dg * dg + db * db;
+      if (dist2 < 45 * 45) continue; // ocean
+      assignments[aidx] = p.id;
+      queue.push({ x: nx, y: ny, id: p.id });
+    }
+  }
+
+  // choose palette for regions
+  function pastel(h) { return `hsla(${h}, 90%, 55%, 0.14)`; }
+  const colors = [];
+  for (let i = 0; i < seeds.length; i++) colors.push(pastel((i * 360 / seeds.length + (rrand() * 30 - 15)) % 360));
+
+  
+
+  // smoothing passes (majority filter) to simulate human-drawn regions
+  const smooth = Math.max(0, Math.min(5, Number(smoothPasses || 0)));
+  for (let pass = 0; pass < smooth; pass++) {
+    const next = new Int32Array(assignments.length).fill(-1);
+    for (let gy = 0; gy < gridH; gy++) {
+      for (let gx = 0; gx < gridW; gx++) {
+        const idx = gy * gridW + gx;
+        const pidx = idx * 4;
+        const r = img[pidx], g = img[pidx + 1], b = img[pidx + 2];
+        const dr = r - 113, dg = g - 166, db = b - 213; const dist2 = dr * dr + dg * dg + db * db;
+        if (dist2 < 45 * 45 || assignments[idx] === -1) { next[idx] = -1; continue; }
+        const counts = {};
+        for (let oy = -1; oy <= 1; oy++) {
+          for (let ox = -1; ox <= 1; ox++) {
+            const nx = gx + ox, ny = gy + oy;
+            if (nx < 0 || nx >= gridW || ny < 0 || ny >= gridH) continue;
+            const nid = assignments[ny * gridW + nx]; if (nid === -1) continue;
+            counts[nid] = (counts[nid] || 0) + 1;
+          }
+        }
+        // find majority
+        let bestId = assignments[idx]; let bestCount = -1;
+        for (const k in counts) { if (counts[k] > bestCount) { bestCount = counts[k]; bestId = Number(k); } }
+        next[idx] = bestId;
+      }
+    }
+    assignments = next;
+  }
+
+  // merge small clusters
+  const sizes = new Map();
+  for (let i = 0; i < assignments.length; i++) {
+    const v = assignments[i]; if (v === -1) continue; sizes.set(v, (sizes.get(v) || 0) + 1);
+  }
+  const minSize = Math.max(10, Math.round((gridW * gridH / Math.max(1, seeds.length)) * 0.08));
+  const adjCounts = {}; // {cid: {neighborCid: count}}
+  for (let gy = 0; gy < gridH; gy++) for (let gx = 0; gx < gridW; gx++) {
+    const id = assignments[gy * gridW + gx]; if (id === -1) continue;
+    if (!adjCounts[id]) adjCounts[id] = {};
+    for (const [dx, dy] of neighborDirs) {
+      const nx = gx + dx, ny = gy + dy; if (nx < 0 || nx >= gridW || ny < 0 || ny >= gridH) continue;
+      const nid = assignments[ny * gridW + nx]; if (nid === -1 || nid === id) continue;
+      adjCounts[id][nid] = (adjCounts[id][nid] || 0) + 1;
+    }
+  }
+  for (const [cid, count] of sizes) {
+    if (count >= minSize) continue;
+    const neighbors = adjCounts[cid] || {};
+    let best = null; let bestC = -1;
+    for (const nidStr in neighbors) { const c = neighbors[nidStr]; if (c > bestC) { bestC = c; best = Number(nidStr); } }
+    if (best !== null) {
+      for (let i = 0; i < assignments.length; i++) { if (assignments[i] === cid) assignments[i] = best; }
+    }
+  }
+
+  // draw on the offCtx: grid cell coloring and borders; skip obvious ocean pixels
+  const cellW = baseWidth / gridW; const cellH = baseHeight / gridH;
+  const clusters = new Array(seeds.length).fill(0).map(() => ({ sumX: 0, sumY: 0, n: 0 }));
+  for (let gy = 0; gy < gridH; gy++) {
+    for (let gx = 0; gx < gridW; gx++) {
+      const id = assignments[gy * gridW + gx];
+      const pidx = (gy * gridW + gx) * 4;
+      const r = img[pidx], g = img[pidx + 1], b = img[pidx + 2];
+      // ocean approx (rgb 113,166,213) distance small -> skip
+      const dr = r - 113, dg = g - 166, db = b - 213; const dist2 = dr * dr + dg * dg + db * db;
+      if (dist2 < 45 * 45) continue; // likely ocean; don't draw region
+      offCtx.fillStyle = colors[id];
+      offCtx.fillRect(gx * cellW, gy * cellH, Math.ceil(cellW), Math.ceil(cellH));
+      clusters[id].sumX += gx; clusters[id].sumY += gy; clusters[id].n++;
+    }
+  }
+  // draw region borders
+  offCtx.strokeStyle = 'rgba(12,12,12,0.12)'; offCtx.lineWidth = 1;
+  for (let gy = 0; gy < gridH; gy++) {
+    for (let gx = 0; gx < gridW; gx++) {
+      const id = assignments[gy * gridW + gx];
+      if (gx + 1 < gridW) {
+        const rightId = assignments[gy * gridW + (gx + 1)];
+        if (rightId !== id) {
+          offCtx.beginPath(); offCtx.moveTo((gx + 1) * cellW + 0.5, gy * cellH); offCtx.lineTo((gx + 1) * cellW + 0.5, (gy + 1) * cellH); offCtx.stroke();
+        }
+      }
+      if (gy + 1 < gridH) {
+        const bottomId = assignments[(gy + 1) * gridW + gx];
+        if (bottomId !== id) {
+          offCtx.beginPath(); offCtx.moveTo(gx * cellW, (gy + 1) * cellH + 0.5); offCtx.lineTo((gx + 1) * cellW, (gy + 1) * cellH + 0.5); offCtx.stroke();
+        }
+      }
+    }
+  }
+
+  // compute cluster centroids and place names (using counted land pixels)
+  const clusterCentroids = clusters.map((c, i) => {
+    if (c.n === 0) return null;
+    const gx = c.sumX / c.n; const gy = c.sumY / c.n;
+    const lon = bbox.west + (gx / gridW) * (bbox.east - bbox.west);
+    const lat = bbox.north - (gy / gridH) * (bbox.north - bbox.south);
+    return { lon, lat, gx, gy };
+  });
+
+  // simple evocative name generator using expected locale hints
+  const namePools = {
+    north: ['Glacial', 'Frost', 'Boreal', 'Arctic', 'Fjord', 'Tundra'],
+    pacific: ['Cascadia', 'Rainshore', 'Pacifica', 'Fogreach'],
+    prairie: ['Prairie', 'Wheat', 'Golden', 'Plains', 'Windstep'],
+    mountain: ['Rock', 'Ridge', 'Crown', 'Highland', 'Spine'],
+    gulf: ['Gulf', 'Bay', 'Marsh', 'Delta'],
+    east: ['Hearth', 'Harbor', 'Granite', 'Iron'],
+    desert: ['Sun', 'Dune', 'Dust'],
+    mexican: ['Sierra', 'Sol', 'Cenote', 'Basin']
+  };
+  const regionNames = [];
+  clusterCentroids.forEach((c, i) => {
+    if (!c) { regionNames.push('Unknown'); return; }
+    const parts = [];
+    if (c.lat > 60) parts.push(namePools.north[Math.floor(rrand() * namePools.north.length)]);
+    if (c.lon < -140 || (c.lon < -130 && c.lat > 50)) parts.push(namePools.pacific[Math.floor(rrand() * namePools.pacific.length)]);
+    if (c.lon > -125 && c.lon < -95 && c.lat > 30 && c.lat < 55) parts.push(namePools.prairie[Math.floor(rrand() * namePools.prairie.length)]);
+    if (c.lon > -120 && c.lon < -100 && c.lat > 35 && c.lat < 65) parts.push(namePools.mountain[Math.floor(rrand() * namePools.mountain.length)]);
+    if (c.lat < 30) parts.push(namePools.gulf[Math.floor(rrand() * namePools.gulf.length)]);
+    if (c.lon > -90 && c.lon < -65) parts.push(namePools.east[Math.floor(rrand() * namePools.east.length)]);
+    if (c.lat < 25) parts.push(namePools.mexican[Math.floor(rrand() * namePools.mexican.length)]);
+    if (parts.length === 0) parts.push(['Frontier', 'Belt', 'Shore', 'Wastes'][Math.floor(rrand() * 4)]);
+    // combine unique parts and add an evocative noun
+    const main = parts.join(' ');
+    const suffix = ['Dominion', 'Marches', 'Expanse', 'Heights', 'Terrace', 'Province'][Math.floor(rrand() * 6)];
+    regionNames.push(`${main} ${suffix}`);
+  });
+
+  // draw labels on offCtx
+  offCtx.font = 'bold 16px sans-serif'; offCtx.textAlign = 'center'; offCtx.textBaseline = 'middle';
+  clusterCentroids.forEach((c, i) => {
+    if (!c || clusters[i].n < 8) return;
+    const xy = lonLatToXY(c.lon, c.lat, baseWidth, baseHeight, bbox);
+    const name = regionNames[i] || `Region ${i+1}`;
+    // optional small circle to make the label visible
+    offCtx.fillStyle = 'rgba(0,0,0,0.4)';
+    offCtx.beginPath(); offCtx.arc(xy.x, xy.y, 24, 0, Math.PI*2); offCtx.fill();
+    offCtx.fillStyle = 'rgba(255,255,255,0.95)'; offCtx.fillText(name, xy.x, xy.y);
   });
 }
 
@@ -458,6 +735,13 @@ function initUI() {
     let attachedSliderHandlerRef = null;
     let attachedMinimapHandlerRef = null;
   const paletteSelect = document.getElementById('palette');
+  const regionsToggle = document.getElementById('regionsToggle');
+  const regionsCountSlider = document.getElementById('regionsCount');
+  const regionsCountLabel = document.getElementById('regionsCountLabel');
+  const regionsSmoothSlider = document.getElementById('regionsSmooth');
+  const regionsSmoothLabel = document.getElementById('regionsSmoothLabel');
+  if (regionsCountSlider && regionsCountLabel) regionsCountLabel.textContent = 'Regions: ' + regionsCountSlider.value;
+  if (regionsSmoothSlider && regionsSmoothLabel) regionsSmoothLabel.textContent = 'Smoothing: ' + regionsSmoothSlider.value;
   const generateBtn = document.getElementById('generate');
   const downloadBtn = document.getElementById('download');
   // Always show coastline and borders (no toggles)
@@ -712,7 +996,6 @@ function initUI() {
     }
     // remove minimap click handler
     const mini = document.getElementById('minimap');
-    if (attachments => {});
     if (attachedMinimapHandlerRef && mini) { mini.removeEventListener('click', attachedMinimapHandlerRef); attachedMinimapHandlerRef = null; }
     panZoomAttached = false;
   }
@@ -737,13 +1020,16 @@ function initUI() {
     options.showCoastline = true;
     options.showBorders = true;
     options.naFeatureCollection = naFeatureCollection;
+    options.showRegions = regionsToggle ? regionsToggle.checked : false;
+    options.regionsCount = regionsCountSlider ? Number(regionsCountSlider.value) : 8;
+    options.regionsSmooth = regionsSmoothSlider ? Number(regionsSmoothSlider.value) : 2;
     // Always use realistic base style
     const features = worldFeatureCollection || naFeatureCollection;
     if (features) {
-      const off = renderWorldOffscreen(features, options.width * 2, options.height * 2, options);
-      // draw regions overlay onto offscreen: use bbox passed via options
+      const off = renderWorldOffscreen(features, options.width * 4, options.height * 4, options);
+      // draw regions overlay onto offscreen if enabled: use bbox passed via options
       const offCtx = off.getContext('2d');
-      drawRegionsLayer(offCtx, options.bbox, off.width, off.height);
+      if (options.showRegions) drawRegionsLayer(offCtx, options.bbox, off.width, off.height, options.regionsCount, options.regionsSmooth);
       // initialize camera (src rect) to North America focus if not already set
       if (!camera || !camera.initialized) {
         const naBbox = { west: -170, east: -50, north: 72, south: 14 };
@@ -780,6 +1066,17 @@ function initUI() {
   }
 
   generateBtn.addEventListener('click', doGenerate);
+  if (regionsToggle) regionsToggle.addEventListener('change', doGenerate);
+  if (regionsCountSlider) {
+    regionsCountSlider.addEventListener('input', (e) => {
+      regionsCountLabel.textContent = 'Regions: ' + regionsCountSlider.value;
+    });
+    regionsCountSlider.addEventListener('change', doGenerate);
+  }
+  if (regionsSmoothSlider) {
+    regionsSmoothSlider.addEventListener('input', (e) => { regionsSmoothLabel.textContent = 'Smoothing: ' + regionsSmoothSlider.value; });
+    regionsSmoothSlider.addEventListener('change', doGenerate);
+  }
   // Randomize button — generate a random seed but keep option deterministic by default
   // All other interactions (randomize/focus/reset/advanced) removed for simplicity
   downloadBtn.addEventListener('click', () => {

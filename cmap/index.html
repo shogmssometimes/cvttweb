@@ -25,6 +25,18 @@
       <div style="font-size:.9rem;color:#9ca3af;margin-top:.4rem">
         Realistic world map (polygon-based). Coastlines and country borders are shown by default.
       </div>
+      <label style="margin-top:.6rem;display:flex;align-items:center;gap:8px">
+        <input type="checkbox" id="regionsToggle" />
+        <span style="font-size:.9rem;color:#9ca3af">Show Regions overlay</span>
+      </label>
+      <label style="margin-top:.5rem;display:flex;align-items:center;gap:8px">
+        <input type="range" id="regionsCount" min="6" max="24" value="8" />
+        <span id="regionsCountLabel" style="font-size:.85rem;color:#9ca3af">Regions: 8</span>
+      </label>
+      <label style="margin-top:.5rem;display:flex;align-items:center;gap:8px">
+        <input type="range" id="regionsSmooth" min="0" max="5" value="2" />
+        <span id="regionsSmoothLabel" style="font-size:.85rem;color:#9ca3af">Smoothing: 2</span>
+      </label>
       <div style="font-size:.8rem;color:#9ca3af;margin-top:.6rem">Pan: Drag with mouse → Zoom: Mouse wheel → Reset: Double-click</div>
       <div class="buttons">
         <button id="generate">Refresh</button>

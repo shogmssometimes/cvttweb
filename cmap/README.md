@@ -12,6 +12,7 @@ A minimal, static realistic map renderer that uses GeoJSON country polygons to d
  - Minimap: visual indicator in the lower-right showing where the viewport sits over the rendered map
  - Right-click context menu on the map with "Zoom here" and "Zoom out here"
  - Regions layer: translucent partitions over the map for coarse regional grouping
+ - Regions overlay: toggle the translucent partitions on/off and set the number of regions (6–24) with the UI slider; regions are generated using population/resource-weighted seeds and given evocative names.
 
 How to run locally:
 1. Run a simple local static server:
