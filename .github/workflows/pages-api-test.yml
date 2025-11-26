@@ -41,7 +41,7 @@ jobs:
           cd collapse_web
           node -v && npm -v
           echo "rollup/package.json:"
-          node -e "try { console.log(require('rollup/package.json').version) } catch (e) { console.error('rollup not found', e.message); process.exit(0) }"
+          node -e "try { console.log(require('rollup/package.json').version) } catch (e) { console.error('rollup not found', e.message); }" || true
           echo "@rollup dir listing:"
           ls -la node_modules/@rollup || true
           echo "Installed optional rollup packages:"
