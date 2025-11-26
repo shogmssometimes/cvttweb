@@ -61,7 +61,6 @@ jobs:
 
       - name: Check Rollup bindings (diagnostic)
         run: |
-          cd collapse_web
           node -v && npm -v
           node -e "try { console.log('rollup', require('rollup/package.json').version) } catch (e) { console.error('rollup not found', e.message)}"
           ls -la node_modules/@rollup || true
@@ -70,7 +69,6 @@ jobs:
       - name: Ensure rollup native (Linux x64) if missing
         if: runner.os == 'Linux'
         run: |
-          cd collapse_web
           set -euxo pipefail
           ROLLUP_VER=$(node -p "require('rollup/package.json').version")
           echo "Installing optional rollup native package for linux-x64-gnu: $ROLLUP_VER"
