@@ -9,12 +9,16 @@ permissions:
   id-token: write
 
 jobs:
-  build:
+  build-20:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node: [18, 20]
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
       - name: Checkout repo
         uses: actions/checkout@v4
 
@@ -65,12 +69,68 @@ jobs:
       - name: Upload pages artifact (Pages API format)
         uses: actions/upload-pages-artifact@v3
         with:
-          name: pages-node-${{ matrix.node }}
+          name: pages-node-20
+          path: collapse_web/docs
+
+  build-18:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: |
+          cd collapse_web
+          npm ci
+      - name: Rebuild native modules (diagnostic)
+        run: |
+          cd collapse_web
+          npm rebuild || true
+
+      - name: Check Rollup bindings (diagnostic)
+        run: |
+          cd collapse_web
+          node -v && npm -v
+          echo "rollup/package.json:"
+          node -e "try { console.log(require('rollup/package.json').version) } catch (e) { console.error('rollup not found', e.message); process.exit(0) }"
+          echo "@rollup dir listing:"
+          ls -la node_modules/@rollup || true
+          echo "Installed optional rollup packages:"
+          ls -la node_modules/@rollup | grep rollup- || true
+          echo "File exists check for linux x64 gnu binding:"
+          node -e "console.log(require('fs').existsSync(require('path').resolve('node_modules/@rollup/rollup-linux-x64-gnu')))"
+
+      - name: Ensure rollup native (Linux x64) if missing
+        if: runner.os == 'Linux'
+        run: |
+          cd collapse_web
+          set -euxo pipefail
+          ROLLUP_VER=$(node -p "require('rollup/package.json').version")
+          echo "Detected rollup version: $ROLLUP_VER"
+          echo "Installing optional rollup native package for linux-x64-gnu"
+          npm i --no-save @rollup/rollup-linux-x64-gnu@$ROLLUP_VER
+          echo "After installing optional package, list @rollup packages:"
+          ls -la node_modules/@rollup || true
+
+      - name: Build site
+        run: |
+          cd collapse_web
+          npm run build
+
+      - name: Upload pages artifact (Pages API format)
+        uses: actions/upload-pages-artifact@v3
+        with:
+          name: pages-node-18
           path: collapse_web/docs
 
   deploy:
     runs-on: ubuntu-latest
-    needs: build
+    needs: build-18
     environment:
       name: github-pages
     steps:
