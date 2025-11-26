@@ -114,18 +114,6 @@ jobs:
         uses: actions/deploy-pages@v4
         continue-on-error: true
 
-      - name: Fallback - Download pages artifact
-        if: ${{ steps.deploy_pages_api.conclusion == 'failure' }}
-        uses: actions/download-artifact@v4
-        with:
-          name: pages
-          path: pages
-
-      - name: Fallback - Deploy to gh-pages via peaceiris
-        if: ${{ steps.deploy_pages_api.conclusion == 'failure' }}
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: pages
-          publish_branch: gh-pages
-          allow_empty_commit: true
+      # Pages API is the primary deploy method. The explicit `peaceiris` fallback was removed
+      # after successful validation runs. If you need a branch-based fallback later, re-add
+      # a fallback step similar to the previous implementation.

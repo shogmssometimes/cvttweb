@@ -1,9 +1,10 @@
 Simple GitHub Pages deploy (Pages API)
 
-This repo builds the `collapse_web` app and publishes compiled artifacts directly to GitHub Pages using the Pages API. The automated CI workflow uploads the built `collapse_web/docs` artifact and deploys it without requiring a `gh-pages` branch.
+This repo builds the `collapse_web` app and publishes compiled artifacts directly to GitHub Pages using the Pages API. The automated CI workflow uploads the built `collapse_web/docs` artifact and deploys it directly via Actions, no `gh-pages` branch is required.
 
 Deployment pipeline:
-- CI: `.github/workflows/deploy-gh-pages.yml` builds `collapse_web` on `main` pushes, uploads `collapse_web/docs` as an artifact, and publishes via `actions/deploy-pages@v1`.
+- CI: `.github/workflows/deploy-gh-pages.yml` builds `collapse_web` on `main` pushes, uploads `collapse_web/docs` as an artifact, and publishes via `actions/deploy-pages@v4`.
+  - Note: This workflow is pinned to Node 18 for stable builds because some Rollup native bindings work more reliably on Node 18.
 
 Manual deploy:
 - Build locally
