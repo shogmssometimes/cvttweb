@@ -20,8 +20,9 @@ jobs:
         with:
           node-version: 20
 
-      - name: Debug repo root (list files)
-        run: ls -la
+      - name: Node version
+        run: |
+          node -v && npm -v
 
       - name: Install dependencies
         working-directory: collapse_web
@@ -30,30 +31,13 @@ jobs:
         working-directory: collapse_web
         run: npm rebuild || true
 
-      - name: Check Rollup bindings (diagnostic)
+      - name: Node & Rollup version (light)
         working-directory: collapse_web
         run: |
           node -v && npm -v
-          echo "rollup/package.json:"
-          node -e "try { console.log(require('rollup/package.json').version) } catch (e) { console.error('rollup not found', e.message); }" || true
-          echo "@rollup dir listing:"
-          ls -la node_modules/@rollup || true
-          echo "Installed optional rollup packages:"
-          ls -la node_modules/@rollup | grep rollup- || true
-          echo "File exists check for linux x64 gnu binding:"
-          node -e "console.log(require('fs').existsSync(require('path').resolve('node_modules/@rollup/rollup-linux-x64-gnu')))" || true
+          node -e "try { console.log('rollup', require('rollup/package.json').version) } catch (e) { console.error('rollup not found') }" || true
 
-      - name: Ensure rollup native (Linux x64) if missing
-        if: runner.os == 'Linux'
-        working-directory: collapse_web
-        run: |
-          set -euxo pipefail
-          ROLLUP_VER=$(node -p "require('rollup/package.json').version")
-          echo "Detected rollup version: $ROLLUP_VER"
-          echo "Installing optional rollup native package for linux-x64-gnu"
-          npm i --no-save @rollup/rollup-linux-x64-gnu@$ROLLUP_VER
-          echo "After installing optional package, list @rollup packages:"
-          ls -la node_modules/@rollup || true
+      # Removed explicit rollup native install; rely on npm install and npm rebuild steps during CI.
 
       - name: Build site
         working-directory: collapse_web
