@@ -11,19 +11,26 @@ permissions:
 jobs:
   test-pages-api:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [18, 20]
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Use Node.js 20
+      - name: Use Node.js ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ matrix.node }}
 
       - name: Install dependencies
         run: |
           cd collapse_web
           npm ci
+      - name: Rebuild native modules (diagnostic)
+        run: |
+          cd collapse_web
+          npm rebuild || true
 
       - name: Check Rollup bindings (diagnostic)
         run: |
