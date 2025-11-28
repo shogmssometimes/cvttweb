@@ -123,6 +123,7 @@ jobs:
         id: deploy_pages_api
         uses: actions/deploy-pages@v4
         with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           artifact_name: github-pages
           path: pages
 
