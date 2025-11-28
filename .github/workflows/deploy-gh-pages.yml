@@ -119,6 +119,17 @@ jobs:
           name: github-pages
           path: pages
 
+      - name: "Debug: show pages folder"
+        run: |
+          echo "Listing pages folder:" && ls -la pages || true
+
+      - name: "Debug: show env and pages listing"
+        run: |
+          echo "__GITHUB_REPOSITORY__=$GITHUB_REPOSITORY"
+          echo "__GITHUB_ACTOR__=$GITHUB_ACTOR"
+          echo "__GITHUB_REPOSITORY_OWNER__=$GITHUB_REPOSITORY_OWNER"
+          echo "Listing pages folder to confirm artifact contents:" && ls -la pages || true
+
       - name: Deploy to GitHub Pages (via Pages API)
         id: deploy_pages_api
         uses: actions/deploy-pages@v4
