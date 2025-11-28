@@ -87,12 +87,13 @@ jobs:
       - name: Upload pages artifact (Pages API format)
         uses: actions/upload-pages-artifact@v3
         with:
-          name: pages
+          name: github-pages
           path: collapse_web/docs
 
       - name: Set docs path output
         id: set-docs-path
-        run: echo "::set-output name=docs-path::collapse_web/docs"
+        run: |
+          echo "docs-path=collapse_web/docs" >> "$GITHUB_OUTPUT"
 
   deploy:
     runs-on: ubuntu-latest
