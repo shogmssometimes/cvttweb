@@ -76,7 +76,7 @@ const defaultState = (baseCards: Card[], modCards: Card[]): DeckBuilderState => 
   hp: 10,
   maxHp: 10,
   viv: 0,
-  capacityHud: 0,
+  capacityHud: 10,
   movement: 0,
   initiative: 0,
   vigor: 0,
@@ -94,7 +94,7 @@ const loadState = (baseCards: Card[], modCards: Card[]): DeckBuilderState => {
         hp: parsed.hp ?? 10,
         maxHp: parsed.maxHp ?? 10,
         viv: parsed.viv ?? 0,
-        capacityHud: parsed.capacityHud ?? 0,
+          capacityHud: parsed.capacityHud ?? parsed.modifierCapacity ?? 0,
         movement: parsed.movement ?? 0,
         initiative: parsed.initiative ?? 0,
         vigor: parsed.vigor ?? 0,
@@ -448,6 +448,7 @@ export default function DeckBuilder(){
     setBuilderState((prev) => ({
       ...prev,
       modifierCapacity: Math.max(value, 0),
+      capacityHud: Math.max(value, 0),
     }))
   }
 
