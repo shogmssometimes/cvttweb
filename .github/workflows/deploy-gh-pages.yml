@@ -110,6 +110,9 @@ jobs:
       contents: write
       pages: write
       id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy_pages_api.outputs.page_url }}
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     outputs:
@@ -154,9 +157,8 @@ jobs:
         id: deploy_pages_api
         uses: actions/deploy-pages@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           artifact_name: github-pages
-          path: pages
 
       - name: Output Pages URL
         run: |
