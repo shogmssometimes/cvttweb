@@ -146,7 +146,7 @@ jobs:
           echo "pages dir size:" && du -sh pages || true
           echo "pages index head (first 30 lines):" && head -n 30 pages/index.html || true
 
-      - name: Debug: Confirm Pages configuration
+      - name: "Debug: Confirm Pages configuration"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
