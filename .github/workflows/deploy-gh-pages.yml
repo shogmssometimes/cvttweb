@@ -73,7 +73,7 @@ jobs:
         run: |
           set -euxo pipefail
           echo "Checking package.json scripts:"
-          cat collapse_web/package.json | jq -r '.scripts'
+          cat package.json | jq -r '.scripts'
           echo "Starting build"
           npm run build --if-present
         working-directory: collapse_web
@@ -82,11 +82,11 @@ jobs:
       - name: Check build output (docs)
         run: |
           echo "Collapse web build dir listing:"
-          ls -la collapse_web/docs || true
+          ls -la docs || true
           echo "--- index.html head ---"
-          head -n 30 collapse_web/docs/index.html || true
+          head -n 30 docs/index.html || true
           echo "--- assets listing ---"
-          ls -la collapse_web/docs/assets || true
+          ls -la docs/assets || true
         working-directory: collapse_web
 
 
