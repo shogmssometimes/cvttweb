@@ -60,6 +60,13 @@ jobs:
           ls -la collapse_web/node_modules | wc -l || true
         working-directory: collapse_web
 
+      - name: Ensure Rollup native binary (linux x64)
+        if: runner.os == 'Linux'
+        run: |
+          set -euxo pipefail
+          npm install --no-save @rollup/rollup-linux-x64-gnu
+        working-directory: collapse_web
+
       # removed verbose Rollup diagnostics; kept minimal node/npm version above
 
       # removed explicit rollup native install; rely on npm install and npm rebuild
