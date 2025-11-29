@@ -21,3 +21,5 @@ This repository contains the Collapse VTT web UI, the Collapse system, and suppo
 If you prefer PR-based workflows instead of direct pushes, open a PR against `main` and merge after verification.
 
 If you need me to remove other branches or tidy up backups, say the word and I’ll handle it.
+
+<!-- CI: debug rerun: 2025-11-29T00:00:00Z -->

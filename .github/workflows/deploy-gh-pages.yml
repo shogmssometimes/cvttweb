@@ -44,10 +44,18 @@ jobs:
         working-directory: collapse_web
 
       - name: Install dependencies (collapse_web)
+        env:
+          # Prevent Playwright from automatically downloading browser binaries during npm install
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
         run: |
           set -euxo pipefail
-          echo "Installing dependencies in collapse_web"
-          npm ci --silent
+          echo "Installing dependencies in collapse_web (verbose)"
+          echo "Node: $(node -v)" && echo "NPM: $(npm -v)"
+          # Show .npmrc if present so we can debug auth/registry config issues
+          echo "--- collapse_web/.npmrc (if present) ---"
+          cat collapse_web/.npmrc || true
+          # Run install without silent to ensure logs are captured in Actions output
+          npm ci --no-audit --loglevel=verbose
           echo "Installed packages; node modules count:"
           ls -la collapse_web/node_modules | wc -l || true
         working-directory: collapse_web
