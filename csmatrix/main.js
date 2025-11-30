@@ -209,6 +209,8 @@ if (btnMaximize) {
 				btnMaximize.textContent = isMax ? 'Restore View' : 'Maximize Graph';
 				btnMaximize.setAttribute('aria-pressed', isMax ? 'true' : 'false');
 				btnMaximize.classList.toggle('is-maximized', isMax);
+				// re-render graph so radius and font sizes update immediately
+				try { if (graph && typeof graph.render === 'function') graph.render(); } catch(e) {}
 				// ensure focus returns to the button so keyboard users do not lose control
 				try { btnMaximize.focus(); } catch(e) {}
 		});

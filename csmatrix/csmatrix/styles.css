@@ -40,6 +40,8 @@ header .global-meters { width: 100%; display: flex; justify-content: space-betwe
 #matrix-canvas-wrap svg g circle { filter: drop-shadow(0 3px 6px rgba(0,0,0,0.45)); }
 #matrix-canvas-wrap svg text { font-weight: 600; }
 #matrix-canvas-wrap svg .selection-ring { stroke: var(--accent-collapse) !important; stroke-width: 4px !important; }
+#matrix-canvas-wrap svg text.node-label { font-size: 40px; }
+body.graph-max #matrix-canvas-wrap svg text.node-label { font-size: 72px; }
 #matrix-canvas-wrap .posture-toggle::before { content: "≡"; display:inline-block; font-size:16px; line-height:36px; text-align:center; width:100%; }
 #matrix-canvas-wrap .posture-toggle[aria-pressed='true']::before { content: "⊞"; }
 .hud-toggle:focus { outline: 3px solid rgba(255,255,255,0.2); }
@@ -98,8 +100,9 @@ footer { padding: 8px 16px; font-size: 0.8rem; color: #555; }
 /* older mobile layout settings for narrow screens */
 @media (max-width: 720px) {
 	main { flex-direction: column; }
-	#controls { width: 100%; order: 2; display: none; }
-	#matrix { order: 1; }
+	/* Show controls above the graph on small screens */
+	#controls { width: 100%; order: 1; display: block; }
+	#matrix { order: 2; }
 	#matrix-canvas-wrap { min-height: auto; }
 	#matrix-svg { height: auto; }
 	/* show a floating toggle for controls */

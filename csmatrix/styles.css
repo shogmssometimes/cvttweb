@@ -52,6 +52,12 @@ body.graph-max #matrix-canvas-wrap svg { width: 100%; height: 100%; }
 body.graph-max #node-list-section { position: absolute; right: 12px; top: 12px; width: 320px; max-height: calc(100vh - 24px); overflow: auto; z-index: 10000; box-shadow: 0 6px 24px rgba(0,0,0,0.6); }
 #matrix-svg { width:100%; height:100%; display:block; }
 .control-row { margin-bottom:10px; }
+/* Mobile: always show controls above graph under meters */
+@media (max-width: 720px) {
+	main { flex-direction: column; }
+	#controls { width: 100%; order: 1; display: block !important; }
+	#matrix { order: 2; }
+}
 .panel { background: var(--surface); border:1px solid var(--border); padding: 8px; border-radius:6px; }
 .hidden { display:none !important; }
 .node-list { margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; }
@@ -76,3 +82,5 @@ body.ui-scale-compact .hud-toggle, body.ui-scale-compact .posture-toggle { width
 #matrix-canvas-wrap svg g circle { filter: drop-shadow(0 3px 6px rgba(0,0,0,0.45)); }
 #matrix-canvas-wrap svg text { font-weight: 600; }
 #matrix-canvas-wrap svg .selection-ring { stroke: var(--accent-collapse) !important; stroke-width: 4px !important; }
+#matrix-canvas-wrap svg text.node-label { font-size: 40px; }
+body.graph-max #matrix-canvas-wrap svg text.node-label { font-size: 72px; }

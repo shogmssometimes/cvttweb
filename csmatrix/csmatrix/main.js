@@ -210,6 +210,7 @@ if (btnMaximize) {
 			btnMaximize.setAttribute('aria-pressed', isMax ? 'true' : 'false');
 			btnMaximize.classList.toggle('is-maximized', isMax);
 			try { btnMaximize.focus(); } catch(e) {}
+			try { if (graph && typeof graph.render === 'function') graph.render(); } catch(e) {}
 	});
 }
 // hide controls from within the controls panel

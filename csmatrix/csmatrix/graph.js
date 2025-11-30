@@ -239,7 +239,9 @@ class CSGraph {
     this.nodes.forEach(n => {
       const p = this.gridToPixel(n.gx, n.gy);
       const g = document.createElementNS('http://www.w3.org/2000/svg','g'); g.setAttribute('transform', `translate(${p.x},${p.y})`); g.setAttribute('data-node-id', n.id);
-      const r = 36;
+      const defaultRadius = 48;
+      const maxRadius = 72;
+      const r = (typeof window !== 'undefined' && document && document.body.classList.contains('graph-max')) ? maxRadius : defaultRadius;
         const accentColor = (typeof window !== 'undefined' && window.getComputedStyle) ? (getComputedStyle(document.documentElement).getPropertyValue('--accent-influence').trim() || '#4caf50') : '#4caf50';
         const fillColor = (n.color && n.color.startsWith('#')) ? n.color : (n.color && n.color.startsWith('hsl') ? n.color : (n.color ? n.color : accentColor));
         const circle = document.createElementNS('http://www.w3.org/2000/svg','circle'); circle.setAttribute('cx', '0'); circle.setAttribute('cy', '0'); circle.setAttribute('r', r.toString()); circle.setAttribute('fill', fillColor); circle.setAttribute('fill-opacity', '1'); circle.setAttribute('stroke', 'rgba(255,255,255,0.06)'); circle.setAttribute('stroke-width', '2'); circle.setAttribute('data-node-id', n.id);
@@ -256,13 +258,17 @@ class CSGraph {
         text.setAttribute('text-anchor', 'middle');
         text.textContent = n.name || 'Node';
         // Label: slightly larger by default, reveal on hover/tap and selection
-          text.setAttribute('font-size', '18');
+          const defaultTextSize = '40';
+          const hoverTextSize = '72';
+          const activeTextSize = '100';
+          text.setAttribute('font-size', defaultTextSize);
+          try { text.classList.add('node-label'); } catch(e) {}
         text.setAttribute('font-weight', '700');
         text.setAttribute('opacity', (this.selected.node && this.selected.node.id === n.id) ? '1' : '0');
         let _hoverTimeout = null;
-        const defaultSize = '18';
-        const hoverSize = '30';
-        const activeSize = '38';
+        const defaultSize = '36';
+        const hoverSize = '60';
+        const activeSize = '76';
         g.addEventListener('pointerenter', () => { if (_hoverTimeout) { clearTimeout(_hoverTimeout); _hoverTimeout = null; } text.setAttribute('opacity','1'); text.setAttribute('font-size', hoverSize); });
         g.addEventListener('pointerleave', () => { if (_hoverTimeout) { clearTimeout(_hoverTimeout); _hoverTimeout = null; } text.setAttribute('font-size', defaultSize); text.setAttribute('opacity', (this.selected.node && this.selected.node.id === n.id) ? '1' : '0'); });
         g.addEventListener('pointerdown', () => { if (_hoverTimeout) clearTimeout(_hoverTimeout); text.setAttribute('opacity','1'); text.setAttribute('font-size', activeSize); _hoverTimeout = setTimeout(() => { _hoverTimeout = null; if (!(this.selected.node && this.selected.node.id === n.id)) { text.setAttribute('font-size', defaultSize); text.setAttribute('opacity','0'); } else { text.setAttribute('font-size', hoverSize); text.setAttribute('opacity','1'); } }, 1200); });

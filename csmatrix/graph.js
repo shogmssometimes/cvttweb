@@ -89,9 +89,12 @@ class CSGraph {
       const g = document.createElementNS('http://www.w3.org/2000/svg','g'); g.setAttribute('transform', `translate(${p.x},${p.y})`); g.setAttribute('data-node-id', n.id);
       const accentColor = (typeof window !== 'undefined' && window.getComputedStyle) ? (getComputedStyle(document.documentElement).getPropertyValue('--accent-influence').trim() || '#4caf50') : '#4caf50';
       const fillColor = (n.color && n.color.startsWith('#')) ? n.color : (n.color && n.color.startsWith('hsl') ? n.color : (n.color ? n.color : accentColor));
-      const circle = document.createElementNS('http://www.w3.org/2000/svg','circle'); circle.setAttribute('r', '36'); circle.setAttribute('cx', 0); circle.setAttribute('cy', 0); circle.setAttribute('fill', fillColor); circle.setAttribute('fill-opacity', '1'); circle.setAttribute('stroke', 'rgba(255,255,255,0.06)'); circle.setAttribute('stroke-width', '2'); g.appendChild(circle);
+      const defaultRadius = 48;
+      const maxRadius = 72;
+      const r = (typeof window !== 'undefined' && document && document.body.classList.contains('graph-max')) ? maxRadius : defaultRadius;
+      const circle = document.createElementNS('http://www.w3.org/2000/svg','circle'); circle.setAttribute('r', r.toString()); circle.setAttribute('cx', 0); circle.setAttribute('cy', 0); circle.setAttribute('fill', fillColor); circle.setAttribute('fill-opacity', '1'); circle.setAttribute('stroke', 'rgba(255,255,255,0.06)'); circle.setAttribute('stroke-width', '2'); g.appendChild(circle);
       if (this.selected.node && this.selected.node.id === n.id) {
-        const ring = document.createElementNS('http://www.w3.org/2000/svg','circle'); ring.setAttribute('r', '36'); ring.setAttribute('cx', 0); ring.setAttribute('cy', 0); ring.setAttribute('fill', 'none'); ring.setAttribute('stroke', 'var(--accent-collapse)'); ring.setAttribute('stroke-width', '4'); g.appendChild(ring);
+        const ring = document.createElementNS('http://www.w3.org/2000/svg','circle'); ring.setAttribute('r', (r + 6).toString()); ring.setAttribute('cx', 0); ring.setAttribute('cy', 0); ring.setAttribute('fill', 'none'); ring.setAttribute('stroke', 'var(--accent-collapse)'); ring.setAttribute('stroke-width', '4'); g.appendChild(ring);
       }
       // Node label: visible on hover/select, larger font-size by default and grow on hover/tap
       const text = document.createElementNS('http://www.w3.org/2000/svg','text');
@@ -100,13 +103,18 @@ class CSGraph {
       text.setAttribute('text-anchor','middle');
       text.setAttribute('fill','var(--text)');
       text.textContent = n.name || 'Node';
-      text.setAttribute('font-size','18');
+      // Default text sizing: double the original size for readability
+      const defaultTextSize = '40';
+      const hoverTextSize = '72';
+      const activeTextSize = '100';
+      text.setAttribute('font-size', defaultTextSize);
+      try { text.classList.add('node-label'); } catch(e) {}
       text.setAttribute('opacity', (this.selected.node && this.selected.node.id === n.id) ? '1' : '0');
       // Pointer events: show label on hover and grow it; on touch (pointerdown) enlarge more briefly
       let _hoverTimeout = null;
-      const defaultSize = '18';
-      const hoverSize = '30';
-      const activeSize = '38';
+      const defaultSize = defaultTextSize;
+      const hoverSize = hoverTextSize;
+      const activeSize = activeTextSize;
       g.addEventListener('pointerenter', () => { if (_hoverTimeout) { clearTimeout(_hoverTimeout); _hoverTimeout = null; } text.setAttribute('opacity','1'); text.setAttribute('font-size', hoverSize); });
       g.addEventListener('pointerleave', () => { if (_hoverTimeout) { clearTimeout(_hoverTimeout); _hoverTimeout = null; } text.setAttribute('font-size', defaultSize); text.setAttribute('opacity', (this.selected.node && this.selected.node.id === n.id) ? '1' : '0'); });
       g.addEventListener('pointerdown', () => { if (_hoverTimeout) clearTimeout(_hoverTimeout); text.setAttribute('opacity','1'); text.setAttribute('font-size', activeSize); // restore after short delay if not selected
