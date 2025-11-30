@@ -37,7 +37,7 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.05), transparent 60%), #050505;
+  background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.05), transparent 60%), var(--bg-dark);
   color: inherit;
 }
 
@@ -50,8 +50,8 @@ body {
 
 button {
   border-radius: 6px;
-  border: 1px solid #222;
-  background: #151515;
+  border: 1px solid var(--border);
+  background: var(--bg-dark);
   color: inherit;
   padding: 0.28rem 0.6rem;
   cursor: pointer;
@@ -59,7 +59,7 @@ button {
 }
 
 button:hover {
-  border-color: #575cff;
+  border-color: var(--accent);
 }
 
 main {
@@ -157,7 +157,7 @@ main {
 .pager-dot{transition:transform 220ms, opacity 180ms}
 
 .pager-item{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:48px}
-.pager-label{font-size:0.8rem;color:#b6bac5}
+.pager-label{font-size:0.8rem;color:var(--muted)}
 .pager-item[aria-current='true'] .pager-label{color:#7b78ff;font-weight:600}
 
 /* Shared card grids */
@@ -284,7 +284,7 @@ main {
 .weight-600 { font-weight: 600; }
 .label-strong { font-weight: 600; font-size: var(--type-section); }
 
-.capacity-input { width: 92px; padding: 4px 8px; background: var(--bg-dark); border: 1px solid var(--border); color: #fff; border-radius: 6px; }
+.capacity-input { width: 92px; padding: 4px 8px; background: var(--bg-dark); border: 1px solid var(--border); color: var(--text); border-radius: 6px; }
 
 /* Details grid class; default layout uses two columns (label/value) */
 .card-details { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; row-gap: 4px; align-items: center; }

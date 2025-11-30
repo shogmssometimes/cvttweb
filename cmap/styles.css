@@ -24,4 +24,12 @@ canvas { max-width: 100%; height: auto; image-rendering: pixelated; border-radiu
 .context-menu { position: absolute; display: none; z-index: 1000; background: #111; color: #eee; padding: 8px 0; border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.7); min-width: 180px; font-size: .9rem; }
 .context-menu button { all: unset; display: block; padding: 8px 12px; cursor: pointer; }
 .context-menu button:hover { background: rgba(255,255,255,0.02); }
+
+.region-panel { position: fixed; left: 0; right: 0; top: 0; bottom: 0; z-index: 2000; display:flex; align-items:center; justify-content:center; background: rgba(0,0,0,0.5); }
+.region-panel-inner { width: 80%; max-width: 1200px; height: 80%; background: #0b0b0c; border-radius: 8px; overflow: hidden; display:flex; flex-direction:column; }
+.region-panel-toolbar { display:flex; justify-content:space-between; align-items:center; padding:10px 12px; background: #111; color:#eee; }
+.region-panel-canvas-wrap { flex:1; display:flex; align-items:center; justify-content:center; padding:12px; }
+.region-panel canvas { max-width:100%; max-height:100%; border-radius:6px; box-shadow: 0 8px 30px rgba(0,0,0,0.6); }
+.region-panel-toolbar button { background:transparent; color:#fff; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; }
+.region-panel-toolbar button:hover { background: rgba(255,255,255,0.04); }
 footer { padding: .5rem 1rem; font-size: .75rem; color:#bbb; background:#111; border-top:1px solid #333 }

@@ -32,7 +32,7 @@ export const SocialMatrix: React.FC<Props> = ({ meters }) => {
         }}
         viewBox="0 0 600 600"
       >
-        <circle cx={x} cy={y} r={12} fill="#00eaff" stroke="#fff" strokeWidth={3} />
+        <circle cx={x} cy={y} r={12} fill="var(--accent-influence)" stroke="var(--text)" strokeWidth={3} />
       </svg>
       {/* Meter values */}
       <div style={{ marginTop: 16, display: "flex", flexWrap: "wrap", gap: 12 }}>

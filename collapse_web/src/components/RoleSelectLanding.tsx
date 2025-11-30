@@ -26,10 +26,10 @@ interface RoleSelectLandingProps {
 }
 
 const tileStyles: React.CSSProperties = {
-  border: "1px solid #222",
+  border: "1px solid var(--border)",
   borderRadius: 16,
   padding: "1.25rem",
-  background: "linear-gradient(145deg, rgba(87,92,255,0.12), rgba(5,5,5,0.9))",
+  background: "var(--surface)",
   minHeight: 160,
   display: "flex",
   flexDirection: "column",
@@ -42,7 +42,7 @@ const RoleSelectLanding: React.FC<RoleSelectLandingProps> = ({ onSelect }) => {
     <main style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ width: "min(960px, 100%)", padding: "2rem" }}>
         <h1 style={{ marginBottom: "0.5rem" }}>Collapse Companion</h1>
-        <p style={{ marginBottom: "2rem", color: "#9aa0a6" }}>
+        <p style={{ marginBottom: "2rem", color: "var(--muted)" }}>
           Pick a role to continue. You can switch later without losing progress.
         </p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1rem" }}>
@@ -50,7 +50,7 @@ const RoleSelectLanding: React.FC<RoleSelectLandingProps> = ({ onSelect }) => {
             <div key={role.id} style={tileStyles}>
               <div>
                 <h2 style={{ margin: 0 }}>{role.title}</h2>
-                <p style={{ color: "#b6bac5", marginTop: "0.5rem" }}>{role.description}</p>
+                <p style={{ color: "var(--muted)", marginTop: "0.5rem" }}>{role.description}</p>
               </div>
               <button onClick={() => onSelect(role.id)}>Enter {role.id === "gm" ? "GM" : "Player"} Mode</button>
             </div>

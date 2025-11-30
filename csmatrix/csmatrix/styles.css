@@ -1,0 +1,181 @@
+* { box-sizing: border-box; }
+/* Design tokens: Collapse PWA aesthetic */
+:root {
+	--bg: #061018; /* page surface */
+	--surface: linear-gradient(180deg, #071018, #0f1620); /* panel surface */
+	--surface-solid: #0f1620;
+	--border: rgba(255,255,255,0.04);
+	--text: #e8eef3;
+	--muted: #8ea3ad;
+	--accent-collapse: #ff6b6b;
+	--accent-influence: #4caf50;
+	--accent-record: #90caf9;
+	--space-xs: 6px; --space-sm: 8px; --space-md: 12px; --space-lg: 16px;
+}
+html, body { height: 100%; }
+body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; margin: 0; color: var(--text); background: var(--bg); display:flex; flex-direction:column; }
+
+header { padding: 6px 12px; background: linear-gradient(180deg, rgba(10,18,24,0.98), rgba(7,26,36,0.98)); color: var(--text); display:flex; align-items:center; justify-content:center; gap: 12px; position:relative; border-bottom: 1px solid var(--border); }
+/* Keep the header compact while meters stretch across */
+header .global-meters { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+@media (max-width: 720px) { header .global-meters { justify-content: space-around; gap: 6px; overflow-x: auto; padding: 4px 2px; } }
+.global-meters { display:flex; gap:10px; align-items:center; justify-content:space-between; font-size: 0.95rem; }
+.global-meters .meter-row { display:flex; flex-direction:column; gap:6px; align-items:flex-start; min-width:120px; }
+.global-meters .meter-controls { display:flex; align-items:center; gap:8px; }
+.global-meters .meter-controls > button { width:26px; height:26px; }
+.global-meters .meter-bars { display:flex; gap:6px; }
+/* HUD toggle styling */
+.hud-toggle { position: absolute; right: 8px; top: 8px; background: rgba(255,255,255,0.06); color: var(--text); border: 1px solid rgba(255,255,255,0.06); padding: 7px 9px; border-radius: 6px; font-weight: 600; font-size: 0.88rem; z-index: 100; }
+#matrix-canvas-wrap .hud-toggle { left: 12px; right: auto; top: 12px; background: rgba(0,0,0,0.45); color: var(--text); border: 1px solid rgba(255,255,255,0.02); z-index: 50; }
+/* tiny hud icon */
+#matrix-canvas-wrap .hud-toggle { width: 36px; height: 36px; padding: 0; font-size: 0; }
+#matrix-canvas-wrap .hud-toggle::before { content: "☰"; display:inline-block; font-size: 18px; line-height:36px; text-align:center; width:100%; color: var(--text); }
+#matrix-canvas-wrap .hud-toggle[aria-pressed='true']::before { content: "✖"; }
+#matrix-canvas-wrap .posture-toggle { left: 56px; right: auto; top: 12px; background: rgba(0,0,0,0.35); color: var(--text); border: 1px solid rgba(255,255,255,0.02); width:36px; height:36px; padding: 0; font-size:0; border-radius:6px; }
+#matrix-canvas-wrap svg line { stroke: rgba(255,255,255,0.08) !important; stroke-width: 1 !important; }
+#matrix-canvas-wrap svg text { fill: rgba(255,255,255,0.93) !important; transition: opacity 160ms ease, font-size 180ms cubic-bezier(.2,.9,.12,1); }
+#matrix-canvas-wrap svg text[opacity] { opacity: 0.88 !important; }
+#matrix-canvas-wrap svg circle { stroke: rgba(255,255,255,0.12) !important; stroke-width: 2 !important; }
+#matrix-canvas-wrap svg circle[data-node-id] { stroke: rgba(0,0,0,0.6) !important; stroke-width: 2 !important; }
+#matrix-canvas-wrap svg g circle { filter: drop-shadow(0 3px 6px rgba(0,0,0,0.45)); }
+#matrix-canvas-wrap svg text { font-weight: 600; }
+#matrix-canvas-wrap svg .selection-ring { stroke: var(--accent-collapse) !important; stroke-width: 4px !important; }
+#matrix-canvas-wrap .posture-toggle::before { content: "≡"; display:inline-block; font-size:16px; line-height:36px; text-align:center; width:100%; }
+#matrix-canvas-wrap .posture-toggle[aria-pressed='true']::before { content: "⊞"; }
+.hud-toggle:focus { outline: 3px solid rgba(255,255,255,0.2); }
+
+/* When HUD is hidden, collapse pills and controls only; header meters remain visible */
+.hud-hidden .axis-pill { opacity: 0; transform: translateY(-8px) scale(0.98); pointer-events: none; }
+.hud-hidden #controls { opacity: 0; transform: translateY(-8px); pointer-events: none; }
+.hud-hidden .control-row.controls-toggle-row { display: none; }
+.hud-hidden .controls-max-row { display: none; }
+
+/* Animate the pills and controls when toggled */
+.global-meters, #controls { transition: opacity 200ms ease, transform 200ms ease; }
+.global-meters .meter-bars .unit { width:14px; height:14px; }
+
+/* Global meters moved to header for always-visible access */
+@media (max-width: 720px) { header .global-meters { justify-content: space-around; gap: 6px; overflow-x: auto; padding: 4px 2px; } }
+.global-meters { display:flex; gap:12px; align-items:center; justify-content:space-between; }
+.global-meters .meter-row { color:var(--text); background: rgba(255,255,255,0.02); padding:6px 10px; border-radius:8px; display:flex; align-items:center; gap:8px; border: 1px solid var(--border);} 
+.global-meters .meter-row button { background:transparent; border:1px solid rgba(255,255,255,0.12); color:var(--text); width:26px; height:26px; padding:0; border-radius:4px; font-weight:700; }
+.global-meters .meter-bars .unit { width:14px; height:14px; }
+#layout { display:flex; gap: 16px; padding: 12px; flex:1 1 auto; }
+#matrix { flex:1 1 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px; display:flex; flex-direction:column; height: 100%; }
+#matrix-canvas-wrap { border: 1px solid rgba(255,255,255,0.03); border-radius: var(--radius-sm); background: linear-gradient(180deg, #081015, #0f1620); overflow: visible; width:100%; display:flex; flex:1 1 auto; align-items:stretch; justify-content:stretch; height:100%; }
+#matrix-canvas-wrap { position: relative; }
+#matrix-svg { width: 100%; height: 100%; display: block; }
+.adding-node { cursor: crosshair; }
+.control-row { margin-bottom: 12px; }
+.panels { margin-top: 12px; }
+.panel { background: var(--surface); border: 1px solid var(--border); padding: 10px; border-radius: 6px; margin-bottom: 12px; }
+.panel h4 { margin: 0 0 8px 0; }
+#controls { flex: 0 0 240px; width:240px; }
+/* Slightly reduce font/gap in compact mode via body.ui-scale-compact */
+body.ui-scale-compact #controls { width: 220px; }
+body.ui-scale-compact .control-row button { font-size: 13px; padding: 8px; }
+body.ui-scale-compact { font-size: 13px; }
+body.ui-scale-compact .node-card { font-size: 0.86rem; padding: 6px; min-width: 140px; }
+body.ui-scale-compact #controls { flex: 0 0 220px; width: 220px; }
+body.ui-scale-compact .meter-bars .unit { width: 16px; height: 16px; }
+body.ui-scale-compact #matrix-canvas-wrap { padding: 6px; }
+body.ui-scale-compact .hud-toggle, body.ui-scale-compact .posture-toggle { width: 32px; height: 32px; }
+#layout main, #layout aside { align-self: start; }
+
+/* apply basic layout for header/main */
+main { display: flex; flex:1 1 auto; flex-direction: column; gap: 12px; padding: 12px; }
+#controls label { display:block; margin: 6px 0; }
+#controls input, #controls textarea { width: 100%; box-sizing: border-box; }
+.panel-actions { display:flex; gap: 8px; margin-top: 8px; }
+.hidden { display:none !important; }
+.app-error { padding: 8px 12px; background: #ffefef; color: #9a1f1f; border: 1px solid #f5c6cb; margin: 0 12px 12px; border-radius: 6px; }
+footer { padding: 8px 16px; font-size: 0.8rem; color: #555; }
+
+/* mobile-first: stack controls under canvas */
+@media (min-width: 721px) {
+	main { flex-direction: row; }
+}
+/* older mobile layout settings for narrow screens */
+@media (max-width: 720px) {
+	main { flex-direction: column; }
+	#controls { width: 100%; order: 2; display: none; }
+	#matrix { order: 1; }
+	#matrix-canvas-wrap { min-height: auto; }
+	#matrix-svg { height: auto; }
+	/* show a floating toggle for controls */
+	.hide-desktop { display: inline-block; }
+	body.controls-open #controls { display: block; }
+	.control-row button { font-size: 15px; padding: 10px; }
+	.panel { padding: 10px; }
+	.panel input[type='range'] { width: 100%; }
+}
+
+/* Desktop: hide mobile-only toggle */
+@media (min-width: 721px) { .hide-desktop { display:none; } }
+
+/* default buttons on desktop 15% smaller */
+.control-row button { font-size: 15px; padding: 10px; border-radius: 6px; }
+.control-row button:focus { outline: 3px solid #4d90fe; }
+.panel-actions button { padding: 8px 12px; font-size: 14px; }
+
+/* small inline meter bars in Controls */
+.meter-bars { display:inline-block; margin-left:8px; vertical-align:middle; }
+.meter-row #global-meter-collapse-value, .meter-row #global-meter-influence-value, .meter-row #global-meter-record-value { font-weight: 700; font-size: 18px; margin: 0 8px; }
+.meter-bars .unit { display:inline-block; width:20px; height:20px; border:1px solid rgba(255,255,255,0.03); margin-right:6px; background: rgba(255,255,255,0.02); border-radius:3px; }
+.meter-bars .unit.active.collapse { background:#b71c1c; }
+.meter-bars .unit.active.influence { background:#1b5e20; }
+.meter-bars .unit.active.record { background:#0d47a1; }
+
+/* Node list at bottom of page */
+#node-list-section { background: var(--surface); border-top: 1px solid var(--border); padding: 12px; }
+#node-list-section h3 { margin: 0 0 8px 0; font-size: 1.1rem; }
+#node-list { display:flex; flex-wrap:wrap; gap:10px; }
+.node-card { background: var(--surface); border: 1px solid var(--border); padding: 8px 10px; border-radius: 6px; display:flex; gap:10px; align-items:center; min-width: 200px; font-size: 0.92rem; }
+.node-card .node-swatch { width: 20px; height: 20px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.06); }
+.node-card:hover { box-shadow: 0 4px 14px rgba(5,9,12,0.06); transform: translateY(-1px); }
+.node-card.selected { border: 2px solid var(--accent-collapse); box-shadow: 0 2px 8px rgba(249,168,37,0.12); }
+.node-swatch { width: 22px; height: 22px; border-radius: 4px; border: 1px solid #ddd; }
+.node-card .node-meta { display:flex; flex-direction:column; }
+.node-card button.delete-node { background: rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.04); color:var(--accent-collapse); padding:4px 6px; border-radius:4px; margin-left:auto; }
+.node-card button.delete-node:focus { outline: 3px solid var(--accent-collapse); }
+/* Compact posture styles */
+body.ui-scale-compact { font-size: 13px; }
+body.ui-scale-compact .node-card { font-size: 0.86rem; padding: 6px; min-width: 140px; }
+body.ui-scale-compact #controls { flex: 0 0 220px; width: 220px; }
+body.ui-scale-compact .meter-bars .unit { width: 16px; height: 16px; }
+body.ui-scale-compact #matrix-canvas-wrap { padding: 6px; }
+body.ui-scale-compact .hud-toggle, body.ui-scale-compact .posture-toggle { width: 32px; height: 32px; }
+
+/* Maximize graph/collapse controls */
+body.graph-max #controls { display: none; }
+body.graph-max #matrix { flex: 1 1 100%; }
+body.graph-max #node-list-section { display:none; }
+body.graph-max footer { display:none; }
+.hide-mobile { display:inline-block; }
+@media (max-width:720px) { .hide-mobile { display:none; } }
+
+/* Axis pill styles */
+.axis-pill { position: absolute; padding: 6px 10px; border-radius: 9999px; background: rgba(255,255,255,0.04); color: var(--text); font-weight: 700; font-size: 14px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.06); transition: transform 200ms ease, opacity 200ms ease; z-index: 10; }
+.axis-pill { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; letter-spacing: 0.02em; }
+.axis-pill-top { top: -32px; left: 50%; transform: translateX(-50%); }
+.axis-pill-bottom { bottom: -34px; left: 50%; transform: translateX(-50%); }
+.axis-pill-left { left: -62px; top: 50%; transform: translateY(-50%) rotate(-90deg); transform-origin: center; z-index: 40; pointer-events: auto; }
+.axis-pill-right { right: -62px; top: 50%; transform: translateY(-50%) rotate(90deg); transform-origin: center; z-index: 40; pointer-events: auto; }
+
+/* Smaller pills for very narrow screens */
+@media (max-width: 420px) {
+	.axis-pill { font-size: 12px; padding: 4px 8px; }
+	.axis-pill-left, .axis-pill-right { left: -40px; right: -40px; }
+	.axis-pill-top { top: -28px; }
+	.axis-pill-bottom { bottom: -30px; }
+}
+
+/* Hide the old show controls button (we use the new HUD toggle) */
+#btn-toggle-controls { display: none !important; }
+
+/* When HUD hidden, axis pills should also be hidden */
+.hud-hidden .axis-pill { opacity: 0; transform: translateY(-6px) scale(0.98); pointer-events: none; }
+.hud-toggle { transition: background 160ms ease, transform 160ms ease; }
+.hud-toggle:hover { transform: translateY(-2px); background: rgba(255,255,255,0.1); }
+.hud-toggle:active { transform: translateY(0); }
+.hud-toggle:focus { outline: 2px solid rgba(255,255,255,0.12); }

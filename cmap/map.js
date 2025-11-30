@@ -294,7 +294,47 @@ function getCountryColorByLatLon(lat, lon, paletteName) {
 // NOTE: we render the world polygon base to an offscreen canvas and then
 // allow pan/zoom in the main canvas by drawing a source rect of the
 // offscreen canvas into the visible canvas.
+// Cache world renders keyed by bbox + scale to avoid recomputing expensive full renders
+const worldRenderCache = new Map();
+// Cache for Overpass queries (rivers/roads) to avoid repeated network requests
+const overpassCache = new Map();
+// Region worker helper - instantiate a Worker if available to offload heavy voronoi/lloyd computations
+let regionWorker = null;
+let regionWorkerReqId = 1;
+const regionWorkerPending = new Map();
+try {
+  regionWorker = new Worker('regionWorker.js');
+  regionWorker.onmessage = function(e) {
+    const d = e.data; if (!d) return; const p = regionWorkerPending.get(d.reqId); if (!p) return;
+    if (d.error) p.reject(new Error(d.error)); else p.resolve(d);
+    regionWorkerPending.delete(d.reqId);
+  };
+} catch (err) { regionWorker = null; }
+
+function computeVoronoiWithWorker({ gridW, gridH, img, seeds, riverMask, iterations, bbox }) {
+  return new Promise((resolve, reject) => {
+    if (!regionWorker) return reject(new Error('No region worker'));
+    const reqId = regionWorkerReqId++;
+    // copy image data and river mask to avoid transferring main thread buffers
+    const imgCopy = new Uint8ClampedArray(img).buffer;
+    const transfer = [imgCopy];
+    let riverBuf = null;
+    if (riverMask) { riverBuf = new Uint8Array(riverMask).buffer; transfer.push(riverBuf); }
+    regionWorkerPending.set(reqId, { resolve, reject });
+    try {
+      regionWorker.postMessage({ type: 'compute', reqId, gridW, gridH, imgBuffer: imgCopy, seeds, riverMaskBuffer: riverBuf, iterations, bbox }, transfer);
+    } catch (err) {
+      regionWorkerPending.delete(reqId);
+      reject(err);
+    }
+  });
+}
 function renderWorldOffscreen(features, baseWidth, baseHeight, options) {
+  try {
+    const key = JSON.stringify({ bbox: options.bbox, baseWidth, baseHeight, palette: options.palette });
+    if (worldRenderCache.has(key)) return worldRenderCache.get(key);
+  } catch (e) { /* ignore */ }
+  
   // create offscreen canvas with full world render
   const off = document.createElement('canvas');
   off.width = baseWidth; off.height = baseHeight;
@@ -388,6 +428,7 @@ function renderWorldOffscreen(features, baseWidth, baseHeight, options) {
   ctx.restore();
   // add a soft texture overlay (subtle paper-like noise)
   applyNoiseTexture(ctx, off.width, off.height, options.seedNumeric);
+  try { if (key) worldRenderCache.set(key, off); } catch (err) { /* ignore cache set */ }
   return off;
 }
 
@@ -409,7 +450,7 @@ function applyNoiseTexture(ctx, w, h, seed) {
 }
 
 // Draw a Regions overlay on the offscreen canvas (translucent color grids for now)
-  function drawRegionsLayer(offCtx, bbox, baseWidth, baseHeight, regionCount, smoothPasses) {
+  async function drawRegionsLayer(offCtx, bbox, baseWidth, baseHeight, regionCount, smoothPasses, useRivers, regionGridDivisor = 8) {
   // Weighted points for population/resources to bias region seeds
   const REGION_WEIGHT_POINTS = [
     { lon: -74.0060, lat: 40.7128, w: 3 }, // New York
@@ -438,8 +479,13 @@ function applyNoiseTexture(ctx, w, h, seed) {
   ].filter(p => p.lon >= bbox.west - 20 && p.lon <= bbox.east + 20 && p.lat >= bbox.south - 10 && p.lat <= bbox.north + 10);
 
   // small helper RNG: use a deterministic-ish value based on regionCount and sizes
-  const seedBrush = Math.abs(Math.floor((baseWidth + baseHeight) * (regionCount || 8)));
+  // smaller seedBrush for full quality; for quick previews, use smaller brushes
+  const seedBrush = Math.abs(Math.floor((baseWidth + baseHeight) * (regionCount || 8) / Math.max(1, Math.round(regionGridDivisor/2))));
   const rrand = mulberry32(seedBrush);
+
+  // grid resolution used for region rasterization / voronoi
+  const gridW = Math.max(120, Math.round(baseWidth / Math.max(2, regionGridDivisor)));
+  const gridH = Math.max(80, Math.round(baseHeight / Math.max(2, regionGridDivisor)));
 
   function randBetween(min, max) { return min + (max - min) * rrand(); }
   function pickWeighted(points) {
@@ -476,65 +522,112 @@ function applyNoiseTexture(ctx, w, h, seed) {
   }
 
   // grid-based voronoi: assign each grid cell to nearest seed
-  const gridW = Math.max(200, Math.round(baseWidth / 8));
-  const gridH = Math.max(120, Math.round(baseHeight / 8));
-  const seeds = generateSeeds(regionCount || 8);
-  const assignments = new Int32Array(gridW * gridH);
+  let seeds = null;
+  if (!window.__predefinedRegions) seeds = generateSeeds(regionCount || 8);
+  let assignments = new Int32Array(gridW * gridH);
   // create a small downsampled version of the existing world render so we can skip ocean cells
   const temp = document.createElement('canvas'); temp.width = gridW; temp.height = gridH; const tctx = temp.getContext('2d');
   tctx.drawImage(offCtx.canvas, 0, 0, baseWidth, baseHeight, 0, 0, gridW, gridH);
   const img = tctx.getImageData(0, 0, gridW, gridH).data;
 
-  // Multi-source BFS flood fill across the grid to create organic region shapes
-  assignments.fill(-1);
-  // seed initial queue positions
-  const queue = [];
-  const seedGridCoords = seeds.map(s => ({ x: Math.round((s.lon - bbox.west) / (bbox.east - bbox.west) * (gridW - 1)), y: Math.round((bbox.north - s.lat) / (bbox.north - bbox.south) * (gridH - 1)) }));
-  for (let i = 0; i < seedGridCoords.length; i++) {
-    const sc = seedGridCoords[i];
-    const idx = sc.y * gridW + sc.x;
-    if (idx < 0 || idx >= assignments.length) continue;
-    // skip ocean seeds; find nearest land cell if needed
-    const startIsLand = (img[(sc.y * gridW + sc.x) * 4] !== 0 || img[(sc.y * gridW + sc.x) * 4 + 1] !== 0 || img[(sc.y * gridW + sc.x) * 4 + 2] !== 0);
-    if (!startIsLand) {
-      // search around for nearest land neighbour
-      let found = false;
-      for (let r = 1; r < 10 && !found; r++) {
-        for (let oy = -r; oy <= r && !found; oy++) {
-          for (let ox = -r; ox <= r && !found; ox++) {
-            const nx = sc.x + ox, ny = sc.y + oy;
-            if (nx < 0 || nx >= gridW || ny < 0 || ny >= gridH) continue;
-            const nidx = (ny * gridW + nx) * 4;
-            const rr = img[nidx], gg = img[nidx+1], bb = img[nidx+2];
-            const dr = rr - 113, dg = gg - 166, db = bb - 213; const dist2 = dr*dr + dg*dg + db*db;
-            if (dist2 >= 45 * 45) continue; // still ocean
-            // found
-            assignments[ny * gridW + nx] = i;
-            queue.push({ x: nx, y: ny, id: i });
-            found = true;
-          }
-        }
-      }
-      if (!found) continue; // no land seed found
-    } else {
-      assignments[idx] = i; queue.push({ x: sc.x, y: sc.y, id: i });
-    }
+  // optionally fetch rivers to create a river mask (prevents regions crossing rivers)
+  let riverMask = null;
+  if (useRivers) {
+    try {
+      const riverGeo = await fetchRivers(bbox);
+      riverMask = createRiverMask(riverGeo, gridW, gridH, bbox);
+    } catch (err) { console.warn('fetchRivers failed', err); }
   }
-  const neighborDirs = [[1,0],[-1,0],[0,1],[0,-1]];
-  while (queue.length) {
-    const p = queue.shift();
-    for (const [dx, dy] of neighborDirs) {
-      const nx = p.x + dx, ny = p.y + dy;
-      if (nx < 0 || nx >= gridW || ny < 0 || ny >= gridH) continue;
-      const aidx = ny * gridW + nx;
-      if (assignments[aidx] !== -1) continue;
-      const pidx = (aidx) * 4;
-      const r = img[pidx], g = img[pidx + 1], b = img[pidx + 2];
-      const dr = r - 113, dg = g - 166, db = b - 213; const dist2 = dr * dr + dg * dg + db * db;
-      if (dist2 < 45 * 45) continue; // ocean
-      assignments[aidx] = p.id;
-      queue.push({ x: nx, y: ny, id: p.id });
+
+  // If predefined regions are available, rasterize them into assignments and draw them
+  if (window.__predefinedRegions) {
+    try {
+      const pre = window.__predefinedRegions;
+      const rast = rasterizeRegionsToAssignments(pre, gridW, gridH, bbox, baseWidth, baseHeight);
+      assignments = rast.assignments;
+      // set reasonable seeds as centroids (for downstream cluster centroids calculation)
+      seeds = (rast.centroids || []).map(c => ({ lon: c.lon, lat: c.lat })).filter(Boolean);
+      try { window.__regionState = { assignments, gridW, gridH, bbox, baseWidth, baseHeight, seeds }; } catch (err) { /* ignore */ }
+      // draw polygons on offCtx
+      await drawPredefinedRegions(offCtx, pre, bbox, baseWidth, baseHeight);
+      try { window.__regionPolygons = rast.lonlatPolys; } catch (err) { /* ignore */ }
+      // continue to smoothed drawing logic below (assignments already set)
+    } catch (err) { console.warn('Predefined region rasterization failed', err); }
+  }
+
+  // Voronoi assignment with Lloyd relaxation to produce organic, centroidal regions
+  async function assignCellsToSeeds(seedsLocal, riverMask) {
+    const assign = new Int32Array(gridW * gridH).fill(-1);
+    // for each cell, assign to nearest seed by squared distance (grid coords)
+    const seedGrid = seedsLocal.map(s => ({ x: (s.lon - bbox.west) / (bbox.east - bbox.west) * gridW, y: (bbox.north - s.lat) / (bbox.north - bbox.south) * gridH }));
+    for (let gy = 0; gy < gridH; gy++) {
+      for (let gx = 0; gx < gridW; gx++) {
+        const pidx = (gy * gridW + gx) * 4;
+        const r = img[pidx], g = img[pidx + 1], b = img[pidx + 2];
+        const dr = r - 113, dg = g - 166, db = b - 213; const dist2 = dr * dr + dg * dg + db * db;
+        if (dist2 < 45 * 45) continue; // ocean
+        if (riverMask && riverMask[gy * gridW + gx]) continue; // river separator cell
+        let best = -1; let bestD = Infinity;
+        for (let si = 0; si < seedGrid.length; si++) {
+          const dx = seedGrid[si].x - gx; const dy = seedGrid[si].y - gy; const d = dx * dx + dy * dy;
+          if (d < bestD) { bestD = d; best = si; }
+        }
+        assign[gy * gridW + gx] = best;
+      }
+      // yield every 32 rows
+      if (gy % 32 === 0) await new Promise(r => setTimeout(r, 0));
     }
+    return assign;
+  }
+
+  async function lloydRelaxation(seedsLocal, iterations, riverMask) {
+    let currentSeeds = seedsLocal.slice();
+    for (let it = 0; it < iterations; it++) {
+        const a = await assignCellsToSeeds(currentSeeds, riverMask);
+      const clustersA = new Array(currentSeeds.length).fill(0).map(() => ({ sumX: 0, sumY: 0, n: 0 }));
+      for (let gy = 0; gy < gridH; gy++) for (let gx = 0; gx < gridW; gx++) {
+        const id = a[gy * gridW + gx];
+        if (id === -1) continue;
+        clustersA[id].sumX += gx; clustersA[id].sumY += gy; clustersA[id].n++;
+      }
+      const newSeeds = currentSeeds.map((s, idx) => {
+        const c = clustersA[idx];
+        if (!c || c.n === 0) return s; // keep same if no assignment
+        const gx = c.sumX / c.n; const gy = c.sumY / c.n;
+        // convert grid coords back to lon/lat
+        const lon = bbox.west + (gx / gridW) * (bbox.east - bbox.west);
+        const lat = bbox.north - (gy / gridH) * (bbox.north - bbox.south);
+        // Slight jitter to avoid perfect grids
+        return { lon: Math.max(bbox.west, Math.min(bbox.east, lon + randBetween(-0.5, 0.5))), lat: Math.max(bbox.south, Math.min(bbox.north, lat + randBetween(-0.5, 0.5))) };
+      });
+      currentSeeds = newSeeds;
+      // yield occasionally to keep the UI responsive
+      await new Promise(r => setTimeout(r, 0));
+    }
+    return { seeds: currentSeeds, assignments: await assignCellsToSeeds(currentSeeds, riverMask) };
+  }
+
+  // perform Lloyd relaxation with a small number of iterations, biasing to population centers
+  const relaxIter = Math.max(1, Math.min(4, Math.floor((smoothPasses || 2))));
+  // Prefer running heavy Voronoi/Lloyd work in the worker if available
+  try {
+    if (regionWorker) {
+      const resp = await computeVoronoiWithWorker({ gridW, gridH, img, seeds, riverMask, iterations: relaxIter, bbox });
+      // worker returns assignmentsBuffer
+      if (resp && resp.assignmentsBuffer) {
+        assignments = new Int32Array(resp.assignmentsBuffer);
+      } else {
+        const fallback = await lloydRelaxation(seeds, relaxIter, riverMask);
+        assignments = fallback.assignments;
+      }
+    } else {
+      const voronoiResult = await lloydRelaxation(seeds, relaxIter, riverMask);
+      assignments = voronoiResult.assignments;
+    }
+  } catch (err) {
+    console.warn('Region worker failed, falling back to main-thread computation', err);
+    const voronoiResult = await lloydRelaxation(seeds, relaxIter, riverMask);
+    assignments = voronoiResult.assignments;
   }
 
   // choose palette for regions
@@ -545,7 +638,11 @@ function applyNoiseTexture(ctx, w, h, seed) {
   
 
   // smoothing passes (majority filter) to simulate human-drawn regions
-  const smooth = Math.max(0, Math.min(5, Number(smoothPasses || 0)));
+  let smooth = Math.max(0, Math.min(5, Number(smoothPasses || 0)));
+  // reduce smoothing on low quality / large grid divisor to avoid long operations
+  if (regionGridDivisor >= 16) smooth = Math.min(smooth, 1);
+  else if (regionGridDivisor >= 8) smooth = Math.min(smooth, 2);
+  else smooth = Math.min(smooth, 3);
   for (let pass = 0; pass < smooth; pass++) {
     const next = new Int32Array(assignments.length).fill(-1);
     for (let gy = 0; gy < gridH; gy++) {
@@ -569,6 +666,7 @@ function applyNoiseTexture(ctx, w, h, seed) {
         for (const k in counts) { if (counts[k] > bestCount) { bestCount = counts[k]; bestId = Number(k); } }
         next[idx] = bestId;
       }
+      if (gy % 16 === 0) await new Promise(r => setTimeout(r, 0));
     }
     assignments = next;
   }
@@ -580,6 +678,7 @@ function applyNoiseTexture(ctx, w, h, seed) {
   }
   const minSize = Math.max(10, Math.round((gridW * gridH / Math.max(1, seeds.length)) * 0.08));
   const adjCounts = {}; // {cid: {neighborCid: count}}
+  const neighborDirs = [[1,0],[-1,0],[0,1],[0,-1]];
   for (let gy = 0; gy < gridH; gy++) for (let gx = 0; gx < gridW; gx++) {
     const id = assignments[gy * gridW + gx]; if (id === -1) continue;
     if (!adjCounts[id]) adjCounts[id] = {};
@@ -599,50 +698,136 @@ function applyNoiseTexture(ctx, w, h, seed) {
     }
   }
 
-  // draw on the offCtx: grid cell coloring and borders; skip obvious ocean pixels
+  // publish final region state for click mapping and external use
+  try { window.__regionState = { assignments, gridW, gridH, bbox, baseWidth, baseHeight, seeds }; } catch (err) { /* ignore */ }
+
+  // draw on the offCtx: polygonize regions, smooth with Chaikin, and draw
   const cellW = baseWidth / gridW; const cellH = baseHeight / gridH;
   const clusters = new Array(seeds.length).fill(0).map(() => ({ sumX: 0, sumY: 0, n: 0 }));
-  for (let gy = 0; gy < gridH; gy++) {
-    for (let gx = 0; gx < gridW; gx++) {
-      const id = assignments[gy * gridW + gx];
-      const pidx = (gy * gridW + gx) * 4;
-      const r = img[pidx], g = img[pidx + 1], b = img[pidx + 2];
-      // ocean approx (rgb 113,166,213) distance small -> skip
-      const dr = r - 113, dg = g - 166, db = b - 213; const dist2 = dr * dr + dg * dg + db * db;
-      if (dist2 < 45 * 45) continue; // likely ocean; don't draw region
-      offCtx.fillStyle = colors[id];
-      offCtx.fillRect(gx * cellW, gy * cellH, Math.ceil(cellW), Math.ceil(cellH));
-      clusters[id].sumX += gx; clusters[id].sumY += gy; clusters[id].n++;
-    }
+
+  // helper functions
+  function polygonArea(pts) {
+    let a = 0; for (let i = 0, n = pts.length; i < n; i++) { const j = (i + 1) % n; a += pts[i].x * pts[j].y - pts[j].x * pts[i].y; } return a / 2; }
+  function polygonCentroidXY(pts) {
+    let cx = 0, cy = 0, a = 0; for (let i = 0, n = pts.length; i < n; i++) { const j = (i + 1) % n; const cross = pts[i].x * pts[j].y - pts[j].x * pts[i].y; cx += (pts[i].x + pts[j].x) * cross; cy += (pts[i].y + pts[j].y) * cross; a += cross; } a = a / 2; if (Math.abs(a) < 1e-9) return { x: pts[0].x, y: pts[0].y }; return { x: cx / (6 * a), y: cy / (6 * a) };
   }
-  // draw region borders
-  offCtx.strokeStyle = 'rgba(12,12,12,0.12)'; offCtx.lineWidth = 1;
+  function pointKey(x, y) { return `${x},${y}`; }
+  function parseKey(k) { const [a,b] = k.split(',').map(Number); return { x: a, y: b }; }
+  function chaikinSmooth(points, iterations) {
+    let pts = points.slice(); for (let it = 0; it < iterations; it++) { const next = []; for (let i = 0; i < pts.length; i++) { const p0 = pts[i]; const p1 = pts[(i + 1) % pts.length]; const q = { x: 0.75*p0.x + 0.25*p1.x, y: 0.75*p0.y + 0.25*p1.y }; const r = { x: 0.25*p0.x + 0.75*p1.x, y: 0.25*p0.y + 0.75*p1.y }; next.push(q); next.push(r); } pts = next; } return pts; }
+
+  // Collect boundary segments per region
+  const regionSegments = new Map();
+  const snap = Math.max(1, Math.round((regionGridDivisor || 8) / 2));
+  function snapCoord(v) { return Math.round(v / snap) * snap; }
+  function addSeg(id, x1, y1, x2, y2) { x1 = snapCoord(x1); y1 = snapCoord(y1); x2 = snapCoord(x2); y2 = snapCoord(y2); if (!regionSegments.has(id)) regionSegments.set(id, []); regionSegments.get(id).push([pointKey(x1, y1), pointKey(x2, y2)]); }
   for (let gy = 0; gy < gridH; gy++) {
     for (let gx = 0; gx < gridW; gx++) {
       const id = assignments[gy * gridW + gx];
-      if (gx + 1 < gridW) {
-        const rightId = assignments[gy * gridW + (gx + 1)];
-        if (rightId !== id) {
-          offCtx.beginPath(); offCtx.moveTo((gx + 1) * cellW + 0.5, gy * cellH); offCtx.lineTo((gx + 1) * cellW + 0.5, (gy + 1) * cellH); offCtx.stroke();
-        }
-      }
-      if (gy + 1 < gridH) {
-        const bottomId = assignments[(gy + 1) * gridW + gx];
-        if (bottomId !== id) {
-          offCtx.beginPath(); offCtx.moveTo(gx * cellW, (gy + 1) * cellH + 0.5); offCtx.lineTo((gx + 1) * cellW, (gy + 1) * cellH + 0.5); offCtx.stroke();
-        }
-      }
+      if (id === -1 || id === null) continue;
+      clusters[id].sumX += gx; clusters[id].sumY += gy; clusters[id].n++;
+      const topId = gy - 1 >= 0 ? assignments[(gy - 1) * gridW + gx] : -1;
+      const botId = gy + 1 < gridH ? assignments[(gy + 1) * gridW + gx] : -1;
+      const leftId = gx - 1 >= 0 ? assignments[gy * gridW + (gx - 1)] : -1;
+      const rightId = gx + 1 < gridW ? assignments[gy * gridW + (gx + 1)] : -1;
+      const x = gx * cellW, y = gy * cellH, x2 = x + cellW, y2 = y + cellH;
+      if (topId !== id) addSeg(id, x, y, x2, y);
+      if (rightId !== id) addSeg(id, x2, y, x2, y2);
+      if (botId !== id) addSeg(id, x2, y2, x, y2);
+      if (leftId !== id) addSeg(id, x, y2, x, y);
     }
+    if (gy % 32 === 0) await new Promise(r => setTimeout(r, 0));
+  }
+  // downsample points by returning every nth point to reduce complexity
+  function downsample(points, step) {
+    if (!points || points.length === 0) return points;
+    if (!step || step <= 1) return points;
+    const out = [];
+    for (let i = 0; i < points.length; i += step) out.push(points[i]);
+    return out;
   }
 
-  // compute cluster centroids and place names (using counted land pixels)
+  // Build loops from segments
+  async function buildLoopsForId(id) {
+    const segs = regionSegments.get(id) || [];
+    if (!segs.length) return [];
+    const adj = new Map();
+    function addAdj(a,b){ if (!adj.has(a)) adj.set(a, new Set()); adj.get(a).add(b); }
+    segs.forEach(([a,b]) => { addAdj(a,b); addAdj(b,a); });
+    const loops = [];
+    const visited = new Set();
+    function edgeKey(a,b){ return `${a}|${b}`; }
+    let loopCount = 0;
+    for (const a of adj.keys()){
+      for (const b of adj.get(a)){
+        const e = edgeKey(a,b); if (visited.has(e)) continue;
+        let curr = a; let prev = null; const loop = [curr];
+        while (true) {
+          const neigh = [...adj.get(curr)].filter(x => x !== prev); if (!neigh.length) break;
+          const next = neigh[0]; visited.add(edgeKey(curr, next)); prev = curr; curr = next; if (curr === a) break; loop.push(curr); if (loop.length > 20000) break;
+        }
+        if (loop.length > 2) loops.push(loop.map(parseKey));
+        loopCount++;
+        if (loopCount % 16 === 0) await new Promise(r => setTimeout(r, 0));
+      }
+    }
+    return loops;
+  }
+
+  const regionsGeoPolygons = [];
+  for (let rid = 0; rid < seeds.length; rid++) {
+    const loops = await buildLoopsForId(rid);
+    if (!loops || loops.length === 0) continue;
+    const polygons = loops.map(pts => ({ pts, area: Math.abs(polygonArea(pts)) })).sort((a,b) => b.area - a.area);
+    const fillColor = colors[rid];
+    offCtx.fillStyle = fillColor; offCtx.strokeStyle = 'rgba(12,12,12,0.14)'; offCtx.lineWidth = 1.5;
+    polygons.forEach(poly => {
+      if (poly.area < (cellW * cellH * 2)) return;
+      const maxSmooth = Math.max(1, Math.min(3, smoothPasses || 2));
+      const limit = 800;
+      const step = Math.ceil(poly.pts.length / limit);
+      const ptsToSmooth = step > 1 ? downsample(poly.pts, step) : poly.pts;
+      const smoothPts = chaikinSmooth(ptsToSmooth, maxSmooth);
+      offCtx.beginPath(); offCtx.moveTo(smoothPts[0].x, smoothPts[0].y);
+      for (let i = 1; i < smoothPts.length; i++) offCtx.lineTo(smoothPts[i].x, smoothPts[i].y);
+      offCtx.closePath(); offCtx.fill(); offCtx.stroke();
+      // store lon/lat polygon for export
+      const lonlatPoly = smoothPts.map(p => ({ lon: bbox.west + (p.x / baseWidth) * (bbox.east - bbox.west), lat: bbox.north - (p.y / baseHeight) * (bbox.north - bbox.south) }));
+      if (!regionsGeoPolygons[rid]) regionsGeoPolygons[rid] = [];
+      regionsGeoPolygons[rid].push(lonlatPoly);
+    });
+  }
+  try { window.__regionPolygons = regionsGeoPolygons; } catch (err) { /* ignore */ }
+  // region boundaries are drawn by polygon strokes above, so grid-edge borders removed
+
+  // regionCentroids: compute centroid from polygon if available, else fall back to cluster average
+  const regionCentroids = new Array(seeds.length).fill(null);
+  // attempt to derive centroids from regionSegments polygons
+  for (let rid = 0; rid < seeds.length; rid++) {
+    const segs = regionSegments.get(rid) || [];
+    if (!segs.length) continue;
+    const loops = await buildLoopsForId(rid);
+    if (!loops || loops.length === 0) continue;
+    // pick the largest loop and compute centroid
+    const loopsPoly = loops.map(pts => ({ pts, area: Math.abs(polygonArea(pts)) })).sort((a,b) => b.area - a.area);
+    const largest = loopsPoly[0]; if (!largest) continue;
+    const maxSmooth = Math.max(1, Math.min(3, smoothPasses || 2));
+    const limit = 800;
+    const step = Math.ceil(largest.pts.length / limit);
+    const ptsToSmooth = step > 1 ? downsample(largest.pts, step) : largest.pts;
+    const smoothPts = chaikinSmooth(ptsToSmooth, maxSmooth);
+    const centroidXY = polygonCentroidXY(smoothPts);
+    // convert pixel XY to lon/lat
+    const lon = bbox.west + (centroidXY.x / baseWidth) * (bbox.east - bbox.west);
+    const lat = bbox.north - (centroidXY.y / baseHeight) * (bbox.north - bbox.south);
+    regionCentroids[rid] = { lon, lat, gx: centroidXY.x / cellW, gy: centroidXY.y / cellH };
+  }
+  // fallback to pixel-average cluster centroids
   const clusterCentroids = clusters.map((c, i) => {
-    if (c.n === 0) return null;
-    const gx = c.sumX / c.n; const gy = c.sumY / c.n;
-    const lon = bbox.west + (gx / gridW) * (bbox.east - bbox.west);
-    const lat = bbox.north - (gy / gridH) * (bbox.north - bbox.south);
-    return { lon, lat, gx, gy };
+    if (c.n === 0) return null; const gx = c.sumX / c.n; const gy = c.sumY / c.n; const lon = bbox.west + (gx / gridW) * (bbox.east - bbox.west); const lat = bbox.north - (gy / gridH) * (bbox.north - bbox.south); return { lon, lat, gx, gy };
   });
+  // prefer regionCentroids when available
+  const effectiveCentroids = regionCentroids.map((rc, i) => rc || clusterCentroids[i]);
 
   // simple evocative name generator using expected locale hints
   const namePools = {
@@ -656,7 +841,7 @@ function applyNoiseTexture(ctx, w, h, seed) {
     mexican: ['Sierra', 'Sol', 'Cenote', 'Basin']
   };
   const regionNames = [];
-  clusterCentroids.forEach((c, i) => {
+  effectiveCentroids.forEach((c, i) => {
     if (!c) { regionNames.push('Unknown'); return; }
     const parts = [];
     if (c.lat > 60) parts.push(namePools.north[Math.floor(rrand() * namePools.north.length)]);
@@ -673,16 +858,22 @@ function applyNoiseTexture(ctx, w, h, seed) {
     regionNames.push(`${main} ${suffix}`);
   });
 
-  // draw labels on offCtx
-  offCtx.font = 'bold 16px sans-serif'; offCtx.textAlign = 'center'; offCtx.textBaseline = 'middle';
-  clusterCentroids.forEach((c, i) => {
+  // draw labels on offCtx (font size based on region area)
+  offCtx.textAlign = 'center'; offCtx.textBaseline = 'middle';
+  effectiveCentroids.forEach((c, i) => {
     if (!c || clusters[i].n < 8) return;
     const xy = lonLatToXY(c.lon, c.lat, baseWidth, baseHeight, bbox);
     const name = regionNames[i] || `Region ${i+1}`;
-    // optional small circle to make the label visible
-    offCtx.fillStyle = 'rgba(0,0,0,0.4)';
-    offCtx.beginPath(); offCtx.arc(xy.x, xy.y, 24, 0, Math.PI*2); offCtx.fill();
-    offCtx.fillStyle = 'rgba(255,255,255,0.95)'; offCtx.fillText(name, xy.x, xy.y);
+    const areaPixels = clusters[i].n * (cellW * cellH);
+    const fontSize = Math.round(Math.max(12, Math.min(48, Math.sqrt(areaPixels) / 6)));
+    offCtx.font = `bold ${fontSize}px sans-serif`;
+    const pad = Math.max(8, Math.round(fontSize / 3));
+    // draw rounded background
+    const metrics = offCtx.measureText(name); const wRect = metrics.width + pad * 2; const hRect = fontSize + pad;
+    const rx = xy.x - wRect / 2; const ry = xy.y - hRect / 2; const r = Math.max(6, Math.round(hRect / 6));
+    offCtx.fillStyle = 'rgba(0,0,0,0.48)'; offCtx.beginPath(); offCtx.moveTo(rx + r, ry); offCtx.arcTo(rx + wRect, ry, rx + wRect, ry + hRect, r); offCtx.arcTo(rx + wRect, ry + hRect, rx, ry + hRect, r); offCtx.arcTo(rx, ry + hRect, rx, ry, r); offCtx.arcTo(rx, ry, rx + wRect, ry, r); offCtx.closePath(); offCtx.fill();
+    // label text
+    offCtx.fillStyle = 'rgba(255,255,255,0.95)'; offCtx.strokeStyle = 'rgba(0,0,0,0.6)'; offCtx.lineWidth = Math.max(1, Math.floor(fontSize / 6)); offCtx.strokeText(name, xy.x, xy.y + 1); offCtx.fillText(name, xy.x, xy.y + 1);
   });
 }
 
@@ -708,6 +899,127 @@ function createCoastlineOverlay(elev, width, height, threshold) {
   }
   return overlay;
 }
+
+// Fetch simple river geometries from Overpass given bbox
+async function fetchRivers(bbox) {
+  const pad = 0.02; const south = Math.max(-90, bbox.south - pad * (bbox.north - bbox.south));
+  const north = Math.min(90, bbox.north + pad * (bbox.north - bbox.south));
+  const west = Math.max(-180, bbox.west - pad * (bbox.east - bbox.west));
+  const east = Math.min(180, bbox.east + pad * (bbox.east - bbox.west));
+  const bboxStr = `${south},${west},${north},${east}`;
+  if (overpassCache.has(bboxStr)) return overpassCache.get(bboxStr);
+  // reconstruct bboxStr above
+  const query = `[out:json][timeout:25];(way["waterway"~"river|stream|canal"](${bboxStr}););out geom;`;
+  const resp = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: query });
+  if (!resp.ok) throw new Error('Overpass request failed: ' + resp.status);
+  const json = await resp.json();
+  const elems = json.elements || [];
+  const ways = elems.filter(e => e.type === 'way' && e.geometry && e.geometry.length);
+  const out = ways.map(w => w.geometry.map(pt => ({ lon: pt.lon, lat: pt.lat })));
+  try { overpassCache.set(bboxStr, out); } catch (err) { /* ignore */ }
+  return out;
+}
+
+function createRiverMask(geoms, gridW, gridH, bbox) {
+  const canvas = document.createElement('canvas'); canvas.width = gridW; canvas.height = gridH; const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,gridW,gridH); ctx.strokeStyle = 'rgba(0,0,0,1)'; ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  function mapXY(lon, lat) { const fx = (lon - bbox.west) / (bbox.east - bbox.west); const fy = (bbox.north - lat) / (bbox.north - bbox.south); return { x: Math.round(fx * gridW), y: Math.round(fy * gridH) }; }
+  geoms.forEach(line => { ctx.beginPath(); for (let i = 0; i < line.length; i++) { const p = mapXY(line[i].lon, line[i].lat); if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); } ctx.stroke(); });
+  const id = ctx.getImageData(0,0,gridW,gridH).data; const mask = new Uint8Array(gridW * gridH);
+  for (let i = 0; i < gridW * gridH; i++) mask[i] = id[i*4 + 3] > 10 ? 1 : 0;
+  return mask;
+}
+
+// Load predefined regions from a mapping of country -> GeoJSON URL or FeatureCollection
+async function loadPredefinedRegions(sources) {
+  // sources: { CAN: urlOrObj, USA: urlOrObj, MEX: urlOrObj }
+  const outFeatures = [];
+  for (const code of ['CAN','USA','MEX']) {
+    const src = sources && sources[code];
+    if (!src) continue;
+    try {
+      let obj = null;
+      if (typeof src === 'string') {
+        const resp = await fetch(src);
+        obj = await resp.json();
+      } else {
+        obj = src;
+      }
+      // Expect FeatureCollection or Feature(s)
+      if (obj.type === 'FeatureCollection') {
+        obj.features.forEach(f => outFeatures.push(f));
+      } else if (obj.type === 'Feature') outFeatures.push(obj);
+      else if (obj.features) obj.features.forEach(f => outFeatures.push(f));
+    } catch (err) { console.warn('loadPredefinedRegions failed for', code, err); }
+  }
+  const fc = { type: 'FeatureCollection', features: outFeatures };
+  try { window.__predefinedRegions = fc; } catch (err) { /* ignore */ }
+  return fc;
+}
+
+// Rasterize a FeatureCollection of polygons into an assignments Int32Array grid
+function rasterizeRegionsToAssignments(featureCollection, gridW, gridH, bbox, baseWidth, baseHeight) {
+  // draw each feature into an offscreen grid canvas with a unique color index
+  const cvs = document.createElement('canvas'); cvs.width = gridW; cvs.height = gridH; const ctx = cvs.getContext('2d');
+  ctx.clearRect(0,0,gridW,gridH);
+  function mapXY(lon, lat) { const fx = (lon - bbox.west) / (bbox.east - bbox.west); const fy = (bbox.north - lat) / (bbox.north - bbox.south); return { x: Math.round(fx * gridW), y: Math.round(fy * gridH) }; }
+  const features = featureCollection.features || [];
+  const idToPolys = [];
+  for (let i = 0; i < features.length; i++) {
+    const f = features[i]; if (!f || !f.geometry) continue;
+    ctx.beginPath(); ctx.fillStyle = `rgb(${(i+1)&255},${((i+1)>>8)&255},${((i+1)>>16)&255})`;
+    const geom = f.geometry;
+    function drawRing(coords) {
+      coords.forEach((pt, j) => { const p = mapXY(pt[0], pt[1]); if (j === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
+    }
+    if (geom.type === 'Polygon') {
+      geom.coordinates.forEach(ring => { drawRing(ring); ctx.closePath(); });
+    } else if (geom.type === 'MultiPolygon') {
+      geom.coordinates.forEach(poly => { poly.forEach(ring => { drawRing(ring); ctx.closePath(); }); });
+    }
+    ctx.fill();
+  }
+  const img = ctx.getImageData(0,0,gridW,gridH).data;
+  const assignments = new Int32Array(gridW * gridH).fill(-1);
+  for (let y = 0; y < gridH; y++) for (let x = 0; x < gridW; x++) {
+    const i = (y * gridW + x) * 4; const r = img[i], g = img[i+1], b = img[i+2];
+    if (r === 0 && g === 0 && b === 0) { assignments[y * gridW + x] = -1; continue; }
+    const idx = r + (g<<8) + (b<<16) - 1;
+    assignments[y * gridW + x] = idx >= 0 ? idx : -1;
+  }
+  // compute centroids and lon/lat polygons per feature for UI
+  const centroids = new Array(features.length).fill(null);
+  const lonlatPolys = new Array(features.length).fill(null).map(() => []);
+  for (let i = 0; i < features.length; i++) {
+    const f = features[i]; if (!f || !f.geometry) continue;
+    // try to derive centroid from geometry coordinates
+    let coords = [];
+    if (f.geometry.type === 'Polygon') coords = f.geometry.coordinates[0];
+    else if (f.geometry.type === 'MultiPolygon') coords = f.geometry.coordinates[0][0] || [];
+    if (coords && coords.length) {
+      let sx = 0, sy = 0; coords.forEach(pt => { sx += pt[0]; sy += pt[1]; }); const lon = sx / coords.length; const lat = sy / coords.length; centroids[i] = { lon, lat };
+      // store lonlat polys as provided
+      if (f.geometry.type === 'Polygon') lonlatPolys[i].push(coords.map(c => ({ lon: c[0], lat: c[1] })));
+      else if (f.geometry.type === 'MultiPolygon') f.geometry.coordinates.forEach(poly => { const ring = poly[0]; lonlatPolys[i].push(ring.map(c => ({ lon: c[0], lat: c[1] }))); });
+    }
+  }
+  return { assignments, centroids, lonlatPolys };
+}
+
+// Draw predefined regions on the offscreen context using stored FeatureCollection
+async function drawPredefinedRegions(offCtx, featureCollection, bbox, baseWidth, baseHeight) {
+  if (!featureCollection || !featureCollection.features) return;
+  const colors = []; for (let i = 0; i < featureCollection.features.length; i++) colors.push(`hsla(${(i*137.5)%360},80%,60%,0.14)`);
+  featureCollection.features.forEach((f, idx) => {
+    const geom = f.geometry; if (!geom) return;
+    offCtx.beginPath();
+    function drawRing(coords) { coords.forEach((pt, i) => { const p = lonLatToXY(pt[0], pt[1], baseWidth, baseHeight, bbox); if (i === 0) offCtx.moveTo(p.x, p.y); else offCtx.lineTo(p.x, p.y); }); }
+    if (geom.type === 'Polygon') { geom.coordinates.forEach(ring => { drawRing(ring); offCtx.closePath(); }); }
+    else if (geom.type === 'MultiPolygon') { geom.coordinates.forEach(poly => { poly.forEach(ring => { drawRing(ring); offCtx.closePath(); }); }); }
+    offCtx.fillStyle = colors[idx] || 'rgba(255,255,255,0.06)'; offCtx.strokeStyle = 'rgba(12,12,12,0.14)'; offCtx.lineWidth = 1.5; offCtx.fill(); offCtx.stroke();
+  });
+}
+
 
 // Convert seed string to numeric
 function seedFromString(str) {
@@ -740,10 +1052,18 @@ function initUI() {
   const regionsCountLabel = document.getElementById('regionsCountLabel');
   const regionsSmoothSlider = document.getElementById('regionsSmooth');
   const regionsSmoothLabel = document.getElementById('regionsSmoothLabel');
-  if (regionsCountSlider && regionsCountLabel) regionsCountLabel.textContent = 'Regions: ' + regionsCountSlider.value;
+  if (regionsCountSlider && regionsCountLabel) {
+    // Force 21 regions - consistently use 21 regardless of slider
+    regionsCountSlider.value = '21';
+    regionsCountSlider.disabled = true; regionsCountSlider.hidden = true;
+    regionsCountLabel.textContent = 'Regions: 21';
+  }
   if (regionsSmoothSlider && regionsSmoothLabel) regionsSmoothLabel.textContent = 'Smoothing: ' + regionsSmoothSlider.value;
   const generateBtn = document.getElementById('generate');
   const downloadBtn = document.getElementById('download');
+  const qualitySelect = document.getElementById('qualitySelect');
+  const useRiversCheckbox = document.getElementById('useRivers');
+  const exportRegionsBtn = document.getElementById('exportRegions');
   // Always show coastline and borders (no toggles)
 
   // Load GeoJSON for countries
@@ -804,6 +1124,7 @@ function initUI() {
     .catch(err => { console.warn('Could not load world geojson for masking:', err); if (statusEl) statusEl.textContent = 'GeoJSON load failed'; });
 
   let camera = null; // {srcX, srcY, srcW, srcH}
+  let lastGenId = 0; // incrementing ID to cancel stale background tasks
 
   function drawView(canvas, offCanvas) {
     if (!camera) {
@@ -968,6 +1289,16 @@ function initUI() {
       menu.dataset.clientY = e.clientY;
     });
 
+    // add context menu action wiring for Open region
+    const ctxOpenRegionBtn = document.getElementById('ctx-open-region');
+    if (ctxOpenRegionBtn) ctxOpenRegionBtn.addEventListener('click', () => {
+      const menu = document.getElementById('ctx-menu'); if (!menu) return; menu.style.display = 'none'; menu.setAttribute('aria-hidden','true');
+      const cx = Number(menu.dataset.clientX), cy = Number(menu.dataset.clientY);
+      const rid = pickRegionAtClientXY(cx, cy);
+      if (rid === -1 || rid === null || typeof rid === 'undefined') { alert('No region found at that location'); return; }
+      openRegionPanel(rid);
+    });
+
     // click outside hides it (replace any previous handler)
     if (windowClickHandlerRef) window.removeEventListener('click', windowClickHandlerRef);
     windowClickHandlerRef = function(ev) {
@@ -1000,9 +1331,109 @@ function initUI() {
     panZoomAttached = false;
   }
 
+  // Map a clientX/clientY on the visible canvas to a region id using stored assignment grid
+  function pickRegionAtClientXY(clientX, clientY) {
+    try {
+      const state = window.__regionState; if (!state) return -1;
+      const off = window.__lastOffscreenCanvas; if (!off) return -1;
+      const canvas = document.getElementById('map');
+      if (!canvas || !camera) return -1;
+      // map client coords to canvas local coords (account for page scroll and canvas position)
+      const rect = canvas.getBoundingClientRect();
+      const localX = clientX - rect.left; const localY = clientY - rect.top;
+      // map to offCanvas coordinates
+      const offX = camera.srcX + (localX / canvas.width) * camera.srcW;
+      const offY = camera.srcY + (localY / canvas.height) * camera.srcH;
+      // convert to grid coords
+      const gx = Math.floor((offX / state.baseWidth) * state.gridW);
+      const gy = Math.floor((offY / state.baseHeight) * state.gridH);
+      if (gx < 0 || gx >= state.gridW || gy < 0 || gy >= state.gridH) return -1;
+      const id = state.assignments[gy * state.gridW + gx];
+      return id;
+    } catch (err) { console.warn('pickRegionAtClientXY failed', err); return -1; }
+  }
+
+  // Open a modal overlay for region rid; draws a cropped high-resolution area and region polygon overlay
+  function openRegionPanel(rid) {
+    try {
+      const panel = document.getElementById('region-panel');
+      const canvasEl = document.getElementById('region-canvas');
+      const titleEl = document.getElementById('region-title');
+      if (!panel || !canvasEl) return;
+      const polygons = (window.__regionPolygons && window.__regionPolygons[rid]) || [];
+      if (!polygons || polygons.length === 0) { alert('No region polygon to display this region (may be a water/outside cell)'); return; }
+      // compute bbox in lon/lat
+      let minLon = 180, maxLon = -180, minLat = 90, maxLat = -90;
+      polygons.forEach(poly => {
+        poly.forEach(pt => { if (pt.lon < minLon) minLon = pt.lon; if (pt.lon > maxLon) maxLon = pt.lon; if (pt.lat < minLat) minLat = pt.lat; if (pt.lat > maxLat) maxLat = pt.lat; });
+      });
+      // pad
+      const padLon = (maxLon - minLon) * 0.12 || 0.5; const padLat = (maxLat - minLat) * 0.12 || 0.5;
+      minLon -= padLon; maxLon += padLon; minLat -= padLat; maxLat += padLat;
+      // compute crop coordinates on last offscreen canvas
+      const off = window.__lastOffscreenCanvas; const state = window.__regionState;
+      const bbox = state.bbox; const baseW = state.baseWidth; const baseH = state.baseHeight;
+      const tl = lonLatToXY(minLon, maxLat, baseW, baseH, bbox);
+      const br = lonLatToXY(maxLon, minLat, baseW, baseH, bbox);
+      let sx = Math.floor(Math.max(0, tl.x)); let sy = Math.floor(Math.max(0, tl.y)); let sw = Math.ceil(Math.min(baseW - sx, br.x - tl.x)); let sh = Math.ceil(Math.min(baseH - sy, Math.max(1, br.y - tl.y)));
+      if (sw <= 0 || sh <= 0) { alert('Region crop invalid'); return; }
+      // draw crop into panel canvas
+      const ctx = canvasEl.getContext('2d');
+      // clear and size canvas
+      canvasEl.width = Math.min(2048, Math.max(400, sw)); canvasEl.height = Math.min(2048, Math.max(300, sh));
+      ctx.clearRect(0,0, canvasEl.width, canvasEl.height);
+      // draw background
+      ctx.drawImage(off, sx, sy, sw, sh, 0, 0, canvasEl.width, canvasEl.height);
+      // overlay polygon paths
+      ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.fillStyle = 'rgba(255,255,255,0.06)';
+      ctx.beginPath();
+      polygons.forEach((poly, pi) => {
+        poly.forEach((pt, i) => {
+          const xy = lonLatToXY(pt.lon, pt.lat, baseW, baseH, bbox);
+          const x = ((xy.x - sx) / sw) * canvasEl.width; const y = ((xy.y - sy) / sh) * canvasEl.height;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.closePath();
+      });
+      ctx.fill(); ctx.stroke();
+      // title
+      if (titleEl) titleEl.textContent = `Region ${rid+1}`;
+      // reveal panel
+      panel.style.display = 'flex';
+      // highlight the selected region with overlay
+      highlightSelectedRegion(rid);
+    } catch (err) { console.warn('openRegionPanel error', err); alert('Failed to open region'); }
+  }
+
+  function highlightSelectedRegion(rid) {
+    try {
+      const overlay = document.getElementById('region-overlay'); const canvas = document.getElementById('map');
+      if (!overlay || !canvas) return;
+      overlay.width = canvas.width; overlay.height = canvas.height;
+      const ctx = overlay.getContext('2d'); ctx.clearRect(0,0,overlay.width, overlay.height);
+      const polygons = (window.__regionPolygons && window.__regionPolygons[rid]) || [];
+      const state = window.__regionState; if (!state || polygons.length === 0) return;
+      const baseW = state.baseWidth, baseH = state.baseHeight, bbox = state.bbox;
+      ctx.fillStyle = 'rgba(255,200,0,0.06)'; ctx.strokeStyle = 'rgba(255,200,0,0.9)'; ctx.lineWidth = 3;
+      ctx.beginPath();
+      polygons.forEach(poly => {
+        poly.forEach((pt, i) => {
+          const xy = lonLatToXY(pt.lon, pt.lat, baseW, baseH, bbox);
+          // convert to canvas coords via camera
+          const cx = Math.round(((xy.x - camera.srcX) / camera.srcW) * canvas.width);
+          const cy = Math.round(((xy.y - camera.srcY) / camera.srcH) * canvas.height);
+          if (i === 0) ctx.moveTo(cx, cy); else ctx.lineTo(cx, cy);
+        });
+        ctx.closePath();
+      });
+      ctx.fill(); ctx.stroke();
+    } catch (err) { console.warn('highlightSelectedRegion failed', err); }
+  }
+
   let panZoomAttached = false;
 
-  function doGenerate() {
+  async function doGenerate() {
+    const myGenId = ++lastGenId;
     const options = {
       width: 1920,
       height: 1080,
@@ -1021,20 +1452,52 @@ function initUI() {
     options.showBorders = true;
     options.naFeatureCollection = naFeatureCollection;
     options.showRegions = regionsToggle ? regionsToggle.checked : false;
-    options.regionsCount = regionsCountSlider ? Number(regionsCountSlider.value) : 8;
+    // Override regionsCount - always 21
+    options.regionsCount = 21;
     options.regionsSmooth = regionsSmoothSlider ? Number(regionsSmoothSlider.value) : 2;
+    const qv = (qualitySelect && qualitySelect.value) ? qualitySelect.value : 'medium';
+    const qualityScale = (qv === 'low') ? 1 : (qv === 'medium') ? 2 : 4;
+    const regionGridDivisor = (qv === 'low') ? 16 : (qv === 'medium') ? 8 : 4;
+    options.regionGridDivisor = regionGridDivisor;
+    options.offscreenScale = qualityScale;
+    options.useRivers = useRiversCheckbox ? useRiversCheckbox.checked : false;
     // Always use realistic base style
     const features = worldFeatureCollection || naFeatureCollection;
     if (features) {
-      const off = renderWorldOffscreen(features, options.width * 4, options.height * 4, options);
-      // draw regions overlay onto offscreen if enabled: use bbox passed via options
-      const offCtx = off.getContext('2d');
-      if (options.showRegions) drawRegionsLayer(offCtx, options.bbox, off.width, off.height, options.regionsCount, options.regionsSmooth);
+      // Progressive rendering: quick low-resolution render and regional partitions
+      const quickScale = Math.max(1, Math.floor(options.offscreenScale / 2));
+      const quickOff = renderWorldOffscreen(features, options.width * quickScale, options.height * quickScale, options);
+      try { window.__lastOffscreenCanvas = quickOff; } catch (err) { /* ignore */ }
+      // show quick preview
+      drawView(canvas, quickOff);
+      // quick regions with coarser grid
+      if (options.showRegions) await drawRegionsLayer(quickOff.getContext('2d'), options.bbox, quickOff.width, quickOff.height, options.regionsCount, options.regionsSmooth, options.useRivers, Math.max(8, regionGridDivisor * 2));
+      // now perform full render and refined region generation asynchronously
+      const scheduleIdle = (fn) => {
+        if (typeof window !== 'undefined' && window.requestIdleCallback) { window.requestIdleCallback(fn); }
+        else setTimeout(fn, 50);
+      };
+      scheduleIdle(async () => {
+        if (myGenId !== lastGenId) return; // canceled by newer generation
+        const off = renderWorldOffscreen(features, options.width * options.offscreenScale, options.height * options.offscreenScale, options);
+        try { window.__lastOffscreenCanvas = off; } catch (err) { /* ignore */ }
+        // draw refined regions (finer grid)
+        if (myGenId !== lastGenId) return; // canceled
+        if (options.showRegions) await drawRegionsLayer(off.getContext('2d'), options.bbox, off.width, off.height, options.regionsCount, options.regionsSmooth, options.useRivers, regionGridDivisor);
+        // finalize draw
+        drawView(canvas, off);
+        if (myGenId !== lastGenId) return; // canceled
+        if (statusEl) statusEl.textContent = 'Rendered (high quality)';
+        unsetupPanZoom(canvas);
+        setupPanZoom(canvas, off, options.bbox);
+        panZoomAttached = true;
+      });
+      // we used quick preview + started refined rendering; continue
       // initialize camera (src rect) to North America focus if not already set
       if (!camera || !camera.initialized) {
         const naBbox = { west: -170, east: -50, north: 72, south: 14 };
-        const tl = lonLatToXY(naBbox.west, naBbox.north, off.width, off.height, options.bbox);
-        const br = lonLatToXY(naBbox.east, naBbox.south, off.width, off.height, options.bbox);
+        const tl = lonLatToXY(naBbox.west, naBbox.north, quickOff.width, quickOff.height, options.bbox);
+        const br = lonLatToXY(naBbox.east, naBbox.south, quickOff.width, quickOff.height, options.bbox);
         let srcX = Math.floor(tl.x);
         let srcY = Math.floor(tl.y);
         let srcW = Math.ceil(br.x - tl.x);
@@ -1045,17 +1508,17 @@ function initUI() {
         const padH = Math.round(srcH * pad);
         srcX = Math.max(0, srcX - padW);
         srcY = Math.max(0, srcY - padH);
-        srcW = Math.min(off.width - srcX, srcW + padW * 2);
-        srcH = Math.min(off.height - srcY, srcH + padH * 2);
+        srcW = Math.min(quickOff.width - srcX, srcW + padW * 2);
+        srcH = Math.min(quickOff.height - srcY, srcH + padH * 2);
         camera = { srcX, srcY, srcW, srcH, initialized: true };
       }
       // ensure visible canvas matches requested dimensions
       canvas.width = options.width; canvas.height = options.height;
-      drawView(canvas, off);
-      if (statusEl) statusEl.textContent = 'Rendered';
-      // Reattach pan/zoom handlers to the new offCanvas
+      drawView(canvas, quickOff);
+      if (statusEl) statusEl.textContent = 'Rendered (preview)';
+      // Reattach pan/zoom handlers to the quick preview offCanvas
       unsetupPanZoom(canvas);
-      setupPanZoom(canvas, off, options.bbox);
+      setupPanZoom(canvas, quickOff, options.bbox);
       panZoomAttached = true;
       return; // drawn
     } else {
@@ -1092,8 +1555,39 @@ function initUI() {
     });
   });
 
+  if (exportRegionsBtn) exportRegionsBtn.addEventListener('click', () => {
+    const polygons = window.__regionPolygons || [];
+    if (!polygons || polygons.length === 0) { alert('No region polygons available. Generate the map with regions first.'); return; }
+    const features = [];
+    for (let i = 0; i < polygons.length; i++) {
+      const polys = polygons[i];
+      if (!polys || !polys.length) continue;
+      if (polys.length === 1) {
+        const coords = polys[0].map(p => [p.lon, p.lat]);
+        // ensure closed
+        if (coords.length && (coords[0][0] !== coords[coords.length-1][0] || coords[0][1] !== coords[coords.length-1][1])) coords.push(coords[0]);
+        features.push({ type: 'Feature', properties: { id: i }, geometry: { type: 'Polygon', coordinates: [coords] } });
+      } else {
+        const coordsList = polys.map(poly => {
+          const coords = poly.map(p => [p.lon, p.lat]); if (coords.length && (coords[0][0] !== coords[coords.length-1][0] || coords[0][1] !== coords[coords.length-1][1])) coords.push(coords[0]); return coords;
+        });
+        features.push({ type: 'Feature', properties: { id: i }, geometry: { type: 'MultiPolygon', coordinates: coordsList.map(c => [c]) } });
+      }
+    }
+    const fc = { type: 'FeatureCollection', features };
+    const blob = new Blob([JSON.stringify(fc, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `cmap-regions-${Date.now()}.geojson`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  });
+
   // generate initially
   doGenerate();
+
+  // panel close
+  const panelClose = document.getElementById('region-close');
+  if (panelClose) panelClose.addEventListener('click', () => { const p = document.getElementById('region-panel'); if (p) p.style.display = 'none'; });
+  // clear overlay when panel closed
+  if (panelClose) panelClose.addEventListener('click', () => { const overlay = document.getElementById('region-overlay'); if (overlay) { const ctx = overlay.getContext('2d'); ctx.clearRect(0,0,overlay.width, overlay.height); } });
 }
 
 window.onload = initUI;

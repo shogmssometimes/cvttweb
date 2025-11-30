@@ -14,13 +14,13 @@ export const WorldEventCard: React.FC<Props> = ({ event, selected, onSelect, dis
   return (
     <div
       style={{
-        border: selected ? "2px solid #00eaff" : "1px solid #333",
+        border: selected ? "2px solid var(--accent-collapse)" : "1px solid var(--border)",
         borderRadius: 12,
         margin: "8px 0",
-        background: selected ? "#1a2630" : "#222",
-        color: "#fff",
+        background: selected ? "var(--surface)" : "var(--surface)",
+        color: "var(--text)",
         padding: 12,
-        boxShadow: selected ? "0 0 8px #00eaff" : "none",
+        boxShadow: selected ? "0 0 8px var(--accent-collapse)" : "none",
         cursor: disabled ? "default" : "pointer",
         opacity: disabled ? 0.7 : 1,
         position: "relative"
@@ -35,14 +35,14 @@ export const WorldEventCard: React.FC<Props> = ({ event, selected, onSelect, dis
             width: 18,
             height: 18,
             borderRadius: "50%",
-            background: "#00eaff",
+            background: "var(--accent-influence)",
             marginLeft: 4,
-            border: "2px solid #fff"
+            border: "2px solid var(--text)"
           }} title="Selected"></span>
         )}
       </div>
       <button
-        style={{ fontSize: 12, marginTop: 4, background: "#111", color: "#00eaff", border: "1px solid #00eaff", borderRadius: 4, padding: "2px 8px" }}
+        style={{ fontSize: 12, marginTop: 4, background: "var(--surface-solid)", color: "var(--accent-influence)", border: "1px solid var(--accent-influence)", borderRadius: 4, padding: "2px 8px" }}
         onClick={e => { e.stopPropagation(); setExpanded(x => !x); }}
       >
         {expanded ? "Hide Details" : "Show Details"}

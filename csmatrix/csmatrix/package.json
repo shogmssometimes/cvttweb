@@ -1,0 +1,13 @@
+{
+  "name": "csmatrix",
+  "version": "0.1.0",
+  "description": "A small Social Matrix/Campaign Support site (csmatrix)",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx http-server -c-1 . -p 8080",
+    "build": "echo \"No build step for static site. Copy files to 'dist' for GitHub Pages.\""
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {}
+}
