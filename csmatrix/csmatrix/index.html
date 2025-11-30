@@ -69,7 +69,7 @@
       </div>
         <!-- Global meters moved to header for always-visible access -->
       <div class="panels">
-        <div id="node-panel" class="panel hidden">
+        <div id="node-panel" class="panel">
           <h4>Node</h4>
           <label>Name: <input id="node-name" /></label>
           <label>Trust (X): <input id="node-x" type="range" min="-6" max="6" step="1" /> <span id="node-x-val">0</span></label>
@@ -79,8 +79,8 @@
           <label>Color: <input id="node-color" type="color" /></label>
           <!-- per-node meters removed; use global meters in Controls instead -->
           <div class="panel-actions">
-            <button id="btn-save-node">Save</button>
-            <button id="btn-cancel-node">Cancel</button>
+            <button id="btn-save-node" disabled>Save</button>
+            <button id="btn-cancel-node" disabled>Cancel</button>
           </div>
         </div>
         <!-- Edge UI removed -->

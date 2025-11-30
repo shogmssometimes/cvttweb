@@ -107,7 +107,20 @@ document.getElementById('btn-reset').addEventListener('click', () => { localStor
 function updateNodePanel() {
 	const n = graph.selected.node;
 	const panel = document.getElementById('node-panel');
-	if (!n) { panel.classList.add('hidden'); return; }
+	// Keep the organizer visible always; show a clear/disabled state when no node is selected
+	panel.classList.remove('hidden');
+	if (!n) {
+		// Clear values
+		try { document.getElementById('node-name').value = ''; } catch(e) {}
+		try { document.getElementById('node-x').value = ''; document.getElementById('node-x-val').textContent = ''; } catch(e) {}
+		try { document.getElementById('node-y').value = ''; document.getElementById('node-y-val').textContent = ''; } catch(e) {}
+		try { document.getElementById('node-color').value = getCssVar('--text', '#e8eef3'); } catch(e) {}
+		// Disable action buttons when no node is selected
+		try { document.getElementById('btn-save-node').disabled = true; document.getElementById('btn-cancel-node').disabled = true; } catch(e) {}
+		return;
+	}
+	// Ensure buttons are enabled for editing a selected node
+	try { document.getElementById('btn-save-node').disabled = false; document.getElementById('btn-cancel-node').disabled = false; } catch(e) {}
 	panel.classList.remove('hidden'); document.getElementById('node-name').value = n.name || '';
 	// Note: Role/Affiliation/Strength/Notes removed for simplified UI
 		document.getElementById('node-color').value = n.color ? (function(c){
@@ -303,6 +316,8 @@ function loadSample() {
 	} catch (err) { console.error('csmatrix: graph.fromJSON failed', err); }
 	if (sample.meta && sample.meta.globalMeters) { globalMeters = sample.meta.globalMeters; updateControlMeterBars(); }
 	updateGlobalMetersUI();
+	// Ensure the node organizer and list are shown on initial load
+	try { updateNodeList(); updateNodePanel(); } catch(e) { /* ignore */ }
 }
 try { loadSample(); } catch (err) { console.error('csmatrix: loadSample failed', err); }
 	updateControlMeterBars();

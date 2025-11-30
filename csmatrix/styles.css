@@ -37,7 +37,8 @@ main { display:flex; flex:1 1 auto; gap: 12px; padding:12px; }
 #controls { flex:0 0 240px; width:240px; }
 body.graph-max #controls { display: none; }
 body.graph-max #matrix { flex: 1 1 100%; }
-body.graph-max #node-list-section { display:none; }
+/* Keep node organizer/list visible even when graph maximized */
+body.graph-max #node-list-section { display:block !important; }
 body.graph-max footer { display:none; }
 #matrix-svg { width:100%; height:100%; display:block; }
 .control-row { margin-bottom:10px; }

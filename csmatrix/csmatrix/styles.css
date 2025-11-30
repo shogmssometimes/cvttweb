@@ -149,7 +149,8 @@ body.ui-scale-compact .hud-toggle, body.ui-scale-compact .posture-toggle { width
 /* Maximize graph/collapse controls */
 body.graph-max #controls { display: none; }
 body.graph-max #matrix { flex: 1 1 100%; }
-body.graph-max #node-list-section { display:none; }
+/* Keep node organizer/list visible even when graph maximized */
+body.graph-max #node-list-section { display:block !important; }
 body.graph-max footer { display:none; }
 .hide-mobile { display:inline-block; }
 @media (max-width:720px) { .hide-mobile { display:none; } }
