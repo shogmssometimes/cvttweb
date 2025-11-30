@@ -204,9 +204,12 @@ if (btnToggleControls) {
 // Maximize graph button
 const btnMaximize = document.getElementById('btn-maximize');
 if (btnMaximize) {
-	btnMaximize.addEventListener('click', () => {
-		const isMax = document.body.classList.toggle('graph-max');
-		btnMaximize.textContent = isMax ? 'Restore View' : 'Maximize Graph';
+		btnMaximize.addEventListener('click', () => {
+			const isMax = document.body.classList.toggle('graph-max');
+			btnMaximize.textContent = isMax ? 'Restore View' : 'Maximize Graph';
+			btnMaximize.setAttribute('aria-pressed', isMax ? 'true' : 'false');
+			btnMaximize.classList.toggle('is-maximized', isMax);
+			try { btnMaximize.focus(); } catch(e) {}
 	});
 }
 // hide controls from within the controls panel
