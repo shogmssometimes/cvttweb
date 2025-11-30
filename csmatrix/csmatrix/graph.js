@@ -248,14 +248,15 @@ class CSGraph {
       if (this.selected.node && this.selected.node.id === n.id) {
         const ring = document.createElementNS('http://www.w3.org/2000/svg','circle'); ring.setAttribute('cx','0'); ring.setAttribute('cy','0'); ring.setAttribute('r', (r + 6).toString()); ring.setAttribute('fill','none'); ring.setAttribute('stroke','var(--accent-collapse)'); ring.setAttribute('stroke-width','4'); g.appendChild(ring);
       }
-      // label shows only for selected node
-      text.setAttribute('x', 0);
-      text.setAttribute('y', 48);
-      text.setAttribute('text-anchor', 'middle');
-      text.textContent = n.name || 'Node';
-      // Label: slightly larger by default, reveal on hover/tap and selection
-      const text = document.createElementNS('http://www.w3.org/2000/svg','text');
-        text.setAttribute('font-size', '18');
+        // label shows only for selected node
+        // Create the text element first before setting attributes (avoid TDZ)
+        const text = document.createElementNS('http://www.w3.org/2000/svg','text');
+        text.setAttribute('x', 0);
+        text.setAttribute('y', 48);
+        text.setAttribute('text-anchor', 'middle');
+        text.textContent = n.name || 'Node';
+        // Label: slightly larger by default, reveal on hover/tap and selection
+          text.setAttribute('font-size', '18');
         text.setAttribute('font-weight', '700');
         text.setAttribute('opacity', (this.selected.node && this.selected.node.id === n.id) ? '1' : '0');
         let _hoverTimeout = null;
