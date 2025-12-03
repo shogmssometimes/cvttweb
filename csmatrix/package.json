@@ -5,7 +5,16 @@
   "main": "index.html",
   "scripts": {
     "start": "npx http-server -c-1 . -p 8080",
-    "build": "echo \"No build step for static site. Copy files to 'dist' for hosting.\""
+    "build": "echo \"No build step for static site. Copy files to 'dist' for hosting.\"",
+    "test:controls-resize": "node test/controlsResize.test.js",
+    "test:hover-label": "node test/hoverLabel.test.js",
+    "test:circle-size": "node test/circleSize.test.js"
+    ,"test:controls-desktop-resize": "node test/controlsDesktopResize.test.js"
+  },
+    "test:controls-organizer-visibility": "node test/controlsAndOrganizer.test.js",
+    "test:node-panel-mobile": "node test/nodePanelMobile.test.js",
+  "devDependencies": {
+    "playwright": "^1.42.0"
   },
   "license": "MIT"
 }

@@ -9,7 +9,7 @@ if (!svg) {
 		const created = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 		created.setAttribute('id', 'matrix-svg');
 		created.setAttribute('width', '100%');
-		created.setAttribute('viewBox', '0 0 1200 1200');
+		created.setAttribute('viewBox', '0 0 1000 1000');
 		created.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 		created.style.display = 'block';
 		wrap.appendChild(created);
@@ -28,6 +28,18 @@ try {
 // graph.globalMeters will be set after globalMeters is declared (below)
 // persist changes to localStorage
 // global meters (not node dependent)
+const DEFAULT_NODE_COLOR = '#f0764b';
+const sanitizeHexColor = (value) => {
+	if (!value && value !== 0) return null;
+	const trimmed = `${value}`.trim();
+	if (!trimmed) return null;
+	const hex = trimmed.startsWith('#') ? trimmed.slice(1) : trimmed;
+	if (/^[0-9a-fA-F]{6}$/.test(hex)) { return `#${hex.toLowerCase()}`; }
+	if (/^[0-9a-fA-F]{3}$/.test(hex)) { return `#${hex.split('').map((ch)=>`${ch}${ch}`).join('').toLowerCase()}`; }
+	return null;
+};
+const getColorOrDefault = (value) => sanitizeHexColor(value) || DEFAULT_NODE_COLOR;
+
 let globalMeters = { collapse: 0, influence: 0, record: 0 };
 // ensure graph has the global meters for initial rendering
 function persistGraph() {
@@ -39,6 +51,31 @@ function persistGraph() {
 }
 // whenever graph changes, persist and update the node list
 graph.onChange = () => { console.log('graph.onChange: nodes', graph.nodes.length); persistGraph(); updateNodeList(); };
+// sync wrapper height to the rendered svg height to avoid vertical letterbox padding
+function getDynamicGraphHeight() {
+	const viewport = typeof window !== 'undefined' ? window.innerHeight : 720;
+	const header = document.querySelector('header');
+	const headerH = header ? header.offsetHeight : 0;
+	let reserved = headerH + 40;
+	if (typeof document !== 'undefined' && document.body.classList.contains('nodes-open')) {
+		const nodeSection = document.getElementById('node-list-section');
+		const drawer = nodeSection && nodeSection.offsetHeight ? nodeSection.offsetHeight + 16 : Math.min(420, viewport * 0.4);
+		reserved += drawer;
+	}
+	return Math.max(320, viewport - reserved);
+}
+function syncCanvasHeight() {
+	try {
+		const svgEl = document.getElementById('matrix-svg');
+		const wrap = document.getElementById('matrix-canvas-wrap');
+		if (!svgEl || !wrap) return;
+		const targetHeight = getDynamicGraphHeight();
+		svgEl.style.height = `${targetHeight}px`;
+		wrap.style.height = `${targetHeight}px`;
+		wrap.style.minHeight = `${targetHeight}px`;
+	} catch (e) { /* ignore */ }
+}
+if (svg) svg.addEventListener('graph:rendered', () => { syncCanvasHeight(); });
 console.log('csmatrix: listeners wired (approx)');
 if (!graph) {
 	console.error('csmatrix: graph failed to initialize; skipping interactive wiring');
@@ -71,7 +108,8 @@ function hslToHex(hsl) {
 document.getElementById('btn-add-node').addEventListener('click', () => {
 	// add a node at center by default
 	const gx = 0, gy = 0;
-	const node = graph.addNode({ name: 'New Node', gx, gy, color: graph._nextColor ? graph._nextColor() : getCssVar('--accent-influence', '#4caf50') });
+	const defaultColor = getColorOrDefault(graph._nextColor ? graph._nextColor() : getCssVar('--accent-influence', '#4caf50'));
+	const node = graph.addNode({ name: 'New Node', gx, gy, color: defaultColor });
 	graph.selectNode(node);
 	// also allow click-to-place: set mode briefly
 	graph.setMode('addNode'); svg.classList.add('adding-node');
@@ -104,61 +142,12 @@ document.getElementById('import-file').addEventListener('change', (ev) => {
 document.getElementById('btn-reset').addEventListener('click', () => { localStorage.removeItem('csmatrix.graph'); loadSample(); });
 
 // Node edit panel wiring
-function updateNodePanel() {
-	const n = graph.selected.node;
-	const panel = document.getElementById('node-panel');
-	// Keep the organizer visible always; show a clear/disabled state when no node is selected
-	panel.classList.remove('hidden');
-	if (!n) {
-		// Clear values
-		try { document.getElementById('node-name').value = ''; } catch(e) {}
-		try { document.getElementById('node-x').value = ''; document.getElementById('node-x-val').textContent = ''; } catch(e) {}
-		try { document.getElementById('node-y').value = ''; document.getElementById('node-y-val').textContent = ''; } catch(e) {}
-		try { document.getElementById('node-color').value = getCssVar('--text', '#e8eef3'); } catch(e) {}
-		// Disable action buttons when no node is selected
-		try { document.getElementById('btn-save-node').disabled = true; document.getElementById('btn-cancel-node').disabled = true; } catch(e) {}
-		return;
-	}
-	// Ensure buttons are enabled for editing a selected node
-	try { document.getElementById('btn-save-node').disabled = false; document.getElementById('btn-cancel-node').disabled = false; } catch(e) {}
-	panel.classList.remove('hidden'); document.getElementById('node-name').value = n.name || '';
-	// Note: Role/Affiliation/Strength/Notes removed for simplified UI
-		document.getElementById('node-color').value = n.color ? (function(c){
-			if (c.startsWith('hsl')) return hslToHex(c);
-				// try hex or rgb
-				if (c.startsWith('#')) return c; if (c.startsWith('rgb')) return getCssVar('--text', '#e8eef3'); return getCssVar('--text', '#e8eef3');
-		})(n.color) : getCssVar('--text', '#e8eef3');
-	document.getElementById('node-x').value = (typeof n.gx === 'number') ? n.gx : '';
-	document.getElementById('node-y').value = (typeof n.gy === 'number') ? n.gy : '';
-	document.getElementById('node-x-val').textContent = (typeof n.gx === 'number') ? n.gx : '';
-	document.getElementById('node-y-val').textContent = (typeof n.gy === 'number') ? n.gy : '';
-	// color
-	document.getElementById('node-color').value = n.color || getCssVar('--text', '#e8eef3');
-	// Node panel no longer displays node meters (global meters shown separately)
-}
-graph.svg.addEventListener('graph:select', (ev) => { requestAnimationFrame(() => { updateNodePanel(); updateEdgePanel(); updateNodeList(); }); });
-	document.getElementById('btn-save-node').addEventListener('click', () => {
-		const n = graph.selected.node; if (!n) return;
-		n.name = document.getElementById('node-name').value;
-		// Simplified save: only name, color, gx/gy and meters are kept
-		const colVal = document.getElementById('node-color').value; if (colVal) n.color = colVal;
-		const gxInput = parseInt(document.getElementById('node-x').value, 10);
-		const gyInput = parseInt(document.getElementById('node-y').value, 10);
-		if (Number.isFinite(gxInput)) n.gx = Math.max(-6, Math.min(6, gxInput));
-		if (Number.isFinite(gyInput)) n.gy = Math.max(-6, Math.min(6, gyInput));
-		graph.render();
-	});
+// Node panel overlay removed; per-card panels are embedded in the node list.
+graph.svg.addEventListener('graph:select', (ev) => { requestAnimationFrame(() => { updateEdgePanel(); updateNodeList(); }); });
+	// per-card save handlers are created inline when building node cards.
 
 // live input handlers for sliders and color
-document.getElementById('node-x').addEventListener('input', (ev) => {
-	const n = graph.selected.node; if (!n) return; const gx = parseInt(ev.target.value, 10); if (!Number.isFinite(gx)) return; n.gx = Math.max(-6, Math.min(6, gx)); graph.render();
-	document.getElementById('node-x-val').textContent = ev.target.value;
-});
-document.getElementById('node-y').addEventListener('input', (ev) => {
-	const n = graph.selected.node; if (!n) return; const gy = parseInt(ev.target.value, 10); if (!Number.isFinite(gy)) return; n.gy = Math.max(-6, Math.min(6, gy)); graph.render();
-	document.getElementById('node-y-val').textContent = ev.target.value;
-});
-document.getElementById('node-color').addEventListener('input', (ev) => { const n = graph.selected.node; if (!n) return; n.color = ev.target.value; graph.render(); });
+// per-card live input handlers are created when panels are built.
 
 // Global meters buttons (wired regardless of graph presence)
 function updateGlobalMetersUI() {
@@ -171,6 +160,12 @@ const changeGlobalMeter = (name, delta) => {
 	updateGlobalMetersUI();
 	persistGraph();
 	updateControlMeterBars();
+};
+const stopNodeCardPropagation = (element) => {
+	if (!element) return;
+	['mousedown','mouseup','touchstart','touchend','click','dblclick','focus','keydown'].forEach(evt => {
+		element.addEventListener(evt, (ev) => ev.stopPropagation());
+	});
 };
 const bindBtn = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
 bindBtn('global-plus-collapse', ()=> changeGlobalMeter('collapse', +1));
@@ -195,31 +190,70 @@ function updateControlMeterBars() {
 }
 // wire toggle for showing controls on mobile
 const btnToggleControls = document.getElementById('btn-toggle-controls');
+function syncControlsToggleState(isOpen) {
+	if (!btnToggleControls) return;
+	const open = typeof isOpen === 'boolean' ? isOpen : document.body.classList.contains('controls-open');
+	btnToggleControls.textContent = open ? 'Hide Controls' : 'Show Controls';
+	btnToggleControls.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
 if (btnToggleControls) {
 	btnToggleControls.addEventListener('click', () => {
 		const isOpen = document.body.classList.toggle('controls-open');
-		btnToggleControls.textContent = isOpen ? 'Hide Controls' : 'Show Controls';
+		syncControlsToggleState(isOpen);
+		// Trigger a graph re-render to ensure the canvas resizes and nodes update
+		try { if (graph && typeof graph.render === 'function') graph.render(); } catch(e) {}
+		// Update visibility helper for small screens
+		updateControlsVisibility();
 	});
 }
-// Maximize graph button
-const btnMaximize = document.getElementById('btn-maximize');
-if (btnMaximize) {
-		btnMaximize.addEventListener('click', () => { 
-				const isMax = document.body.classList.toggle('graph-max');
-				btnMaximize.textContent = isMax ? 'Restore View' : 'Maximize Graph';
-				btnMaximize.setAttribute('aria-pressed', isMax ? 'true' : 'false');
-				btnMaximize.classList.toggle('is-maximized', isMax);
-				// re-render graph so radius and font sizes update immediately
-				try { if (graph && typeof graph.render === 'function') graph.render(); } catch(e) {}
-				// ensure focus returns to the button so keyboard users do not lose control
-				try { btnMaximize.focus(); } catch(e) {}
-		});
-}
+// Maximize graph removed (feature removed per request)
+// Maximize graph removed
 // hide controls from within the controls panel
 const btnHideControls = document.getElementById('btn-hide-controls');
 if (btnHideControls) {
-	btnHideControls.addEventListener('click', () => { document.body.classList.remove('controls-open'); btnToggleControls.textContent = 'Show Controls'; });
+	btnHideControls.addEventListener('click', () => {
+		document.body.classList.remove('controls-open');
+		syncControlsToggleState(false);
+		updateControlsVisibility();
+	});
 }
+// When hide controls clicked, ensure the graph updates
+if (btnHideControls) {
+	btnHideControls.addEventListener('click', () => { try { if (graph && typeof graph.render === 'function') graph.render(); } catch(e) {} });
+}
+const btnToggleNodes = document.getElementById('btn-toggle-nodes');
+const btnHideNodes = document.getElementById('btn-hide-nodes');
+function syncNodeToggleState() {
+	if (!btnToggleNodes) return;
+	const open = document.body.classList.contains('nodes-open');
+	btnToggleNodes.textContent = open ? 'Hide Nodes' : 'Show Nodes';
+	btnToggleNodes.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+if (btnToggleNodes) {
+	btnToggleNodes.addEventListener('click', () => {
+		const open = document.body.classList.toggle('nodes-open');
+		syncNodeToggleState();
+		try { if (graph && typeof graph.render === 'function') graph.render(); } catch (e) {}
+		if (open) {
+			const nodeSection = document.getElementById('node-list-section');
+			if (nodeSection && typeof nodeSection.scrollIntoView === 'function') {
+				nodeSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			}
+		}
+		try { syncCanvasHeight(); } catch (e) {}
+	});
+}
+if (btnHideNodes) {
+	btnHideNodes.addEventListener('click', () => {
+		document.body.classList.remove('nodes-open');
+		syncNodeToggleState();
+		try { if (graph && typeof graph.render === 'function') graph.render(); } catch (e) {}
+		try { syncCanvasHeight(); } catch (e) {}
+	});
+}
+syncControlsToggleState();
+syncNodeToggleState();
+
 // HUD toggle button: hide/show header meters and controls
 const btnToggleHud = document.getElementById('btn-toggle-hud');
 if (btnToggleHud) {
@@ -230,52 +264,76 @@ if (btnToggleHud) {
 		btnToggleHud.setAttribute('aria-pressed', hidden ? 'true' : 'false');
 		btnToggleHud.setAttribute('aria-label', hidden ? 'Show HUD' : 'Hide HUD');
 		// also ensure Controls are hidden when HUD is hidden
-		if (hidden) { document.body.classList.remove('controls-open'); }
+		if (hidden) {
+			document.body.classList.remove('controls-open');
+			document.body.classList.remove('nodes-open');
+			try { syncControlsToggleState(false); } catch (e) {}
+			syncNodeToggleState();
+		}
 		// update axis pills for screen readers
 		document.querySelectorAll('.axis-pill').forEach(el => { el.setAttribute('aria-hidden', hidden ? 'true' : 'false'); });
+		// ensure graph redraw for layout changes
+		try { if (graph && typeof graph.render === 'function') graph.render(); } catch(e) {}
 	});
 }
+	// ensure graph redraw on viewport resizes so canvas fills available space
+	window.addEventListener('resize', () => { try { if (graph && typeof graph.render === 'function') graph.render(); } catch(e) {} });
 // Note: previously there was an in-graph HUD button; it's removed from markup to avoid duplication
 // Toggle pills and header by double-tap on the canvas (mobile friendly gesture)
 document.getElementById('matrix-canvas-wrap').addEventListener('dblclick', () => {
 	const btn = document.getElementById('btn-toggle-hud'); if (btn) btn.click();
 });
-// Density select wiring
-const densitySelect = document.getElementById('density-select');
-function loadDensity() {
-	try { const saved = localStorage.getItem('csmatrix.density'); if (saved) { densitySelect.value = saved; graph.setDensity(saved); } }
-	catch(e) {}
-}
-if (densitySelect) {
-	densitySelect.addEventListener('change', (ev) => { const val = ev.target.value; if (graph && typeof graph.setDensity === 'function') graph.setDensity(val); localStorage.setItem('csmatrix.density', val); });
-}
-loadDensity();
-// Optional: make density select respond to body class toggle for accessibility
-// Persist class on body for other UI changes
-const applyScaleClass = (density) => {
+// Force auto-fit now that the manual toggle has been removed
+try {
+	if (graph && typeof graph.setAutoMax === 'function') graph.setAutoMax(true);
+	document.body.classList.add('graph-auto-max');
+} catch (e) { /* ignore */ }
+// Helper to sync UI scale classes for posture modes
+const applyScaleClass = (mode) => {
+	const value = mode || 'normal';
 	document.body.classList.remove('ui-scale-compact','ui-scale-normal','ui-scale-spacious');
-	document.body.classList.add(density === 'compact' ? 'ui-scale-compact' : (density === 'spacious' ? 'ui-scale-spacious' : 'ui-scale-normal'));
+	document.body.classList.add(value === 'compact' ? 'ui-scale-compact' : (value === 'spacious' ? 'ui-scale-spacious' : 'ui-scale-normal'));
 };
-if (densitySelect) { applyScaleClass(densitySelect.value); densitySelect.addEventListener('change', (ev) => applyScaleClass(ev.target.value)); }
 // posture toggle: compact UI vs normal (persisted)
 const btnPosture = document.getElementById('btn-posture');
 function loadPosture() {
 	try {
 		const p = localStorage.getItem('csmatrix.posture');
-		if (p) applyScaleClass(p);
+		applyScaleClass(p || 'normal');
 		if (btnPosture) btnPosture.setAttribute('aria-pressed', document.body.classList.contains('ui-scale-compact') ? 'true' : 'false');
 	} catch (e) {}
 }
 if (btnPosture) {
 	btnPosture.addEventListener('click', () => {
-		const compact = document.body.classList.toggle('ui-scale-compact');
-		applyScaleClass(compact ? 'compact' : 'normal');
-		localStorage.setItem('csmatrix.posture', compact ? 'compact' : 'normal');
+		const compact = !document.body.classList.contains('ui-scale-compact');
+		const next = compact ? 'compact' : 'normal';
+		applyScaleClass(next);
+		localStorage.setItem('csmatrix.posture', next);
 		btnPosture.setAttribute('aria-pressed', compact ? 'true' : 'false');
 	});
 }
 loadPosture();
-const btnCancelNode = document.getElementById('btn-cancel-node'); if (btnCancelNode) { btnCancelNode.addEventListener('click', () => { if (graph && typeof graph.clearSelection === 'function') graph.clearSelection(); updateNodePanel(); if (graph && typeof graph.render === 'function') graph.render(); }); }
+// Controls visibility helper: overlay panel only shows when controls-open and HUD is visible
+function updateControlsVisibility() {
+	const controlsEl = document.getElementById('controls');
+	if (!controlsEl) return;
+	if (document.body.classList.contains('hud-hidden')) {
+		controlsEl.style.setProperty('display', 'none', 'important');
+		return;
+	}
+	if (document.body.classList.contains('controls-open')) {
+		controlsEl.style.setProperty('display', 'block', 'important');
+	} else {
+		controlsEl.style.setProperty('display', 'none', 'important');
+	}
+}
+// Expose helper globally for automated tests & script toggles
+try { window.updateControlsVisibility = updateControlsVisibility; } catch(e) {}
+window.addEventListener('resize', updateControlsVisibility);
+updateControlsVisibility();
+// also call syncCanvasHeight on initial load so wrapper matches svg size
+try { syncCanvasHeight(); } catch(e) {}
+// old overlay cancel button removed — per-card cancel buttons now available
 
 // Edge UI removed - edges are not used for simplified social matrix
 function updateEdgePanel() { return; }
@@ -285,21 +343,98 @@ function updateNodeList() {
 	const list = document.getElementById('node-list'); if (!list) return;
 	console.log('updateNodeList called, nodes:', graph.nodes.map(n => n.id));
 	list.innerHTML = '';
-	if (!graph.nodes || graph.nodes.length === 0) { const empt = document.createElement('div'); empt.textContent = 'No nodes yet — Add a node with the Add Node button'; empt.style.color='var(--muted)'; list.appendChild(empt); return; }
+	if (!graph.nodes || graph.nodes.length === 0) {
+		const empt = document.createElement('div'); empt.textContent = 'No nodes yet — Add a node with the Add Node button'; empt.style.color='var(--muted)'; list.appendChild(empt);
+		return;
+	}
 	graph.nodes.forEach(n => {
 		const card = document.createElement('div'); card.className = 'node-card'; card.tabIndex = 0; card.setAttribute('role','button');
-		const sw = document.createElement('div'); sw.className = 'node-swatch'; sw.style.backgroundColor = n.color || 'var(--muted)'; card.appendChild(sw);
+		const header = document.createElement('div'); header.className = 'node-card-head';
+		const colorValue = getColorOrDefault(n.color);
+		n.color = colorValue;
+		const sw = document.createElement('div'); sw.className = 'node-swatch'; sw.style.backgroundColor = colorValue; header.appendChild(sw);
 		const meta = document.createElement('div'); meta.className = 'node-meta';
-		const title = document.createElement('div'); title.textContent = n.name || '(no name)'; title.style.fontWeight = '600'; title.style.fontSize = '14px'; meta.appendChild(title);
-		const coords = document.createElement('div'); coords.textContent = `x: ${n.gx} y: ${n.gy}`; coords.style.fontSize = '12px'; coords.style.color = 'var(--border)'; meta.appendChild(coords);
-		card.appendChild(meta);
-			const del = document.createElement('button'); del.className = 'delete-node'; del.textContent = 'Delete'; del.setAttribute('aria-label', `Delete ${n.name || 'node'}`);
-			del.addEventListener('click', (ev) => { ev.stopPropagation(); console.log('delete button clicked for', n.id); if (confirm(`Delete node '${n.name || n.id}'?`)) { graph.removeNode(n.id); try { persistGraph(); } catch (e) {} updateNodeList(); } });
-		card.appendChild(del);
-		// select on click
+		const title = document.createElement('div'); title.textContent = n.name || '(no name)'; title.className = 'node-name'; meta.appendChild(title);
+		const coords = document.createElement('div'); coords.textContent = `x: ${n.gx} y: ${n.gy}`; coords.className = 'node-coords'; meta.appendChild(coords);
+		header.appendChild(meta);
+		const del = document.createElement('button'); del.className = 'delete-node'; del.textContent = 'Delete'; del.setAttribute('aria-label', `Delete ${n.name || 'node'}`);
+		del.addEventListener('click', (ev) => { ev.stopPropagation(); console.log('delete button clicked for', n.id); if (confirm(`Delete node '${n.name || n.id}'?`)) { graph.removeNode(n.id); try { persistGraph(); } catch (e) {} updateNodeList(); } });
+		header.appendChild(del);
+		card.appendChild(header);
+		const statLine = document.createElement('div'); statLine.className = 'node-stat-line'; statLine.textContent = 'Trust / Distrust + Surveillance'; card.appendChild(statLine);
+
+		// inline node panel (embedded into the card)
+		const panel = document.createElement('div'); panel.className = 'node-panel-inline panel';
+		const heading = document.createElement('h4'); heading.textContent = 'Node'; panel.appendChild(heading);
+		// Name field
+		const nameLabel = document.createElement('label'); nameLabel.textContent = 'Name: '; const nameInput = document.createElement('input'); nameInput.value = n.name || ''; nameLabel.appendChild(nameInput); panel.appendChild(nameLabel);
+		stopNodeCardPropagation(nameInput);
+		// X slider
+		const xLabel = document.createElement('label'); xLabel.textContent = 'Trust / Distrust (X): '; const xInput = document.createElement('input'); xInput.type = 'range'; xInput.min = -6; xInput.max = 6; xInput.step = 1; xInput.value = typeof n.gx === 'number' ? n.gx : 0; const xSpan = document.createElement('span'); xSpan.textContent = xInput.value; xLabel.appendChild(xInput); xLabel.appendChild(xSpan); panel.appendChild(xLabel);
+		stopNodeCardPropagation(xInput);
+		// Y slider
+		const yLabel = document.createElement('label'); yLabel.textContent = 'Carte Blanche / Surveillance (Y): '; const yInput = document.createElement('input'); yInput.type = 'range'; yInput.min = -6; yInput.max = 6; yInput.step = 1; yInput.value = typeof n.gy === 'number' ? n.gy : 0; const ySpan = document.createElement('span'); ySpan.textContent = yInput.value; yLabel.appendChild(yInput); yLabel.appendChild(ySpan); panel.appendChild(yLabel);
+		stopNodeCardPropagation(yInput);
+		// Color
+		const colorLabel = document.createElement('label'); colorLabel.textContent = 'Color Hex: ';
+		const colorInput = document.createElement('input');
+		colorInput.type = 'text';
+		colorInput.inputMode = 'text';
+		colorInput.autocomplete = 'off';
+		colorInput.spellcheck = false;
+		colorInput.maxLength = 7;
+		colorInput.placeholder = DEFAULT_NODE_COLOR;
+		colorInput.value = colorValue;
+		colorLabel.appendChild(colorInput);
+		panel.appendChild(colorLabel);
+		stopNodeCardPropagation(colorInput);
+		// Actions
+		const actions = document.createElement('div'); actions.className = 'panel-actions'; const saveBtn = document.createElement('button'); saveBtn.textContent = 'Save'; const cancelBtn = document.createElement('button'); cancelBtn.textContent = 'Cancel'; actions.appendChild(saveBtn); actions.appendChild(cancelBtn); panel.appendChild(actions);
+		// Save & cancel logic
+		saveBtn.addEventListener('click', (ev) => {
+			ev.stopPropagation();
+			n.name = nameInput.value;
+			title.textContent = n.name || '(no name)';
+			const gx = parseInt(xInput.value,10);
+			const gy = parseInt(yInput.value,10);
+			if (Number.isFinite(gx)) n.gx = Math.max(-6, Math.min(6, gx));
+			if (Number.isFinite(gy)) n.gy = Math.max(-6, Math.min(6, gy));
+			const normalizedColor = getColorOrDefault(colorInput.value);
+			n.color = normalizedColor;
+			colorInput.value = normalizedColor;
+			sw.style.backgroundColor = normalizedColor;
+			coords.textContent = `x: ${n.gx} y: ${n.gy}`;
+			try { persistGraph(); } catch(e) {}
+			graph.render();
+			updateNodeList();
+		});
+		cancelBtn.addEventListener('click', (ev) => {
+			ev.stopPropagation();
+			nameInput.value = n.name || '';
+			xInput.value = typeof n.gx === 'number' ? n.gx : 0;
+			xSpan.textContent = xInput.value;
+			yInput.value = typeof n.gy === 'number' ? n.gy : 0;
+			ySpan.textContent = yInput.value;
+			const normalizedColor = getColorOrDefault(n.color);
+			colorInput.value = normalizedColor;
+			sw.style.backgroundColor = normalizedColor;
+		});
+		// live input handlers
+		xInput.addEventListener('input', (ev) => { xSpan.textContent = ev.target.value; const gx = parseInt(ev.target.value,10); if (!Number.isNaN(gx)) { n.gx = Math.max(-6, Math.min(6, gx)); coords.textContent = `x: ${n.gx} y: ${n.gy}`; graph.render(); } });
+		yInput.addEventListener('input', (ev) => { ySpan.textContent = ev.target.value; const gy = parseInt(ev.target.value,10); if (!Number.isNaN(gy)) { n.gy = Math.max(-6, Math.min(6, gy)); coords.textContent = `x: ${n.gx} y: ${n.gy}`; graph.render(); } });
+		colorInput.addEventListener('change', (ev) => {
+			const normalizedColor = getColorOrDefault(ev.target.value);
+			ev.target.value = normalizedColor;
+			n.color = normalizedColor;
+			sw.style.backgroundColor = normalizedColor;
+			graph.render();
+		});
+		// select on click - selecting will re-render the list and show panel for selected node
 		card.addEventListener('click', () => { graph.selectNode(n); });
 		card.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); graph.selectNode(n); } });
-		if (graph.selected.node && graph.selected.node.id === n.id) card.classList.add('selected');
+		// show/hide panel depending on selection
+		if (graph.selected.node && graph.selected.node.id === n.id) { card.classList.add('selected'); panel.style.display = 'block'; } else { panel.style.display = 'none'; }
+		card.appendChild(panel);
 		list.appendChild(card);
 	});
 }
@@ -310,6 +445,9 @@ function loadSample() {
 	if (saved) {
 		try {
 			const parsed = JSON.parse(saved);
+			if (!parsed || !parsed.nodes || parsed.nodes.length === 0) {
+				throw new Error('Saved graph is empty or invalid');
+			}
 			graph.fromJSON(parsed);
 			if (parsed.meta && parsed.meta.globalMeters) { globalMeters = parsed.meta.globalMeters; updateControlMeterBars(); }
 			updateGlobalMetersUI();
@@ -323,7 +461,7 @@ function loadSample() {
 	if (sample.meta && sample.meta.globalMeters) { globalMeters = sample.meta.globalMeters; updateControlMeterBars(); }
 	updateGlobalMetersUI();
 	// Ensure the node organizer and list are shown on initial load
-	try { updateNodeList(); updateNodePanel(); } catch(e) { /* ignore */ }
+	try { updateNodeList(); } catch(e) { /* ignore */ }
 }
 try { loadSample(); } catch (err) { console.error('csmatrix: loadSample failed', err); }
 	updateControlMeterBars();

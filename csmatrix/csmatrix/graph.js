@@ -12,14 +12,18 @@ class CSGraph {
     // default grid: -6..6
     this.gridMin = typeof opts.gridMin === 'number' ? opts.gridMin : -6;
     this.gridMax = typeof opts.gridMax === 'number' ? opts.gridMax : 6;
-    this.viewBox = { x: 0, y: 0, w: 1200, h: 1200 };
+    this.viewBox = { x: 0, y: 0, w: 1000, h: 1000 };
     // symmetric padding — default base pad used when adjusting layout density
-    this.basePad = { left: 160, right: 160, top: 160, bottom: 160 };
+    this.basePad = { left: 140, right: 140, top: 140, bottom: 140 };
     this.pad = Object.assign({}, this.basePad);
     this.density = 'normal';
     this._initGrid();
     // make sure the svg viewBox matches our internal viewBox values
     try { this.svg.setAttribute('viewBox', `${this.viewBox.x} ${this.viewBox.y} ${this.viewBox.w} ${this.viewBox.h}`); } catch(e) {}
+    this.scale = 1;
+    this.autoMax = typeof opts.autoMax === 'boolean' ? opts.autoMax : true;
+    this.lockScale = false; this._lockedScale = null;
+    if (typeof window !== 'undefined') window.addEventListener('resize', () => { try { this.render(); } catch(e) {} });
   }
   _initGrid() {
     const w = this.viewBox.w - this.pad.left - this.pad.right;
@@ -77,6 +81,8 @@ class CSGraph {
   setMode(m) { this.mode = m; if (m !== 'addEdge') { this.tempEdgeStart = null; } }
   clearSelection() { this.selected.node = null; this.svg.dispatchEvent(new CustomEvent('graph:select', { detail: { node: null } })); }
   selectNode(node) { this.selected.node = node; this.render(); this.svg.dispatchEvent(new CustomEvent('graph:select', { detail: { node } })); }
+  setAutoMax(v) { this.autoMax = !!v; try { this.render(); } catch (e) {} }
+  setLockScale(v) { this.lockScale = !!v; if (this.lockScale) this._lockedScale = this.scale; else this._lockedScale = null; try { this.render(); } catch(e) {} }
   // selectEdge removed; edges are not used
   toJSON() {
     // export as nodes with id, name, gx, gy, color (meters are global)
@@ -178,6 +184,21 @@ class CSGraph {
     return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
   }
   render() {
+    try { const rect = this.svg.getBoundingClientRect(); const ratioX = rect.width / this.viewBox.w; const ratioY = rect.height / this.viewBox.h; this.scale = Math.min(ratioX, ratioY); if (!Number.isFinite(this.scale) || this.scale <= 0) this.scale = 1; if (this.lockScale && Number.isFinite(this._lockedScale) && this._lockedScale > this.scale) this.scale = this._lockedScale; } catch (e) { this.scale = 1; }
+    try {
+      if (this.autoMax) {
+        this.pad.left = 0; this.pad.right = 0; this.pad.top = 0; this.pad.bottom = 0;
+      } else {
+        const padScale = Math.max(1, this.scale);
+        const clamp = (v, minv, maxv) => Math.max(minv, Math.min(maxv, v));
+        const padMin = 48;
+        this.pad.left = clamp(Math.round(this.basePad.left / padScale), padMin, this.basePad.left);
+        this.pad.right = clamp(Math.round(this.basePad.right / padScale), padMin, this.basePad.right);
+        this.pad.top = clamp(Math.round(this.basePad.top / padScale), padMin, this.basePad.top);
+        this.pad.bottom = clamp(Math.round(this.basePad.bottom / padScale), padMin, this.basePad.bottom);
+      }
+      this._initGrid();
+    } catch (e) { }
     console.log('CSGraph.render: rendering', this.nodes.length);
     // Clear
     while (this.svg.firstChild) this.svg.removeChild(this.svg.firstChild);
@@ -201,15 +222,18 @@ class CSGraph {
       line.setAttribute('stroke', 'var(--border)');
       line.setAttribute('stroke-width', '1');
       this.svg.appendChild(line);
-      const t = document.createElementNS('http://www.w3.org/2000/svg','text');
-      t.setAttribute('x', x.toString());
-      t.setAttribute('y', (centerY + 26).toString());
-      t.setAttribute('font-size','16');
-      t.setAttribute('fill','var(--muted)');
-      t.setAttribute('text-anchor','middle');
-      t.textContent = i.toString();
-      this.svg.appendChild(t);
-    }
+        const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+        const labelY = Math.max(this.pad.top + 12, Math.min(centerY + 26, this.viewBox.h - this.pad.bottom - 12));
+        t.setAttribute('x', x.toString());
+        t.setAttribute('y', labelY.toString());
+        t.setAttribute('font-size','16');
+        t.setAttribute('fill','var(--muted)');
+        t.setAttribute('text-anchor','middle');
+        t.textContent = i.toString();
+        try { t.classList.add('tick'); } catch(e) {}
+        this.svg.appendChild(g);
+      });
+      try { this.svg.dispatchEvent(new CustomEvent('graph:rendered', { detail: { scale: this.scale, pad: this.pad } })); } catch (e) {}
     // horizontal grid lines + left tick labels
     for (let i = this.gridMin; i <= this.gridMax; i++) {
       const y = this.pad.top + (i - this.gridMin) * cellH;
@@ -223,25 +247,32 @@ class CSGraph {
       this.svg.appendChild(lineY);
         // Only show Y labels for non-zero tick rows to avoid duplicating the central 0
         if (i === 0) { const spacer = document.createElementNS('http://www.w3.org/2000/svg','text'); spacer.setAttribute('x', (centerX - 12).toString()); spacer.setAttribute('y', y.toString()); spacer.setAttribute('font-size','0'); spacer.textContent = ''; this.svg.appendChild(spacer); } else {
-          const tY = document.createElementNS('http://www.w3.org/2000/svg','text');
-      tY.setAttribute('x', (centerX - 12).toString());
-      tY.setAttribute('y', y.toString());
-      tY.setAttribute('font-size','16');
-      tY.setAttribute('fill','var(--muted)');
-      tY.setAttribute('text-anchor','end');
-      tY.setAttribute('dominant-baseline', 'middle');
-      tY.textContent = (-i).toString();
-      this.svg.appendChild(tY);
+            const tY = document.createElementNS('http://www.w3.org/2000/svg','text');
+        tY.setAttribute('x', (centerX - 12).toString());
+        const labelY2 = Math.max(this.pad.top + 10, Math.min(y, this.viewBox.h - this.pad.bottom - 10));
+        tY.setAttribute('y', labelY2.toString());
+        tY.setAttribute('font-size','16');
+        tY.setAttribute('fill','var(--muted)');
+        tY.setAttribute('text-anchor','end');
+        tY.setAttribute('dominant-baseline', 'middle');
+        tY.textContent = (-i).toString();
+        try { tY.classList.add('tick'); } catch(e) {}
+        this.svg.appendChild(tY);
         }
     }
     // Axis title labels removed — axis pills are shown in the UI outside the SVG
     // draw nodes (reuse steps/cell sizes computed above)
     this.nodes.forEach(n => {
       const p = this.gridToPixel(n.gx, n.gy);
-      const g = document.createElementNS('http://www.w3.org/2000/svg','g'); g.setAttribute('transform', `translate(${p.x},${p.y})`); g.setAttribute('data-node-id', n.id);
-      const defaultRadius = 48;
+      const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+      g.setAttribute('transform', `translate(${p.x},${p.y})`);
+      g.setAttribute('data-node-id', n.id);
+      g.classList.add('node');
+      const defaultRadius = 28;
       const maxRadius = 72;
-      const r = (typeof window !== 'undefined' && document && document.body.classList.contains('graph-max')) ? maxRadius : defaultRadius;
+      const extra = this.autoMax ? 1.25 : 1;
+      const scaled = Math.round(defaultRadius * Math.max(1, this.scale * extra));
+      const r = Math.min(maxRadius, scaled);
         const accentColor = (typeof window !== 'undefined' && window.getComputedStyle) ? (getComputedStyle(document.documentElement).getPropertyValue('--accent-influence').trim() || '#4caf50') : '#4caf50';
         const fillColor = (n.color && n.color.startsWith('#')) ? n.color : (n.color && n.color.startsWith('hsl') ? n.color : (n.color ? n.color : accentColor));
         const circle = document.createElementNS('http://www.w3.org/2000/svg','circle'); circle.setAttribute('cx', '0'); circle.setAttribute('cy', '0'); circle.setAttribute('r', r.toString()); circle.setAttribute('fill', fillColor); circle.setAttribute('fill-opacity', '1'); circle.setAttribute('stroke', 'rgba(255,255,255,0.06)'); circle.setAttribute('stroke-width', '2'); circle.setAttribute('data-node-id', n.id);
@@ -249,18 +280,19 @@ class CSGraph {
       // selection ring
       if (this.selected.node && this.selected.node.id === n.id) {
         const ring = document.createElementNS('http://www.w3.org/2000/svg','circle'); ring.setAttribute('cx','0'); ring.setAttribute('cy','0'); ring.setAttribute('r', (r + 6).toString()); ring.setAttribute('fill','none'); ring.setAttribute('stroke','var(--accent-collapse)'); ring.setAttribute('stroke-width','4'); g.appendChild(ring);
+        try { g.classList.add('selected'); } catch(e) {}
       }
         // label shows only for selected node
         // Create the text element first before setting attributes (avoid TDZ)
         const text = document.createElementNS('http://www.w3.org/2000/svg','text');
         text.setAttribute('x', 0);
-        text.setAttribute('y', 48);
+        text.setAttribute('y', (r + 14).toString());
         text.setAttribute('text-anchor', 'middle');
         text.textContent = n.name || 'Node';
         // Label: slightly larger by default, reveal on hover/tap and selection
-          const defaultTextSize = '40';
-          const hoverTextSize = '72';
-          const activeTextSize = '100';
+          const defaultTextSize = Math.round(40 * Math.max(1, this.scale * extra)).toString();
+          const hoverTextSize = Math.round(72 * Math.max(1, this.scale * extra)).toString();
+          const activeTextSize = Math.round(100 * Math.max(1, this.scale * extra)).toString();
           text.setAttribute('font-size', defaultTextSize);
           try { text.classList.add('node-label'); } catch(e) {}
         text.setAttribute('font-weight', '700');
@@ -269,10 +301,10 @@ class CSGraph {
         const defaultSize = '36';
         const hoverSize = '60';
         const activeSize = '76';
-        g.addEventListener('pointerenter', () => { if (_hoverTimeout) { clearTimeout(_hoverTimeout); _hoverTimeout = null; } text.setAttribute('opacity','1'); text.setAttribute('font-size', hoverSize); });
-        g.addEventListener('pointerleave', () => { if (_hoverTimeout) { clearTimeout(_hoverTimeout); _hoverTimeout = null; } text.setAttribute('font-size', defaultSize); text.setAttribute('opacity', (this.selected.node && this.selected.node.id === n.id) ? '1' : '0'); });
-        g.addEventListener('pointerdown', () => { if (_hoverTimeout) clearTimeout(_hoverTimeout); text.setAttribute('opacity','1'); text.setAttribute('font-size', activeSize); _hoverTimeout = setTimeout(() => { _hoverTimeout = null; if (!(this.selected.node && this.selected.node.id === n.id)) { text.setAttribute('font-size', defaultSize); text.setAttribute('opacity','0'); } else { text.setAttribute('font-size', hoverSize); text.setAttribute('opacity','1'); } }, 1200); });
-        g.addEventListener('pointerup', () => { if (_hoverTimeout) clearTimeout(_hoverTimeout); _hoverTimeout = null; if (!(this.selected.node && this.selected.node.id === n.id)) { text.setAttribute('opacity', '0'); text.setAttribute('font-size', defaultSize); } else { text.setAttribute('font-size', hoverSize); text.setAttribute('opacity','1'); } });
+        g.addEventListener('pointerenter', () => { if (_hoverTimeout) { clearTimeout(_hoverTimeout); _hoverTimeout = null; } text.setAttribute('opacity','1'); text.setAttribute('font-size', hoverSize); try { g.classList.add('hover'); } catch(e) {} });
+        g.addEventListener('pointerleave', () => { if (_hoverTimeout) { clearTimeout(_hoverTimeout); _hoverTimeout = null; } text.setAttribute('font-size', defaultSize); text.setAttribute('opacity', (this.selected.node && this.selected.node.id === n.id) ? '1' : '0'); try { g.classList.remove('hover'); } catch(e) {} });
+        g.addEventListener('pointerdown', () => { if (_hoverTimeout) clearTimeout(_hoverTimeout); text.setAttribute('opacity','1'); text.setAttribute('font-size', activeSize); try { g.classList.add('active'); } catch(e) {} _hoverTimeout = setTimeout(() => { _hoverTimeout = null; if (!(this.selected.node && this.selected.node.id === n.id)) { text.setAttribute('font-size', defaultSize); text.setAttribute('opacity','0'); } else { text.setAttribute('font-size', hoverSize); text.setAttribute('opacity','1'); } }, 1200); });
+        g.addEventListener('pointerup', () => { if (_hoverTimeout) clearTimeout(_hoverTimeout); _hoverTimeout = null; if (!(this.selected.node && this.selected.node.id === n.id)) { text.setAttribute('opacity', '0'); text.setAttribute('font-size', defaultSize); } else { text.setAttribute('font-size', hoverSize); text.setAttribute('opacity','1'); } try { g.classList.remove('active'); } catch(e) {} });
       g.appendChild(text);
       console.log('nested render node', n.id, 'color:', n.color, 'px', p.x, p.y);
       this.svg.appendChild(g);

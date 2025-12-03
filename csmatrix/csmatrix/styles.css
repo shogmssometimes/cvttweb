@@ -34,14 +34,18 @@ header .global-meters { width: 100%; display: flex; justify-content: space-betwe
 #matrix-canvas-wrap .posture-toggle { left: 56px; right: auto; top: 12px; background: rgba(0,0,0,0.35); color: var(--text); border: 1px solid rgba(255,255,255,0.02); width:36px; height:36px; padding: 0; font-size:0; border-radius:6px; }
 #matrix-canvas-wrap svg line { stroke: rgba(255,255,255,0.08) !important; stroke-width: 1 !important; }
 #matrix-canvas-wrap svg text { fill: rgba(255,255,255,0.93) !important; transition: opacity 160ms ease, font-size 180ms cubic-bezier(.2,.9,.12,1); }
-#matrix-canvas-wrap svg text[opacity] { opacity: 0.88 !important; }
+#matrix-canvas-wrap svg text.tick { opacity: 0.88; }
 #matrix-canvas-wrap svg circle { stroke: rgba(255,255,255,0.12) !important; stroke-width: 2 !important; }
 #matrix-canvas-wrap svg circle[data-node-id] { stroke: rgba(0,0,0,0.6) !important; stroke-width: 2 !important; }
 #matrix-canvas-wrap svg g circle { filter: drop-shadow(0 3px 6px rgba(0,0,0,0.45)); }
 #matrix-canvas-wrap svg text { font-weight: 600; }
 #matrix-canvas-wrap svg .selection-ring { stroke: var(--accent-collapse) !important; stroke-width: 4px !important; }
-#matrix-canvas-wrap svg text.node-label { font-size: 40px; }
-body.graph-max #matrix-canvas-wrap svg text.node-label { font-size: 72px; }
+#matrix-canvas-wrap svg text.node-label { font-size: 40px; opacity: 0; transition: opacity 160ms ease, font-size 180ms cubic-bezier(.2,.9,.12,1), transform 160ms ease; pointer-events: none; }
+/* Maximize removed; node labels use default sizing */
+#matrix-canvas-wrap svg g.node:hover text.node-label,
+#matrix-canvas-wrap svg g.node.hover text.node-label,
+#matrix-canvas-wrap svg g.node.active text.node-label,
+#matrix-canvas-wrap svg g.node.selected text.node-label { opacity: 1; transform: translateY(0); }
 #matrix-canvas-wrap .posture-toggle::before { content: "≡"; display:inline-block; font-size:16px; line-height:36px; text-align:center; width:100%; }
 #matrix-canvas-wrap .posture-toggle[aria-pressed='true']::before { content: "⊞"; }
 .hud-toggle:focus { outline: 3px solid rgba(255,255,255,0.2); }
@@ -68,11 +72,11 @@ body.graph-max #matrix-canvas-wrap svg text.node-label { font-size: 72px; }
 #matrix-canvas-wrap { position: relative; }
 #matrix-svg { width: 100%; height: 100%; display: block; }
 .adding-node { cursor: crosshair; }
-.control-row { margin-bottom: 12px; }
+.control-row { margin-bottom: 8px; }
 .panels { margin-top: 12px; }
 .panel { background: var(--surface); border: 1px solid var(--border); padding: 10px; border-radius: 6px; margin-bottom: 12px; }
 .panel h4 { margin: 0 0 8px 0; }
-#controls { flex: 0 0 240px; width:240px; }
+#controls { flex: 0 0 200px; width:200px; }
 /* Slightly reduce font/gap in compact mode via body.ui-scale-compact */
 body.ui-scale-compact #controls { width: 220px; }
 body.ui-scale-compact .control-row button { font-size: 13px; padding: 8px; }
@@ -82,6 +86,12 @@ body.ui-scale-compact #controls { flex: 0 0 220px; width: 220px; }
 body.ui-scale-compact .meter-bars .unit { width: 16px; height: 16px; }
 body.ui-scale-compact #matrix-canvas-wrap { padding: 6px; }
 body.ui-scale-compact .hud-toggle, body.ui-scale-compact .posture-toggle { width: 32px; height: 32px; }
+
+/* Controls toggle: hide controls and grow the matrix when the controls are not open */
+/* Keep default behavior: controls visible on desktop. Hide controls on mobile unless controls-open is set. */
+/* hud-hidden should also collapse controls */
+body.hud-hidden #controls { display: none; flex: 0 0 0 !important; width: 0 !important; }
+body.hud-hidden #matrix { flex: 1 1 100% !important; }
 #layout main, #layout aside { align-self: start; }
 
 /* apply basic layout for header/main */
@@ -103,14 +113,39 @@ footer { padding: 8px 16px; font-size: 0.8rem; color: #555; }
 	/* Show controls above the graph on small screens */
 	#controls { width: 100%; order: 1; display: block; }
 	#matrix { order: 2; }
+
+	/* When controls are visible on mobile, shrink the canvas horizontally to match test/UX expectations */
+	body.controls-open #matrix-canvas-wrap { width: calc(100% - 240px) !important; }
+	body:not(.controls-open) #matrix-canvas-wrap { width: 100% !important; }
 	#matrix-canvas-wrap { min-height: auto; }
 	#matrix-svg { height: auto; }
 	/* show a floating toggle for controls */
 	.hide-desktop { display: inline-block; }
-	body.controls-open #controls { display: block; }
+	body.controls-open #controls { display: block !important; flex: 0 0 auto !important; width: 100% !important; }
 	.control-row button { font-size: 15px; padding: 10px; }
 	.panel { padding: 10px; }
 	.panel input[type='range'] { width: 100%; }
+
+	/* Mobile improvements */
+	#controls { box-shadow: 0 6px 20px rgba(0,0,0,0.6); padding: 12px; }
+	#controls .control-row button { width: 100%; display: block; margin-bottom: 8px; padding: 10px 12px; font-size: 14px; border-radius: 6px; }
+	#node-list-section { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); z-index: 9999; padding: 6px; border-top: 1px solid var(--border); box-shadow: 0 -6px 24px rgba(0,0,0,0.6); }
+	#node-list { display:flex; flex-direction:row; align-items:center; gap: 8px; overflow-x:auto; padding-bottom: 6px; }
+	.node-card { min-width: 140px; flex: 0 0 auto; }
+	main { padding-bottom: calc(12px + 88px); }
+	#matrix-canvas-wrap { width: 100%; min-height: 0; padding: 8px; }
+	#node-panel { display: none !important; } /* overlay removed - kept hidden for compatibility */
+	/* Inline per-card node panel */
+	.node-panel-inline { display: none; margin-top: 8px; }
+	.node-card.selected .node-panel-inline { display: block; }
+	.node-panel-inline label { display:block; margin: 8px 0; }
+	.node-panel-inline .panel-actions { display:flex; gap:8px; margin-top:8px; }
+	/* Visual improvements for inline node panel to resemble the popup overlay */
+	.node-panel-inline { background: var(--surface); border: 1px solid var(--border); padding: 10px; border-radius: 8px; box-shadow: 0 8px 18px rgba(0,0,0,0.6); }
+	.node-panel-inline input[type='range'] { width: 100%; }
+	.node-panel-inline input[type='color'], .node-panel-inline input[type='text'] { width: 100%; box-sizing: border-box; }
+	.node-panel-inline .panel-actions button { padding: 8px 10px; }
+	#btn-toggle-controls { display: inline-block !important; margin-bottom: 8px; }
 }
 
 /* Desktop: hide mobile-only toggle */
@@ -149,22 +184,7 @@ body.ui-scale-compact .meter-bars .unit { width: 16px; height: 16px; }
 body.ui-scale-compact #matrix-canvas-wrap { padding: 6px; }
 body.ui-scale-compact .hud-toggle, body.ui-scale-compact .posture-toggle { width: 32px; height: 32px; }
 
-/* Maximize graph/collapse controls */
-body.graph-max #controls { display: none; }
-body.graph-max #matrix { flex: 1 1 100%; }
-/* Keep node organizer/list visible even when graph maximized */
-body.graph-max #node-list-section { display:block !important; }
-body.graph-max footer { display:none; }
-/* Full-screen experience adjustments */
-body.graph-max header, body.graph-max footer { display:none; }
-body.graph-max { position: fixed; inset: 0; z-index: 9999; overflow: hidden; }
-body.graph-max main { position: fixed; inset: 0 0 0 0; padding: 12px; display:flex; }
-#btn-maximize.is-maximized { background: rgba(255,255,255,0.06); outline: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.28) inset; }
-body.graph-max #matrix { flex: 1 1 auto; margin: 0; height: 100%; }
-body.graph-max #matrix-canvas-wrap { height: calc(100vh - 24px); width: 100%; border-radius: 0; padding: 8px; }
-body.graph-max #matrix-canvas-wrap svg { width: 100%; height: 100%; }
-/* Floating node-list to the right during maximize */
-body.graph-max #node-list-section { position: absolute; right: 12px; top: 12px; width: 320px; max-height: calc(100vh - 24px); overflow: auto; z-index: 10000; box-shadow: 0 6px 24px rgba(0,0,0,0.6); }
+/* maximize removed - the graph is always in normal view */
 .hide-mobile { display:inline-block; }
 @media (max-width:720px) { .hide-mobile { display:none; } }
 
@@ -179,7 +199,10 @@ body.graph-max #node-list-section { position: absolute; right: 12px; top: 12px; 
 /* Smaller pills for very narrow screens */
 @media (max-width: 420px) {
 	.axis-pill { font-size: 12px; padding: 4px 8px; }
-	.axis-pill-left, .axis-pill-right { left: -40px; right: -40px; }
+	#controls { width: 100%; order: 1; display: block; }
+	/* On mobile, only show controls when controls-open; otherwise hide */
+	body:not(.controls-open) #controls { display: none; flex: 0 0 0 !important; width: 0 !important; }
+	body.controls-open #controls { display: block; }
 	.axis-pill-top { top: -28px; }
 	.axis-pill-bottom { bottom: -30px; }
 }
