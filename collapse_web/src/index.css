@@ -222,6 +222,82 @@ main {
   text-align: center;
 }
 
+.counter-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.counter-inline .counter-btn {
+  width: 32px;
+  height: 32px;
+}
+.counter-pill {
+  min-width: 42px;
+  padding: 2px 12px;
+  text-align: center;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.05);
+  font-weight: 600;
+}
+
+.hand-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.hand-card {
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 12px;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.hand-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.hand-title {
+  font-size: 1rem;
+  font-weight: 600;
+}
+.hand-subtitle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.hand-type {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.72rem;
+}
+.hand-count {
+  font-weight: 600;
+}
+.hand-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.hand-pill {
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--accent);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.hand-hint {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
 
 /* Ensure the header row of cards allows the left content to shrink and the right controls to remain anchored inside the border */
 .card > div > div:first-child { min-width:0; flex: 1 1 auto; }
@@ -283,8 +359,6 @@ main {
 .card-name { font-weight: 700; }
 .weight-600 { font-weight: 600; }
 .label-strong { font-weight: 600; font-size: var(--type-section); }
-
-.capacity-input { width: 92px; padding: 4px 8px; background: var(--bg-dark); border: 1px solid var(--border); color: var(--text); border-radius: 6px; }
 
 /* Details grid class; default layout uses two columns (label/value) */
 .card-details { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; row-gap: 4px; align-items: center; }
