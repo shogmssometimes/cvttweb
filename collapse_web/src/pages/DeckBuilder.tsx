@@ -340,6 +340,10 @@ export default function DeckBuilder(){
         modCounts: { ...sd.modCounts },
         nullCount: sd.nullCount,
         modifierCapacity: sd.modifierCapacity,
+        deckName: sd.name,
+        isLocked: false,
+        hand: [],
+        discard: [],
       }
     })
   }
@@ -493,7 +497,7 @@ export default function DeckBuilder(){
             <div className="card-title"><div className="card-name">{card?.name ?? id} <span className="muted text-section">(x{g.count})</span></div></div>
             <div className="card-controls">
               <button className="counter-btn" onClick={()=>returnDiscardGroupToDeck(id)}>Deck</button>
-              <button className="counter-btn" onClick={()=>returnDiscardGroupToHand(id)} disabled={(builderState.hand ?? []).length >= (builderState.handLimit ?? 5)}>Hand</button>
+              <button className="counter-btn" onClick={()=>returnDiscardGroupToHand(id, true)} disabled={(builderState.hand ?? []).length >= (builderState.handLimit ?? 5)}>Hand</button>
             </div>
           </div>
           <div className="muted text-body">Stacked</div>
@@ -647,6 +651,36 @@ export default function DeckBuilder(){
               <div>
                 <div className="muted text-body">Null Cards</div>
                 <div className="stat-large">{builderState.nullCount}</div>
+                <div className="counter-inline" style={{display:'flex',alignItems:'center',gap:8,marginTop:8}}>
+                  <button
+                    className="counter-btn"
+                    onClick={() => adjustNullCount(-1)}
+                    disabled={builderState.nullCount <= MIN_NULLS || builderState.isLocked}
+                    aria-label="Decrease null cards"
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    min={MIN_NULLS}
+                    value={builderState.nullCount}
+                    onChange={(e) => {
+                      const next = Number.parseInt(e.target.value, 10)
+                      if (!Number.isNaN(next)) setNullCount(next)
+                    }}
+                    disabled={builderState.isLocked}
+                    aria-label="Null card count"
+                    style={{width:60,textAlign:'center'}}
+                  />
+                  <button
+                    className="counter-btn"
+                    onClick={() => adjustNullCount(1)}
+                    disabled={builderState.isLocked}
+                    aria-label="Increase null cards"
+                  >
+                    +
+                  </button>
+                </div>
                 {!nullValid && <div className="status-warning text-body">Minimum of {MIN_NULLS} Nulls required.</div>}
               </div>
               <div>
@@ -809,10 +843,15 @@ export default function DeckBuilder(){
                   <button onClick={()=>generateDeck(true)}>Build Deck</button>
                   <button onClick={()=>shuffleDeck()}>Shuffle</button>
                   <button onClick={()=>toggleLockDeck()}>{builderState.isLocked ? 'Unlock Deck' : 'Lock Deck'}</button>
-                  <div className="ops-save">
-                    {/* Saved deck controls kept as visible list below; remove duplicate save/export/import controls from Deck Ops */}
-                    {/* If we still want to allow directly saving, keep the name input; otherwise we rely on saved deck UI below. */}
-                    {/* Deck name input removed from Deck Ops to avoid duplication. Saved decks are managed below. */}
+                  <div className="ops-save" style={{display:'flex',flexDirection:'column',gap:8}}>
+                    <label style={{fontWeight:600}}>Deck Name</label>
+                    <input
+                      type="text"
+                      value={builderState.deckName ?? ''}
+                      onChange={(e)=>setDeckName(e.target.value)}
+                      placeholder="Name this deck"
+                    />
+                    <button onClick={()=>saveDeck()} disabled={!deckIsValid || (builderState.deck ?? []).length === 0}>Save Deck</button>
                   </div>
                 </div>
                 <div style={{marginTop:12}}>
@@ -832,7 +871,19 @@ export default function DeckBuilder(){
                   <div style={{marginTop:8}}>
                     <label style={{fontWeight:600}}>Hand Limit</label>
                     <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
-                      <input type="number" min={0} value={builderState.handLimit ?? 5} onChange={(e)=>setBuilderState(prev=>({...prev, handLimit: parseInt(e.target.value,10)||5}))} style={{width:80,maxWidth:'100%',textAlign:'center'}} />
+                      <input
+                        type="number"
+                        min={0}
+                        value={builderState.handLimit ?? 5}
+                        onChange={(e)=>{
+                          const next = Number.parseInt(e.target.value, 10)
+                          setBuilderState((prev)=> ({
+                            ...prev,
+                            handLimit: Number.isNaN(next) ? prev.handLimit ?? 5 : clamp(next, 0),
+                          }))
+                        }}
+                        style={{width:80,maxWidth:'100%',textAlign:'center'}}
+                      />
                       <div className="muted text-body">Active cap for hand cards.</div>
                     </div>
                   </div>
