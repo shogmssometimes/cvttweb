@@ -1,11 +1,12 @@
 {
-  "name": "Collapse Companion",
+  "name": "Collapse Full Build",
   "short_name": "Collapse",
   "start_url": ".",
+  "scope": ".",
   "display": "standalone",
   "background_color": "#0f0f0f",
   "theme_color": "#0f0f0f",
-  "description": "Offline Collapse tabletop companion that mirrors the handbook.",
+  "description": "Offline bundle for Collapse Companion, cHUD, and CS Matrix.",
   "icons": [
     {
       "src": "icons/icon-192.png",

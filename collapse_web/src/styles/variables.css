@@ -20,6 +20,10 @@
   /* colors */
   --bg-dark: #0b0b0b;
   --accent: #0ff6ff;
+  --surface: rgba(255,255,255,0.03);
+  --surface-solid: rgba(12,12,12,0.92);
+  --accent-collapse: #ff6b9a;
+  --accent-influence: #63ffb1;
   --muted: #9aa0a6;
   --separator: rgba(255,255,255,0.06);
   --border: #333;
